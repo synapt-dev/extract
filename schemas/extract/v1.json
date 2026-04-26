@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://synapt.dev/schemas/extraction/v1.json",
+  "$id": "https://synapt.dev/schemas/extract/v1.json",
   "title": "SynaptExtraction",
   "description": "SynaptExtraction IL v1 — universal exchange format between text extraction and intelligence operations.",
   "type": "object",

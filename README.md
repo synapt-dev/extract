@@ -92,7 +92,7 @@ SynaptExtraction documents are assembled in three stages:
 The canonical schema is hosted at:
 
 ```
-https://synapt.dev/schemas/extraction/v1.json
+https://synapt.dev/schemas/extract/v1.json
 ```
 
 Sub-schemas: `source-ref/v1.json`, `embedding/v1.json`, `assertion-signals/v1.json`, `temporal-ref/v1.json`.
