@@ -5,17 +5,31 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "synapt-extract"
 version = "0.1.0"
-description = "SynaptExtraction IL v1 — schema, validation, and finalization"
-readme = "README.md"
+description = "SynaptExtraction IL v1 -- schema, validation, and finalization"
+readme = "../../README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
     {name = "Layne Penney"},
 ]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+    "Typing :: Typed",
+]
 
 [project.urls]
 Homepage = "https://synapt.dev"
 Repository = "https://github.com/synapt-dev/extract"
+Documentation = "https://synapt.dev/docs/extract"
+Schema = "https://synapt.dev/schemas/extraction/v1.json"
 
 [tool.setuptools.packages.find]
 where = ["src"]
