@@ -28,6 +28,6 @@ jobs:
 
       - run: python -m build
 
-      - uses: pypa/gh-action-pypi-publish@76f52bc884231f62b54f3568f20e4e024f6eb07a # release/v1
+      - uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
         with:
           packages-dir: packages/python/dist/
