@@ -381,13 +381,24 @@ class TestTimestampValidation:
         assert not result.valid
         assert any("extracted_at" in e.path for e in result.errors)
 
-    def test_extracted_at_valid_date(self):
+    def test_extracted_at_date_only_rejected(self):
         doc = _minimal_extraction(extracted_at="2026-04-26")
         result = validate_extraction(doc)
-        assert result.valid
+        assert not result.valid
+        assert any("extracted_at" in e.path for e in result.errors)
 
     def test_extracted_at_valid_datetime(self):
         doc = _minimal_extraction(extracted_at="2026-04-26T10:30:00Z")
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_extracted_at_valid_datetime_with_offset(self):
+        doc = _minimal_extraction(extracted_at="2026-04-26T10:30:00+05:30")
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_extracted_at_valid_datetime_no_seconds(self):
+        doc = _minimal_extraction(extracted_at="2026-04-26T10:30Z")
         result = validate_extraction(doc)
         assert result.valid
 

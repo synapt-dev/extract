@@ -30,6 +30,7 @@ const VALID_TEMPORAL_TYPES: Set<string> = new Set([
 const URI_RE = /^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\/\S+$/;
 const NAMESPACED_RE = /^[a-zA-Z0-9_\-]+\/[a-zA-Z0-9_\-]+$/;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+\-]\d{2}:?\d{2})?)?$/;
+const ISO_DATETIME_STRICT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+\-]\d{2}:?\d{2})?$/;
 
 function isUri(s: string): boolean {
   return URI_RE.test(s);
@@ -37,6 +38,10 @@ function isUri(s: string): boolean {
 
 function isIsoDatetime(s: string): boolean {
   return ISO_DATE_RE.test(s);
+}
+
+function isIsoDatetimeStrict(s: string): boolean {
+  return ISO_DATETIME_STRICT_RE.test(s);
 }
 
 function isNamespaced(s: string): boolean {
@@ -270,9 +275,9 @@ export function validateExtraction(obj: unknown): ValidationResult {
   }
 
   if (typeof doc.extracted_at !== "string") {
-    errors.push({ path: "extracted_at", message: "required string (ISO 8601)" });
-  } else if (!isIsoDatetime(doc.extracted_at)) {
-    errors.push({ path: "extracted_at", message: "must be a valid ISO 8601 date/datetime" });
+    errors.push({ path: "extracted_at", message: "required string (ISO 8601 date-time)" });
+  } else if (!isIsoDatetimeStrict(doc.extracted_at)) {
+    errors.push({ path: "extracted_at", message: "must be a valid ISO 8601 date-time (e.g. 2026-04-26T12:00:00Z)" });
   }
 
   if (typeof doc.produced_by !== "string") {

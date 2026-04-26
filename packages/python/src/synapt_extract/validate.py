@@ -18,6 +18,11 @@ _ISO_DATE_RE = re.compile(
     r"(?:T\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?"
     r"(?:Z|[+\-]\d{2}:?\d{2})?)?$"
 )
+_ISO_DATETIME_STRICT_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}"
+    r"T\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?"
+    r"(?:Z|[+\-]\d{2}:?\d{2})?$"
+)
 
 
 @dataclass
@@ -38,6 +43,10 @@ def _is_uri(s: str) -> bool:
 
 def _is_iso_datetime(s: str) -> bool:
     return bool(_ISO_DATE_RE.match(s))
+
+
+def _is_iso_datetime_strict(s: str) -> bool:
+    return bool(_ISO_DATETIME_STRICT_RE.match(s))
 
 
 def _is_namespaced(s: str) -> bool:
@@ -222,9 +231,9 @@ def validate_extraction(obj: Any) -> ValidationResult:
 
     extracted_at = obj.get("extracted_at")
     if not isinstance(extracted_at, str):
-        errors.append(ValidationError("extracted_at", "required string (ISO 8601)"))
-    elif not _is_iso_datetime(extracted_at):
-        errors.append(ValidationError("extracted_at", "must be a valid ISO 8601 date/datetime"))
+        errors.append(ValidationError("extracted_at", "required string (ISO 8601 date-time)"))
+    elif not _is_iso_datetime_strict(extracted_at):
+        errors.append(ValidationError("extracted_at", "must be a valid ISO 8601 date-time (e.g. 2026-04-26T12:00:00Z)"))
 
     produced_by = obj.get("produced_by")
     if not isinstance(produced_by, str):

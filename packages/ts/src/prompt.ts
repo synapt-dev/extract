@@ -60,6 +60,9 @@ const CAPABILITY_RULES: Partial<Record<ExtractionCapability, string>> = {
 
 function loadProfile(name: string): ExtractionCapability[] {
   const path = resolve(PROMPTS_DIR, "profiles", `${name}.json`);
+  if (!existsSync(path)) {
+    throw new Error(`Unknown profile: ${name}`);
+  }
   const data = JSON.parse(readFileSync(path, "utf-8")) as { capabilities: ExtractionCapability[] };
   return data.capabilities;
 }
