@@ -16,6 +16,7 @@
     },
     "model": {
       "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9+.\\-]*://\\S+$",
       "description": "Model that produced this vector (URI format: \"provider://model-name\")."
     },
     "input": {
@@ -34,6 +35,7 @@
     "computed_at": {
       "type": "string",
       "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(?::\\d{2})?(?:\\.\\d+)?(?:Z|[+\\-]\\d{2}:?\\d{2})?$",
       "description": "When this embedding was computed (ISO 8601)."
     }
   },

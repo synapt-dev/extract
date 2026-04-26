@@ -5,6 +5,9 @@ dist/
 *.js.map
 !packages/ts/src/**/*.ts
 
+packages/ts/prompts/
+packages/python/src/synapt_extract/prompts/
+
 __pycache__/
 *.pyc
 *.egg-info/

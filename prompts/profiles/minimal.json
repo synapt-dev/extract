@@ -1,0 +1,3 @@
+{
+  "capabilities": ["entities", "entity_state", "goals", "themes", "summary"]
+}

@@ -11,6 +11,7 @@
     },
     "raw": {
       "type": "string",
+      "minLength": 1,
       "description": "The temporal expression as it appeared in the source text."
     },
     "type": {

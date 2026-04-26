@@ -1,0 +1,1 @@
+- "entities": array of objects with "name" (string) and "type" ("person", "place", "event", "concept", "organization", "object")

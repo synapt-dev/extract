@@ -1,0 +1,1 @@
+- "facts": array of objects with "text" and optional "category"

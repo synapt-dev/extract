@@ -381,13 +381,24 @@ class TestTimestampValidation:
         assert not result.valid
         assert any("extracted_at" in e.path for e in result.errors)
 
-    def test_extracted_at_valid_date(self):
+    def test_extracted_at_date_only_rejected(self):
         doc = _minimal_extraction(extracted_at="2026-04-26")
         result = validate_extraction(doc)
-        assert result.valid
+        assert not result.valid
+        assert any("extracted_at" in e.path for e in result.errors)
 
     def test_extracted_at_valid_datetime(self):
         doc = _minimal_extraction(extracted_at="2026-04-26T10:30:00Z")
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_extracted_at_valid_datetime_with_offset(self):
+        doc = _minimal_extraction(extracted_at="2026-04-26T10:30:00+05:30")
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_extracted_at_valid_datetime_no_seconds(self):
+        doc = _minimal_extraction(extracted_at="2026-04-26T10:30Z")
         result = validate_extraction(doc)
         assert result.valid
 
@@ -534,6 +545,41 @@ class TestEmbeddingDimensionEquality:
         assert any("dimensions" in e.path for e in result.errors)
 
     def test_dimensions_match_accepted(self):
+        doc = _minimal_extraction(embeddings=[{
+            "version": "1",
+            "vector": [0.1, 0.2, 0.3],
+            "model": "openai://text-embedding-3-small",
+            "input": "source",
+            "dimensions": 3,
+        }])
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_vector_non_number_rejected(self):
+        doc = _minimal_extraction(embeddings=[{
+            "version": "1",
+            "vector": [0.1, "bad", 0.3],
+            "model": "openai://text-embedding-3-small",
+            "input": "source",
+            "dimensions": 3,
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("vector" in e.path for e in result.errors)
+
+    def test_vector_bool_rejected(self):
+        doc = _minimal_extraction(embeddings=[{
+            "version": "1",
+            "vector": [0.1, True, 0.3],
+            "model": "openai://text-embedding-3-small",
+            "input": "source",
+            "dimensions": 3,
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("vector" in e.path for e in result.errors)
+
+    def test_vector_all_numbers_accepted(self):
         doc = _minimal_extraction(embeddings=[{
             "version": "1",
             "vector": [0.1, 0.2, 0.3],
@@ -706,6 +752,203 @@ class TestKindFormat:
         assert result.valid
 
 
+class TestAdditionalProperties:
+
+    def test_root_extra_property_rejected(self):
+        doc = _minimal_extraction()
+        doc["extra"] = True
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("extra" in e.path and "additional" in e.message for e in result.errors)
+
+    def test_entity_extra_property_rejected(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom", "type": "person", "extra_field": True,
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("extra_field" in e.path for e in result.errors)
+
+    def test_goal_extra_property_rejected(self):
+        doc = _minimal_extraction(goals=[{
+            "text": "Recovery", "status": "open", "entity_refs": [],
+            "custom": "value",
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("custom" in e.path for e in result.errors)
+
+    def test_fact_extra_property_rejected(self):
+        doc = _minimal_extraction(facts=[{"text": "A fact", "extra": 1}])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("extra" in e.path for e in result.errors)
+
+    def test_relation_extra_property_rejected(self):
+        doc = _minimal_extraction(entities=[{
+            "id": "e1", "name": "Mom", "type": "person",
+            "relations": [{"target": "e2", "type": "knows", "weight": 0.5}],
+        }, {"id": "e2", "name": "Dad", "type": "person"}])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("weight" in e.path for e in result.errors)
+
+    def test_source_ref_extra_property_rejected(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom", "type": "person",
+            "source": {"version": "1", "snippet": "text", "extra": True},
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("extra" in e.path for e in result.errors)
+
+    def test_signals_extra_property_rejected(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom", "type": "person",
+            "signals": {"version": "1", "confidence": 0.9, "extra": True},
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("extra" in e.path for e in result.errors)
+
+    def test_temporal_ref_extra_property_rejected(self):
+        doc = _minimal_extraction(temporal_refs=[{
+            "version": "1", "raw": "April 20", "extra": True,
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("extra" in e.path for e in result.errors)
+
+    def test_embedding_extra_property_rejected(self):
+        doc = _minimal_extraction(embeddings=[{
+            "version": "1", "vector": [0.1, 0.2], "model": "openai://emb",
+            "input": "source", "dimensions": 2, "extra": True,
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("extra" in e.path for e in result.errors)
+
+
+class TestOptionalFieldTypes:
+
+    def test_sentiment_must_be_string(self):
+        doc = _minimal_extraction(sentiment=3)
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("sentiment" in e.path for e in result.errors)
+
+    def test_source_id_must_be_string(self):
+        doc = _minimal_extraction(source_id=123)
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("source_id" in e.path for e in result.errors)
+
+    def test_source_type_must_be_string(self):
+        doc = _minimal_extraction(source_type=True)
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("source_type" in e.path for e in result.errors)
+
+    def test_user_id_must_be_string(self):
+        doc = _minimal_extraction(user_id=42)
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("user_id" in e.path for e in result.errors)
+
+    def test_entity_state_must_be_string(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom", "type": "person", "state": 7,
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("state" in e.path for e in result.errors)
+
+    def test_entity_context_must_be_string(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom", "type": "person", "context": 7,
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("context" in e.path for e in result.errors)
+
+    def test_entity_date_hint_must_be_string(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom", "type": "person", "date_hint": 7,
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("date_hint" in e.path for e in result.errors)
+
+    def test_fact_category_must_be_string(self):
+        doc = _minimal_extraction(facts=[{"text": "A fact", "category": 1}])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("category" in e.path for e in result.errors)
+
+    def test_relation_origin_must_be_string(self):
+        doc = _minimal_extraction(entities=[{
+            "id": "e1", "name": "Mom", "type": "person",
+            "relations": [{"target": "e2", "type": "knows", "origin": 1}],
+        }, {"id": "e2", "name": "Dad", "type": "person"}])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("origin" in e.path for e in result.errors)
+
+    def test_goal_entity_refs_items_must_be_strings(self):
+        doc = _minimal_extraction(goals=[{
+            "text": "Recovery", "status": "open", "entity_refs": [1],
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("entity_refs" in e.path for e in result.errors)
+
+    def test_temporal_context_must_be_string(self):
+        doc = _minimal_extraction(temporal_refs=[{
+            "version": "1", "raw": "April 20", "context": 1,
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("context" in e.path for e in result.errors)
+
+
+class TestSourceRefOffsets:
+
+    def test_offset_start_negative_rejected(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom", "type": "person",
+            "source": {"version": "1", "snippet": "text", "offset_start": -1},
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("offset_start" in e.path for e in result.errors)
+
+    def test_offset_start_string_rejected(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom", "type": "person",
+            "source": {"version": "1", "snippet": "text", "offset_start": "1"},
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("offset_start" in e.path for e in result.errors)
+
+    def test_offset_start_valid(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom", "type": "person",
+            "source": {"version": "1", "snippet": "text", "offset_start": 0, "offset_end": 4},
+        }])
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_sentence_index_negative_rejected(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom", "type": "person",
+            "source": {"version": "1", "snippet": "text", "sentence_index": -1},
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("sentence_index" in e.path for e in result.errors)
+
+
 class TestJsonSchemaFiles:
 
     def test_all_schema_files_are_valid_json(self):
@@ -717,7 +960,7 @@ class TestJsonSchemaFiles:
             assert "$id" in parsed, f"{schema_file.name} missing $id"
 
     def test_extraction_schema_references_sub_schemas(self):
-        schema_path = Path(__file__).resolve().parents[2] / "schemas" / "extraction" / "v1.json"
+        schema_path = Path(__file__).resolve().parents[2] / "schemas" / "extract" / "v1.json"
         schema = json.loads(schema_path.read_text())
         schema_str = json.dumps(schema)
         assert "source-ref/v1.json" in schema_str
@@ -726,7 +969,7 @@ class TestJsonSchemaFiles:
         assert "temporal-ref/v1.json" in schema_str
 
     def test_extraction_schema_required_fields(self):
-        schema_path = Path(__file__).resolve().parents[2] / "schemas" / "extraction" / "v1.json"
+        schema_path = Path(__file__).resolve().parents[2] / "schemas" / "extract" / "v1.json"
         schema = json.loads(schema_path.read_text())
         required = schema["required"]
         assert "version" in required

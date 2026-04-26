@@ -1,0 +1,10 @@
+{
+  "capabilities": [
+    "entities", "entity_state", "entity_context",
+    "goals", "goal_timing",
+    "themes", "summary", "sentiment",
+    "facts",
+    "temporal_refs",
+    "evidence_anchoring"
+  ]
+}

@@ -1,0 +1,7 @@
+Rules:
+- Extract what's IN the text. Do not infer or fabricate.
+- Use specific details, not general descriptions.
+- Output ONLY valid JSON. No markdown fences, no explanation.
+
+Text:
+{{text}}

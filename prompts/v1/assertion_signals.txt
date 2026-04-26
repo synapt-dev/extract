@@ -1,0 +1,1 @@
+  - on entities, goals, facts, and relations, include "signals": {"confidence": 0.0-1.0, "negated": boolean, "hedged": boolean, "condition": string}
