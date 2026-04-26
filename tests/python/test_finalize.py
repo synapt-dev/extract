@@ -71,6 +71,56 @@ class TestStage2Injection:
         assert result.extraction["extensions"]["conversa/prayer"]["category"] == "Health"
 
 
+class TestStage2ExtensionVersions:
+
+    def test_injects_version_into_extension_objects(self):
+        result = finalize_extraction(
+            _llm_output(),
+            FinalizeContext(
+                produced_by="test://model",
+                extensions={"conversa/prayer": {"category": "Health"}},
+            ),
+        )
+        ext = result.extraction["extensions"]["conversa/prayer"]
+        assert ext["version"] == "1"
+
+    def test_injects_version_into_multiple_extensions(self):
+        result = finalize_extraction(
+            _llm_output(),
+            FinalizeContext(
+                produced_by="test://model",
+                extensions={
+                    "conversa/prayer": {"category": "Health"},
+                    "conversa/sermon": {"topic": "Grace"},
+                },
+            ),
+        )
+        assert result.extraction["extensions"]["conversa/prayer"]["version"] == "1"
+        assert result.extraction["extensions"]["conversa/sermon"]["version"] == "1"
+
+    def test_preserves_existing_extension_version(self):
+        result = finalize_extraction(
+            _llm_output(),
+            FinalizeContext(
+                produced_by="test://model",
+                extensions={"conversa/prayer": {"version": "1", "category": "Health"}},
+            ),
+        )
+        ext = result.extraction["extensions"]["conversa/prayer"]
+        assert ext["version"] == "1"
+        assert ext["category"] == "Health"
+
+    def test_extension_non_dict_values_unchanged(self):
+        result = finalize_extraction(
+            _llm_output(),
+            FinalizeContext(
+                produced_by="test://model",
+                extensions={"conversa/prayer": "simple_string"},
+            ),
+        )
+        assert result.extraction["extensions"]["conversa/prayer"] == "simple_string"
+
+
 class TestStage2Embeddings:
 
     def test_injects_embedding_version(self):
@@ -324,6 +374,37 @@ class TestStage3Warnings:
             FinalizeContext(produced_by="test://model"),
         )
         assert any("entity_ids" in w for w in result.warnings)
+
+
+class TestStage3ValidationCatchesBadInput:
+
+    def test_dangling_entity_refs_reported_in_validation(self):
+        result = finalize_extraction(
+            _llm_output(
+                entities=[{"name": "Mom", "type": "person"}],
+                goals=[{"text": "Recovery", "status": "open", "entity_refs": ["e_missing"]}],
+            ),
+            FinalizeContext(produced_by="openai://gpt-4o-mini"),
+        )
+        assert not result.validation.valid
+        assert any("entity_refs" in e.path for e in result.validation.errors)
+
+    def test_malformed_embedding_reported_in_validation(self):
+        result = finalize_extraction(
+            _llm_output(),
+            FinalizeContext(
+                produced_by="openai://gpt-4o-mini",
+                embeddings=[{
+                    "vector": [0.1, 0.2],
+                    "model": "not-a-uri",
+                    "input": "source",
+                    "dimensions": 99,
+                }],
+            ),
+        )
+        assert not result.validation.valid
+        assert any("model" in e.path for e in result.validation.errors)
+        assert any("dimensions" in e.path for e in result.validation.errors)
 
 
 class TestEndToEnd:

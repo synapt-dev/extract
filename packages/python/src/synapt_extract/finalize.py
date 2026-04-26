@@ -119,7 +119,13 @@ def finalize_extraction(
     if context.kind is not None:
         doc["kind"] = context.kind
     if context.extensions is not None:
-        doc["extensions"] = context.extensions
+        finalized_ext = {}
+        for key, val in context.extensions.items():
+            if isinstance(val, dict):
+                finalized_ext[key] = {"version": "1", **val}
+            else:
+                finalized_ext[key] = val
+        doc["extensions"] = finalized_ext
 
     if context.embeddings is not None:
         finalized_embs = []

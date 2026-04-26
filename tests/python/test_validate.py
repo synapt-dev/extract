@@ -628,6 +628,70 @@ class TestExtensionKeyFormat:
         assert result.valid
 
 
+class TestSummaryValidation:
+
+    def test_empty_summary_rejected(self):
+        doc = _minimal_extraction(summary="")
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("summary" in e.path for e in result.errors)
+
+    def test_nonempty_summary_accepted(self):
+        doc = _minimal_extraction(summary="A prayer for healing.")
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_summary_absent_accepted(self):
+        doc = _minimal_extraction()
+        assert "summary" not in doc
+        result = validate_extraction(doc)
+        assert result.valid
+
+
+class TestTemporalUnresolvedConstraints:
+
+    def test_unresolved_with_resolved_rejected(self):
+        doc = _minimal_extraction(temporal_refs=[{
+            "version": "1",
+            "raw": "someday",
+            "type": "unresolved",
+            "resolved": "2026-04-20",
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("resolved" in e.path or "unresolved" in e.message for e in result.errors)
+
+    def test_unresolved_with_resolved_end_rejected(self):
+        doc = _minimal_extraction(temporal_refs=[{
+            "version": "1",
+            "raw": "someday",
+            "type": "unresolved",
+            "resolved_end": "2026-05-01",
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("resolved" in e.path or "unresolved" in e.message for e in result.errors)
+
+    def test_unresolved_without_resolved_accepted(self):
+        doc = _minimal_extraction(temporal_refs=[{
+            "version": "1",
+            "raw": "someday",
+            "type": "unresolved",
+        }])
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_point_with_resolved_accepted(self):
+        doc = _minimal_extraction(temporal_refs=[{
+            "version": "1",
+            "raw": "April 20",
+            "type": "point",
+            "resolved": "2026-04-20",
+        }])
+        result = validate_extraction(doc)
+        assert result.valid
+
+
 class TestKindFormat:
 
     def test_kind_requires_namespace(self):

@@ -118,7 +118,17 @@ export function finalizeExtraction(
   if (context.source_id !== undefined) doc.source_id = context.source_id;
   if (context.source_type !== undefined) doc.source_type = context.source_type;
   if (context.kind !== undefined) doc.kind = context.kind;
-  if (context.extensions !== undefined) doc.extensions = context.extensions;
+  if (context.extensions !== undefined) {
+    const finalizedExt: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(context.extensions)) {
+      if (val && typeof val === "object" && !Array.isArray(val)) {
+        finalizedExt[key] = { version: "1", ...val as Record<string, unknown> };
+      } else {
+        finalizedExt[key] = val;
+      }
+    }
+    doc.extensions = finalizedExt;
+  }
 
   // Stage 2: inject embeddings with version
   if (context.embeddings !== undefined) {

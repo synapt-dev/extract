@@ -193,6 +193,11 @@ def _check_temporal_ref(obj: Any, path: str, errors: list[ValidationError]) -> N
             errors.append(ValidationError(f"{path}.type", "must be one of: point, range, duration, unresolved"))
         elif ttype == "range" and "resolved_end" not in obj:
             errors.append(ValidationError(f"{path}.resolved_end", "required when type is 'range'"))
+        elif ttype == "unresolved":
+            if "resolved" in obj:
+                errors.append(ValidationError(f"{path}.resolved", "must not be present when type is 'unresolved'"))
+            if "resolved_end" in obj:
+                errors.append(ValidationError(f"{path}.resolved_end", "must not be present when type is 'unresolved'"))
     if "resolved" in obj:
         if not isinstance(obj["resolved"], str) or not _is_iso_datetime(obj["resolved"]):
             errors.append(ValidationError(f"{path}.resolved", "must be a valid ISO 8601 date/datetime"))
@@ -267,6 +272,10 @@ def validate_extraction(obj: Any) -> ValidationResult:
         for i, theme in enumerate(obj["themes"]):
             if not isinstance(theme, str) or len(theme) == 0:
                 errors.append(ValidationError(f"themes[{i}]", "must be a non-empty string"))
+
+    if "summary" in obj:
+        if not isinstance(obj["summary"], str) or len(obj["summary"]) == 0:
+            errors.append(ValidationError("summary", "must be a non-empty string"))
 
     if not isinstance(obj.get("capabilities"), list):
         errors.append(ValidationError("capabilities", "required array"))

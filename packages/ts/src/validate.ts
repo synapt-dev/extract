@@ -235,6 +235,13 @@ function validateTemporalRef(obj: unknown, path: string, errors: ValidationError
       errors.push({ path: `${path}.type`, message: "must be one of: point, range, duration, unresolved" });
     } else if (ref.type === "range" && ref.resolved_end === undefined) {
       errors.push({ path: `${path}.resolved_end`, message: "required when type is 'range'" });
+    } else if (ref.type === "unresolved") {
+      if (ref.resolved !== undefined) {
+        errors.push({ path: `${path}.resolved`, message: "must not be present when type is 'unresolved'" });
+      }
+      if (ref.resolved_end !== undefined) {
+        errors.push({ path: `${path}.resolved_end`, message: "must not be present when type is 'unresolved'" });
+      }
     }
   }
   if (ref.resolved !== undefined) {
@@ -328,6 +335,12 @@ export function validateExtraction(obj: unknown): ValidationResult {
       if (typeof doc.themes[i] !== "string" || (doc.themes[i] as string).length === 0) {
         errors.push({ path: `themes[${i}]`, message: "must be a non-empty string" });
       }
+    }
+  }
+
+  if (doc.summary !== undefined) {
+    if (typeof doc.summary !== "string" || (doc.summary as string).length === 0) {
+      errors.push({ path: "summary", message: "must be a non-empty string" });
     }
   }
 
