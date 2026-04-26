@@ -115,11 +115,15 @@ def test_finalize_extraction_rejects_invalid_final_cross_references(
         }
     ]
 
-    with pytest.raises(Exception, match="entity_refs|e404"):
-        finalize_extraction(
-            broken_output,
-            FinalizeContext(produced_by="openai://gpt-4o-mini"),
-        )
+    result = finalize_extraction(
+        broken_output,
+        FinalizeContext(produced_by="openai://gpt-4o-mini"),
+    )
+
+    assert result.validation.valid is False
+    assert "entity_refs" in "\n".join(
+        f"{error.path}: {error.message}" for error in result.validation.errors
+    )
 
 
 def test_finalize_extraction_rejects_malformed_embeddings_instead_of_stripping_them(
@@ -128,11 +132,15 @@ def test_finalize_extraction_rejects_malformed_embeddings_instead_of_stripping_t
     finalize_extraction = load_symbol("finalize", "finalize_extraction")
     FinalizeContext = load_symbol("finalize", "FinalizeContext")
 
-    with pytest.raises(Exception, match="embedding|model|dimensions|vector"):
-        finalize_extraction(
-            clone_doc(stage1_output),
-            FinalizeContext(
-                produced_by="openai://gpt-4o-mini",
-                embeddings=[{"input": "source"}],
-            ),
-        )
+    result = finalize_extraction(
+        clone_doc(stage1_output),
+        FinalizeContext(
+            produced_by="openai://gpt-4o-mini",
+            embeddings=[{"input": "source"}],
+        ),
+    )
+
+    assert result.validation.valid is False
+    assert "embeddings[0]" in "\n".join(
+        f"{error.path}: {error.message}" for error in result.validation.errors
+    )
