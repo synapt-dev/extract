@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -9,6 +10,14 @@ from synapt_extract.schema import EXTRACTION_CAPABILITIES
 
 VALID_GOAL_STATUSES = frozenset(["open", "resolved", "abandoned", "in_progress"])
 VALID_TEMPORAL_TYPES = frozenset(["point", "range", "duration", "unresolved"])
+
+_URI_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.\-]*://\S+$")
+_NAMESPACED_RE = re.compile(r"^[a-zA-Z0-9_\-]+/[a-zA-Z0-9_\-]+$")
+_ISO_DATE_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}"
+    r"(?:T\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?"
+    r"(?:Z|[+\-]\d{2}:?\d{2})?)?$"
+)
 
 
 @dataclass
@@ -23,12 +32,39 @@ class ValidationResult:
     errors: list[ValidationError] = field(default_factory=list)
 
 
+def _is_uri(s: str) -> bool:
+    return bool(_URI_RE.match(s))
+
+
+def _is_iso_datetime(s: str) -> bool:
+    return bool(_ISO_DATE_RE.match(s))
+
+
+def _is_namespaced(s: str) -> bool:
+    return bool(_NAMESPACED_RE.match(s))
+
+
+def _require_non_empty_str(obj: dict, key: str, path: str, errors: list[ValidationError], label: str = "required non-empty string") -> bool:
+    val = obj.get(key)
+    if not isinstance(val, str) or len(val) == 0:
+        errors.append(ValidationError(f"{path}.{key}", label))
+        return False
+    return True
+
+
+def _has_payload_beyond_version(obj: dict[str, Any]) -> bool:
+    return any(k != "version" for k in obj)
+
+
 def _check_source_ref(obj: Any, path: str, errors: list[ValidationError]) -> None:
     if not isinstance(obj, dict):
         errors.append(ValidationError(path, "must be an object"))
         return
     if obj.get("version") != "1":
         errors.append(ValidationError(f"{path}.version", 'must be "1"'))
+    if not _has_payload_beyond_version(obj):
+        errors.append(ValidationError(path, "empty sub-schema (only version); must contain at least one payload field"))
+        return
     if "snippet" in obj and not isinstance(obj["snippet"], str):
         errors.append(ValidationError(f"{path}.snippet", "must be a string"))
 
@@ -39,6 +75,9 @@ def _check_signals(obj: Any, path: str, errors: list[ValidationError]) -> None:
         return
     if obj.get("version") != "1":
         errors.append(ValidationError(f"{path}.version", 'must be "1"'))
+    if not _has_payload_beyond_version(obj):
+        errors.append(ValidationError(path, "empty sub-schema (only version); must contain at least one payload field"))
+        return
     if "confidence" in obj:
         c = obj["confidence"]
         if not isinstance(c, (int, float)) or c < 0 or c > 1:
@@ -57,25 +96,33 @@ def _check_embedding(obj: Any, path: str, errors: list[ValidationError]) -> None
         return
     if obj.get("version") != "1":
         errors.append(ValidationError(f"{path}.version", 'must be "1"'))
-    if not isinstance(obj.get("vector"), list):
+    vector = obj.get("vector")
+    if not isinstance(vector, list):
         errors.append(ValidationError(f"{path}.vector", "required array"))
-    if not isinstance(obj.get("model"), str):
+    model = obj.get("model")
+    if not isinstance(model, str):
         errors.append(ValidationError(f"{path}.model", "required string"))
+    elif not _is_uri(model):
+        errors.append(ValidationError(f"{path}.model", "must be a provider URI (scheme://identifier)"))
     if not isinstance(obj.get("input"), str):
         errors.append(ValidationError(f"{path}.input", "required string"))
     dims = obj.get("dimensions")
     if not isinstance(dims, int) or dims < 1:
         errors.append(ValidationError(f"{path}.dimensions", "required positive integer"))
+    elif isinstance(vector, list) and dims != len(vector):
+        errors.append(ValidationError(f"{path}.dimensions", f"dimensions ({dims}) must equal vector length ({len(vector)})"))
 
 
 def _check_relation(obj: Any, path: str, errors: list[ValidationError]) -> None:
     if not isinstance(obj, dict):
         errors.append(ValidationError(path, "must be an object"))
         return
-    if not isinstance(obj.get("target"), str):
-        errors.append(ValidationError(f"{path}.target", "required string"))
-    if not isinstance(obj.get("type"), str):
-        errors.append(ValidationError(f"{path}.type", "required string"))
+    target = obj.get("target")
+    if not isinstance(target, str) or len(target) == 0:
+        errors.append(ValidationError(f"{path}.target", "required non-empty string"))
+    rtype = obj.get("type")
+    if not isinstance(rtype, str) or len(rtype) == 0:
+        errors.append(ValidationError(f"{path}.type", "required non-empty string"))
     if "signals" in obj:
         _check_signals(obj["signals"], f"{path}.signals", errors)
 
@@ -84,10 +131,8 @@ def _check_entity(obj: Any, path: str, errors: list[ValidationError]) -> None:
     if not isinstance(obj, dict):
         errors.append(ValidationError(path, "must be an object"))
         return
-    if not isinstance(obj.get("name"), str):
-        errors.append(ValidationError(f"{path}.name", "required string"))
-    if not isinstance(obj.get("type"), str):
-        errors.append(ValidationError(f"{path}.type", "required string"))
+    _require_non_empty_str(obj, "name", path, errors)
+    _require_non_empty_str(obj, "type", path, errors)
     if "source" in obj:
         _check_source_ref(obj["source"], f"{path}.source", errors)
     if "signals" in obj:
@@ -104,13 +149,18 @@ def _check_goal(obj: Any, path: str, errors: list[ValidationError]) -> None:
     if not isinstance(obj, dict):
         errors.append(ValidationError(path, "must be an object"))
         return
-    if not isinstance(obj.get("text"), str):
-        errors.append(ValidationError(f"{path}.text", "required string"))
+    _require_non_empty_str(obj, "text", path, errors)
     status = obj.get("status")
     if not isinstance(status, str) or status not in VALID_GOAL_STATUSES:
         errors.append(ValidationError(f"{path}.status", "must be one of: open, resolved, abandoned, in_progress"))
     if not isinstance(obj.get("entity_refs"), list):
         errors.append(ValidationError(f"{path}.entity_refs", "required array of strings"))
+    if "stated_at" in obj:
+        if not isinstance(obj["stated_at"], str) or not _is_iso_datetime(obj["stated_at"]):
+            errors.append(ValidationError(f"{path}.stated_at", "must be a valid ISO 8601 date/datetime"))
+    if "resolved_at" in obj:
+        if not isinstance(obj["resolved_at"], str) or not _is_iso_datetime(obj["resolved_at"]):
+            errors.append(ValidationError(f"{path}.resolved_at", "must be a valid ISO 8601 date/datetime"))
     if "source" in obj:
         _check_source_ref(obj["source"], f"{path}.source", errors)
     if "signals" in obj:
@@ -121,8 +171,7 @@ def _check_fact(obj: Any, path: str, errors: list[ValidationError]) -> None:
     if not isinstance(obj, dict):
         errors.append(ValidationError(path, "must be an object"))
         return
-    if not isinstance(obj.get("text"), str):
-        errors.append(ValidationError(f"{path}.text", "required string"))
+    _require_non_empty_str(obj, "text", path, errors)
     if "source" in obj:
         _check_source_ref(obj["source"], f"{path}.source", errors)
     if "signals" in obj:
@@ -135,11 +184,21 @@ def _check_temporal_ref(obj: Any, path: str, errors: list[ValidationError]) -> N
         return
     if obj.get("version") != "1":
         errors.append(ValidationError(f"{path}.version", 'must be "1"'))
-    if not isinstance(obj.get("raw"), str):
-        errors.append(ValidationError(f"{path}.raw", "required string"))
+    raw = obj.get("raw")
+    if not isinstance(raw, str) or len(raw) == 0:
+        errors.append(ValidationError(f"{path}.raw", "required non-empty string"))
+    ttype = obj.get("type")
     if "type" in obj:
-        if not isinstance(obj["type"], str) or obj["type"] not in VALID_TEMPORAL_TYPES:
+        if not isinstance(ttype, str) or ttype not in VALID_TEMPORAL_TYPES:
             errors.append(ValidationError(f"{path}.type", "must be one of: point, range, duration, unresolved"))
+        elif ttype == "range" and "resolved_end" not in obj:
+            errors.append(ValidationError(f"{path}.resolved_end", "required when type is 'range'"))
+    if "resolved" in obj:
+        if not isinstance(obj["resolved"], str) or not _is_iso_datetime(obj["resolved"]):
+            errors.append(ValidationError(f"{path}.resolved", "must be a valid ISO 8601 date/datetime"))
+    if "resolved_end" in obj:
+        if not isinstance(obj["resolved_end"], str) or not _is_iso_datetime(obj["resolved_end"]):
+            errors.append(ValidationError(f"{path}.resolved_end", "must be a valid ISO 8601 date/datetime"))
 
 
 def validate_extraction(obj: Any) -> ValidationResult:
@@ -155,25 +214,59 @@ def validate_extraction(obj: Any) -> ValidationResult:
 
     if obj.get("version") != "1":
         errors.append(ValidationError("version", 'must be "1"'))
-    if not isinstance(obj.get("extracted_at"), str):
-        errors.append(ValidationError("extracted_at", "required string (ISO 8601)"))
-    if not isinstance(obj.get("produced_by"), str):
-        errors.append(ValidationError("produced_by", "required string (provider URI)"))
 
+    extracted_at = obj.get("extracted_at")
+    if not isinstance(extracted_at, str):
+        errors.append(ValidationError("extracted_at", "required string (ISO 8601)"))
+    elif not _is_iso_datetime(extracted_at):
+        errors.append(ValidationError("extracted_at", "must be a valid ISO 8601 date/datetime"))
+
+    produced_by = obj.get("produced_by")
+    if not isinstance(produced_by, str):
+        errors.append(ValidationError("produced_by", "required string (provider URI)"))
+    elif not _is_uri(produced_by):
+        errors.append(ValidationError("produced_by", "must be a provider URI (scheme://identifier)"))
+
+    if "kind" in obj:
+        kind = obj["kind"]
+        if not isinstance(kind, str) or not _is_namespaced(kind):
+            errors.append(ValidationError("kind", "must be namespaced (e.g. 'conversa/prayer')"))
+
+    if "extensions" in obj:
+        ext = obj["extensions"]
+        if isinstance(ext, dict):
+            for key in ext:
+                if not _is_namespaced(key):
+                    errors.append(ValidationError(f"extensions.{key}", "extension key must be namespaced (e.g. 'conversa/prayer')"))
+
+    entity_ids: set[str] = set()
     if not isinstance(obj.get("entities"), list):
         errors.append(ValidationError("entities", "required array"))
     else:
         for i, ent in enumerate(obj["entities"]):
             _check_entity(ent, f"entities[{i}]", errors)
+            if isinstance(ent, dict) and isinstance(ent.get("id"), str):
+                entity_ids.add(ent["id"])
 
     if not isinstance(obj.get("goals"), list):
         errors.append(ValidationError("goals", "required array"))
     else:
         for i, goal in enumerate(obj["goals"]):
             _check_goal(goal, f"goals[{i}]", errors)
+            if isinstance(goal, dict) and isinstance(goal.get("entity_refs"), list):
+                for j, ref in enumerate(goal["entity_refs"]):
+                    if isinstance(ref, str) and ref not in entity_ids:
+                        errors.append(ValidationError(
+                            f"goals[{i}].entity_refs[{j}]",
+                            f"references entity ID '{ref}' which is not declared in entities",
+                        ))
 
     if not isinstance(obj.get("themes"), list):
         errors.append(ValidationError("themes", "required array"))
+    else:
+        for i, theme in enumerate(obj["themes"]):
+            if not isinstance(theme, str) or len(theme) == 0:
+                errors.append(ValidationError(f"themes[{i}]", "must be a non-empty string"))
 
     if not isinstance(obj.get("capabilities"), list):
         errors.append(ValidationError("capabilities", "required array"))
@@ -204,5 +297,17 @@ def validate_extraction(obj: Any) -> ValidationResult:
         else:
             for i, emb in enumerate(obj["embeddings"]):
                 _check_embedding(emb, f"embeddings[{i}]", errors)
+
+    if entity_ids and isinstance(obj.get("entities"), list):
+        for i, ent in enumerate(obj["entities"]):
+            if isinstance(ent, dict) and isinstance(ent.get("relations"), list):
+                for j, rel in enumerate(ent["relations"]):
+                    if isinstance(rel, dict):
+                        target = rel.get("target")
+                        if isinstance(target, str) and len(target) > 0 and target not in entity_ids:
+                            errors.append(ValidationError(
+                                f"entities[{i}].relations[{j}].target",
+                                f"references entity ID '{target}' which is not declared in entities",
+                            ))
 
     return ValidationResult(valid=len(errors) == 0, errors=errors)

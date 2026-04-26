@@ -285,6 +285,363 @@ class TestTemporalRefValidation:
         assert any("type" in e.path for e in result.errors)
 
 
+class TestProducedByFormat:
+
+    def test_produced_by_requires_scheme(self):
+        doc = _minimal_extraction(produced_by="gpt-4o-mini")
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("produced_by" in e.path for e in result.errors)
+
+    def test_produced_by_valid_uri(self):
+        doc = _minimal_extraction(produced_by="openai://gpt-4o-mini")
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_produced_by_anthropic_uri(self):
+        doc = _minimal_extraction(produced_by="anthropic://claude-sonnet-4-20250514")
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_produced_by_empty_string(self):
+        doc = _minimal_extraction(produced_by="")
+        result = validate_extraction(doc)
+        assert not result.valid
+
+
+class TestNonEmptyStrings:
+
+    def test_entity_name_empty(self):
+        doc = _minimal_extraction(entities=[{"name": "", "type": "person"}])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("name" in e.path for e in result.errors)
+
+    def test_entity_type_empty(self):
+        doc = _minimal_extraction(entities=[{"name": "Mom", "type": ""}])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("type" in e.path for e in result.errors)
+
+    def test_goal_text_empty(self):
+        doc = _minimal_extraction(goals=[{
+            "text": "",
+            "status": "open",
+            "entity_refs": [],
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("text" in e.path for e in result.errors)
+
+    def test_theme_empty_string(self):
+        doc = _minimal_extraction(themes=["Health", ""])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("themes" in e.path for e in result.errors)
+
+    def test_fact_text_empty(self):
+        doc = _minimal_extraction(facts=[{"text": ""}])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("text" in e.path for e in result.errors)
+
+    def test_relation_target_empty(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom", "type": "person",
+            "relations": [{"target": "", "type": "knows"}],
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("target" in e.path for e in result.errors)
+
+    def test_relation_type_empty(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom", "type": "person",
+            "relations": [{"target": "e2", "type": ""}],
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("type" in e.path for e in result.errors)
+
+    def test_temporal_ref_raw_empty(self):
+        doc = _minimal_extraction(temporal_refs=[{
+            "version": "1",
+            "raw": "",
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("raw" in e.path for e in result.errors)
+
+
+class TestTimestampValidation:
+
+    def test_extracted_at_bad_timestamp(self):
+        doc = _minimal_extraction(extracted_at="not-a-date")
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("extracted_at" in e.path for e in result.errors)
+
+    def test_extracted_at_valid_date(self):
+        doc = _minimal_extraction(extracted_at="2026-04-26")
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_extracted_at_valid_datetime(self):
+        doc = _minimal_extraction(extracted_at="2026-04-26T10:30:00Z")
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_goal_stated_at_bad(self):
+        doc = _minimal_extraction(goals=[{
+            "text": "Recovery",
+            "status": "open",
+            "entity_refs": [],
+            "stated_at": "not-a-date",
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("stated_at" in e.path for e in result.errors)
+
+    def test_goal_resolved_at_bad(self):
+        doc = _minimal_extraction(goals=[{
+            "text": "Recovery",
+            "status": "resolved",
+            "entity_refs": [],
+            "resolved_at": "whenever",
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("resolved_at" in e.path for e in result.errors)
+
+    def test_temporal_resolved_bad(self):
+        doc = _minimal_extraction(temporal_refs=[{
+            "version": "1",
+            "raw": "next week",
+            "type": "point",
+            "resolved": "not-a-date",
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("resolved" in e.path for e in result.errors)
+
+
+class TestEmptySubSchemaWrappers:
+
+    def test_source_version_only_rejected(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom",
+            "type": "person",
+            "source": {"version": "1"},
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("source" in e.path for e in result.errors)
+
+    def test_signals_version_only_rejected(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom",
+            "type": "person",
+            "signals": {"version": "1"},
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("signals" in e.path for e in result.errors)
+
+    def test_source_with_snippet_accepted(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom",
+            "type": "person",
+            "source": {"version": "1", "snippet": "My mom"},
+        }])
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_signals_with_confidence_accepted(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom",
+            "type": "person",
+            "signals": {"version": "1", "confidence": 0.9},
+        }])
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_goal_source_version_only_rejected(self):
+        doc = _minimal_extraction(goals=[{
+            "text": "Recovery",
+            "status": "open",
+            "entity_refs": [],
+            "source": {"version": "1"},
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+
+    def test_fact_signals_version_only_rejected(self):
+        doc = _minimal_extraction(facts=[{
+            "text": "Surgery happened",
+            "signals": {"version": "1"},
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+
+
+class TestTemporalRangeConstraints:
+
+    def test_range_without_resolved_end_rejected(self):
+        doc = _minimal_extraction(temporal_refs=[{
+            "version": "1",
+            "raw": "April 20 to May 1",
+            "type": "range",
+            "resolved": "2026-04-20",
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("resolved_end" in e.path or "resolved_end" in e.message for e in result.errors)
+
+    def test_range_with_resolved_end_accepted(self):
+        doc = _minimal_extraction(temporal_refs=[{
+            "version": "1",
+            "raw": "April 20 to May 1",
+            "type": "range",
+            "resolved": "2026-04-20",
+            "resolved_end": "2026-05-01",
+        }])
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_point_without_resolved_end_accepted(self):
+        doc = _minimal_extraction(temporal_refs=[{
+            "version": "1",
+            "raw": "April 20",
+            "type": "point",
+            "resolved": "2026-04-20",
+        }])
+        result = validate_extraction(doc)
+        assert result.valid
+
+
+class TestEmbeddingDimensionEquality:
+
+    def test_dimensions_mismatch_rejected(self):
+        doc = _minimal_extraction(embeddings=[{
+            "version": "1",
+            "vector": [0.1, 0.2],
+            "model": "openai://text-embedding-3-small",
+            "input": "source",
+            "dimensions": 99,
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("dimensions" in e.path for e in result.errors)
+
+    def test_dimensions_match_accepted(self):
+        doc = _minimal_extraction(embeddings=[{
+            "version": "1",
+            "vector": [0.1, 0.2, 0.3],
+            "model": "openai://text-embedding-3-small",
+            "input": "source",
+            "dimensions": 3,
+        }])
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_embedding_model_requires_scheme(self):
+        doc = _minimal_extraction(embeddings=[{
+            "version": "1",
+            "vector": [0.1, 0.2],
+            "model": "text-embedding-3-small",
+            "input": "source",
+            "dimensions": 2,
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("model" in e.path for e in result.errors)
+
+
+class TestCrossRefIntegrity:
+
+    def test_goal_entity_refs_to_missing_ids(self):
+        doc = _minimal_extraction(
+            entities=[{"name": "Mom", "type": "person"}],
+            goals=[{
+                "text": "Recovery",
+                "status": "open",
+                "entity_refs": ["e1"],
+            }],
+        )
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("entity_refs" in e.path for e in result.errors)
+
+    def test_goal_entity_refs_to_valid_ids(self):
+        doc = _minimal_extraction(
+            entities=[{"id": "e1", "name": "Mom", "type": "person"}],
+            goals=[{
+                "text": "Recovery",
+                "status": "open",
+                "entity_refs": ["e1"],
+            }],
+        )
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_relation_target_to_missing_entity(self):
+        doc = _minimal_extraction(entities=[{
+            "id": "e1",
+            "name": "Mom",
+            "type": "person",
+            "relations": [{"target": "e99", "type": "knows"}],
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("target" in e.path for e in result.errors)
+
+    def test_relation_target_to_valid_entity(self):
+        doc = _minimal_extraction(entities=[
+            {"id": "e1", "name": "Mom", "type": "person",
+             "relations": [{"target": "e2", "type": "parent_of"}]},
+            {"id": "e2", "name": "Dad", "type": "person"},
+        ])
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_empty_entity_refs_accepted(self):
+        doc = _minimal_extraction(goals=[{
+            "text": "Recovery",
+            "status": "open",
+            "entity_refs": [],
+        }])
+        result = validate_extraction(doc)
+        assert result.valid
+
+
+class TestExtensionKeyFormat:
+
+    def test_extension_key_requires_namespace(self):
+        doc = _minimal_extraction(extensions={"badkey": {"foo": "bar"}})
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("extensions" in e.path for e in result.errors)
+
+    def test_extension_key_valid_namespace(self):
+        doc = _minimal_extraction(extensions={"conversa/prayer": {"category": "Health"}})
+        result = validate_extraction(doc)
+        assert result.valid
+
+
+class TestKindFormat:
+
+    def test_kind_requires_namespace(self):
+        doc = _minimal_extraction(kind="badkind")
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("kind" in e.path for e in result.errors)
+
+    def test_kind_valid_namespace(self):
+        doc = _minimal_extraction(kind="conversa/prayer")
+        result = validate_extraction(doc)
+        assert result.valid
+
+
 class TestJsonSchemaFiles:
 
     def test_all_schema_files_are_valid_json(self):
