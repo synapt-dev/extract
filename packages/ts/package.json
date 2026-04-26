@@ -1,0 +1,42 @@
+{
+  "name": "@synapt-dev/extract",
+  "version": "0.1.0",
+  "description": "SynaptExtraction IL v1 -- schema, validation, and finalization",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "check": "tsc --noEmit"
+  },
+  "keywords": [
+    "synapt",
+    "extraction",
+    "schema",
+    "intermediate-language"
+  ],
+  "author": "Layne Penney",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/synapt-dev/extract.git",
+    "directory": "packages/ts"
+  },
+  "homepage": "https://synapt.dev",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}

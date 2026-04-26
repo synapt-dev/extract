@@ -1,0 +1,13 @@
+node_modules/
+dist/
+*.js
+*.d.ts
+*.js.map
+!packages/ts/src/**/*.ts
+
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.venv/
+build/
