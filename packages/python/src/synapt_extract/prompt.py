@@ -7,7 +7,11 @@ import re
 from pathlib import Path
 from typing import Any
 
-PROMPTS_DIR = Path(__file__).resolve().parents[4] / "prompts"
+from synapt_extract.schema import EXTRACTION_CAPABILITIES
+
+_INSTALLED_PROMPTS = Path(__file__).resolve().parent / "prompts"
+_REPO_PROMPTS = Path(__file__).resolve().parents[4] / "prompts"
+PROMPTS_DIR = _INSTALLED_PROMPTS if _INSTALLED_PROMPTS.is_dir() else _REPO_PROMPTS
 
 CAPABILITY_DEPS: dict[str, list[str]] = {
     "entity_state": ["entities"],
@@ -55,7 +59,7 @@ def _render_template(template: str, context: dict[str, Any]) -> str:
         var = match.group(1)
         body = match.group(2)
         if context.get(var):
-            return _render_vars(body, context)
+            return body
         return ""
 
     result = re.sub(r"\{\{#if (\w+)\}\}(.*?)\{\{/if\}\}", replace_if, template, flags=re.DOTALL)
@@ -73,6 +77,16 @@ def _render_vars(template: str, context: dict[str, Any]) -> str:
     return re.sub(r"\{\{(\w+)\}\}", replace_var, template)
 
 
+BASE_CAPABILITIES = frozenset(["entities", "goals", "facts"])
+MODIFIER_ONLY_CAPABILITIES = frozenset(["assertion_signals", "evidence_anchoring"])
+
+
+def _validate_capability_names(caps: set[str], source: str) -> None:
+    unknown = caps - EXTRACTION_CAPABILITIES
+    if unknown:
+        raise ValueError(f"Unknown {source}: {', '.join(sorted(unknown))}")
+
+
 def resolve_capabilities(
     *,
     capabilities: list[str] | None = None,
@@ -84,11 +98,13 @@ def resolve_capabilities(
         raise ValueError("Either capabilities or profile must be provided")
 
     if capabilities is not None:
+        _validate_capability_names(set(capabilities), "capabilities")
         caps = set(capabilities)
     else:
         caps = set(_load_profile(profile))
 
     if add:
+        _validate_capability_names(set(add), "capabilities in add")
         caps.update(add)
     if remove:
         caps -= set(remove)
@@ -101,6 +117,16 @@ def resolve_capabilities(
                 if dep not in caps:
                     caps.add(dep)
                     changed = True
+
+    if not caps:
+        raise ValueError("Resolved capability set is empty")
+
+    modifiers_present = caps & MODIFIER_ONLY_CAPABILITIES
+    if modifiers_present and not (caps & BASE_CAPABILITIES):
+        raise ValueError(
+            f"Modifier capabilities {sorted(modifiers_present)} require at least one "
+            f"base capability ({', '.join(sorted(BASE_CAPABILITIES))})"
+        )
 
     return sorted(caps, key=lambda c: CANONICAL_ORDER.index(c) if c in CANONICAL_ORDER else len(CANONICAL_ORDER))
 

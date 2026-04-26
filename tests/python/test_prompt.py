@@ -81,6 +81,71 @@ class TestResolveCapabilities:
             resolve_capabilities()
 
 
+class TestUnknownCapabilityRejection:
+
+    def test_unknown_capability_raises(self):
+        with pytest.raises(ValueError, match="Unknown capabilities"):
+            resolve_capabilities(capabilities=["bogus"])
+
+    def test_unknown_in_add_raises(self):
+        with pytest.raises(ValueError, match="Unknown capabilities"):
+            resolve_capabilities(capabilities=["entities"], add=["psychic"])
+
+    def test_unknown_does_not_touch_filesystem(self):
+        with pytest.raises(ValueError):
+            resolve_capabilities(capabilities=["bogus"])
+
+    def test_multiple_unknown_lists_all(self):
+        with pytest.raises(ValueError, match="bogus") as exc_info:
+            resolve_capabilities(capabilities=["bogus", "fake", "entities"])
+        assert "fake" in str(exc_info.value)
+
+
+class TestEmptyAndModifierOnlySets:
+
+    def test_empty_after_remove_raises(self):
+        with pytest.raises(ValueError, match="empty"):
+            resolve_capabilities(capabilities=["entities"], remove=["entities"])
+
+    def test_modifier_only_assertion_signals_raises(self):
+        with pytest.raises(ValueError, match="base capability"):
+            resolve_capabilities(capabilities=["assertion_signals"])
+
+    def test_modifier_only_evidence_anchoring_raises(self):
+        with pytest.raises(ValueError, match="base capability"):
+            resolve_capabilities(capabilities=["evidence_anchoring"])
+
+    def test_modifier_with_base_accepted(self):
+        result = resolve_capabilities(capabilities=["entities", "assertion_signals"])
+        assert "assertion_signals" in result
+        assert "entities" in result
+
+    def test_modifier_with_facts_accepted(self):
+        result = resolve_capabilities(capabilities=["facts", "evidence_anchoring"])
+        assert "evidence_anchoring" in result
+        assert "facts" in result
+
+
+class TestTemplateInjectionPrevention:
+
+    def test_categories_not_double_expanded(self):
+        result = build_extraction_prompt(
+            "hello",
+            capabilities=["entities"],
+            categories=["A{{text}}B"],
+        )
+        assert "A{{text}}B" in result
+        assert "AhelloB" not in result
+
+    def test_source_type_not_expanded(self):
+        result = build_extraction_prompt(
+            "hello",
+            capabilities=["entities"],
+            source_type="{{date}}",
+        )
+        assert "{{date}}" in result
+
+
 class TestDependencyClosure:
 
     def test_entity_state_adds_entities(self):

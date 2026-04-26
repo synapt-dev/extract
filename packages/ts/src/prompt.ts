@@ -1,11 +1,25 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { ExtractionCapability } from "./schema.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROMPTS_DIR = resolve(__dirname, "..", "..", "..", "prompts");
+const _installedPrompts = resolve(__dirname, "..", "prompts");
+const _repoPrompts = resolve(__dirname, "..", "..", "..", "prompts");
+const PROMPTS_DIR = existsSync(_installedPrompts) ? _installedPrompts : _repoPrompts;
+
+const VALID_CAPABILITIES: Set<string> = new Set([
+  "entities", "entity_state", "entity_context", "entity_ids",
+  "goals", "goal_timing", "goal_entity_refs",
+  "themes", "summary", "sentiment", "facts",
+  "temporal_refs", "temporal_classes",
+  "relations", "relation_origin",
+  "assertion_signals", "evidence_anchoring",
+]);
+
+const BASE_CAPABILITIES: Set<string> = new Set(["entities", "goals", "facts"]);
+const MODIFIER_ONLY: Set<string> = new Set(["assertion_signals", "evidence_anchoring"]);
 
 export interface PromptOptions {
   capabilities?: ExtractionCapability[];
@@ -59,7 +73,7 @@ function renderTemplate(template: string, ctx: Record<string, unknown>): string 
   let result = template.replace(
     /\{\{#if (\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g,
     (_match, varName: string, body: string) => {
-      return ctx[varName] ? renderVars(body, ctx) : "";
+      return ctx[varName] ? body : "";
     },
   );
   return renderVars(result, ctx);
@@ -73,10 +87,21 @@ function renderVars(template: string, ctx: Record<string, unknown>): string {
   });
 }
 
+function validateCapabilityNames(caps: Iterable<string>, source: string): void {
+  const unknown: string[] = [];
+  for (const c of caps) {
+    if (!VALID_CAPABILITIES.has(c)) unknown.push(c);
+  }
+  if (unknown.length > 0) {
+    throw new Error(`Unknown ${source}: ${unknown.sort().join(", ")}`);
+  }
+}
+
 export function resolveCapabilities(options: Pick<PromptOptions, "capabilities" | "profile" | "add" | "remove">): ExtractionCapability[] {
   let caps: Set<ExtractionCapability>;
 
   if (options.capabilities != null) {
+    validateCapabilityNames(options.capabilities, "capabilities");
     caps = new Set(options.capabilities);
   } else if (options.profile != null) {
     caps = new Set(loadProfile(options.profile));
@@ -85,6 +110,7 @@ export function resolveCapabilities(options: Pick<PromptOptions, "capabilities" 
   }
 
   if (options.add) {
+    validateCapabilityNames(options.add, "capabilities in add");
     for (const c of options.add) caps.add(c);
   }
   if (options.remove) {
@@ -105,6 +131,18 @@ export function resolveCapabilities(options: Pick<PromptOptions, "capabilities" 
         }
       }
     }
+  }
+
+  if (caps.size === 0) {
+    throw new Error("Resolved capability set is empty");
+  }
+
+  const modifiers = [...caps].filter((c) => MODIFIER_ONLY.has(c));
+  if (modifiers.length > 0 && ![...caps].some((c) => BASE_CAPABILITIES.has(c))) {
+    throw new Error(
+      `Modifier capabilities [${modifiers.sort().join(", ")}] require at least one ` +
+      `base capability (${[...BASE_CAPABILITIES].sort().join(", ")})`
+    );
   }
 
   return [...caps].sort((a, b) => {
