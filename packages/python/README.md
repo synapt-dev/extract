@@ -48,7 +48,7 @@ assert result.validation.valid
 ## Links
 
 - [Repository](https://github.com/synapt-dev/extract)
-- [JSON Schema](https://synapt.dev/schemas/extraction/v1.json)
+- [JSON Schema](https://synapt.dev/schemas/extract/v1.json)
 - [TypeScript package](https://www.npmjs.com/package/@synapt-dev/extract)
 
 ## License

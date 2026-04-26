@@ -28,7 +28,7 @@ classifiers = [
 Homepage = "https://synapt.dev"
 Repository = "https://github.com/synapt-dev/extract"
 Documentation = "https://synapt.dev/docs/extract"
-Schema = "https://synapt.dev/schemas/extraction/v1.json"
+Schema = "https://synapt.dev/schemas/extract/v1.json"
 
 [tool.setuptools.packages.find]
 where = ["src"]

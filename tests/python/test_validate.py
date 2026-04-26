@@ -717,7 +717,7 @@ class TestJsonSchemaFiles:
             assert "$id" in parsed, f"{schema_file.name} missing $id"
 
     def test_extraction_schema_references_sub_schemas(self):
-        schema_path = Path(__file__).resolve().parents[2] / "schemas" / "extraction" / "v1.json"
+        schema_path = Path(__file__).resolve().parents[2] / "schemas" / "extract" / "v1.json"
         schema = json.loads(schema_path.read_text())
         schema_str = json.dumps(schema)
         assert "source-ref/v1.json" in schema_str
@@ -726,7 +726,7 @@ class TestJsonSchemaFiles:
         assert "temporal-ref/v1.json" in schema_str
 
     def test_extraction_schema_required_fields(self):
-        schema_path = Path(__file__).resolve().parents[2] / "schemas" / "extraction" / "v1.json"
+        schema_path = Path(__file__).resolve().parents[2] / "schemas" / "extract" / "v1.json"
         schema = json.loads(schema_path.read_text())
         required = schema["required"]
         assert "version" in required
