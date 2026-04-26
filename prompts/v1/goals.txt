@@ -1,0 +1,1 @@
+- "goals": array of objects with "text" (description) and "status" ("open", "resolved", "abandoned", "in_progress")
