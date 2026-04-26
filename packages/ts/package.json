@@ -17,11 +17,13 @@
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "prompts"
   ],
   "scripts": {
     "build": "tsc",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "prepack": "test -d ../../prompts && cp -r ../../prompts ./prompts || true"
   },
   "keywords": [
     "synapt",
