@@ -30,6 +30,27 @@ const VALID_TEMPORAL_TYPES: Set<string> = new Set([
 const URI_RE = /^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\/\S+$/;
 const NAMESPACED_RE = /^[a-zA-Z0-9_\-]+\/[a-zA-Z0-9_\-]+$/;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+\-]\d{2}:?\d{2})?)?$/;
+const ISO_DATETIME_STRICT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+\-]\d{2}:?\d{2})?$/;
+
+const ROOT_KEYS = new Set([
+  "version", "extracted_at", "source_id", "source_type", "user_id",
+  "produced_by", "kind", "entities", "goals", "themes", "sentiment",
+  "summary", "facts", "temporal_refs", "capabilities", "embeddings", "extensions",
+]);
+const ENTITY_KEYS = new Set([
+  "id", "name", "type", "state", "context", "date_hint",
+  "source", "signals", "relations",
+]);
+const GOAL_KEYS = new Set([
+  "text", "status", "entity_refs", "stated_at", "resolved_at",
+  "source", "signals",
+]);
+const FACT_KEYS = new Set(["text", "category", "source", "signals"]);
+const RELATION_KEYS = new Set(["target", "type", "origin", "signals"]);
+const SOURCE_REF_KEYS = new Set(["version", "snippet", "offset_start", "offset_end", "sentence_index"]);
+const SIGNALS_KEYS = new Set(["version", "confidence", "negated", "hedged", "condition"]);
+const TEMPORAL_REF_KEYS = new Set(["version", "raw", "type", "resolved", "resolved_end", "context"]);
+const EMBEDDING_KEYS = new Set(["version", "vector", "model", "input", "dimensions", "space", "computed_at"]);
 
 function isUri(s: string): boolean {
   return URI_RE.test(s);
@@ -39,8 +60,36 @@ function isIsoDatetime(s: string): boolean {
   return ISO_DATE_RE.test(s);
 }
 
+function isIsoDatetimeStrict(s: string): boolean {
+  return ISO_DATETIME_STRICT_RE.test(s);
+}
+
 function isNamespaced(s: string): boolean {
   return NAMESPACED_RE.test(s);
+}
+
+function checkExtraKeys(obj: Record<string, unknown>, allowed: Set<string>, path: string, errors: ValidationError[]): void {
+  for (const key of Object.keys(obj)) {
+    if (!allowed.has(key)) {
+      const fullPath = path ? `${path}.${key}` : key;
+      errors.push({ path: fullPath, message: "additional property not allowed" });
+    }
+  }
+}
+
+function checkOptionalStr(obj: Record<string, unknown>, key: string, path: string, errors: ValidationError[]): void {
+  if (obj[key] !== undefined && typeof obj[key] !== "string") {
+    errors.push({ path: `${path}.${key}`, message: "must be a string" });
+  }
+}
+
+function checkOptionalNonNegInt(obj: Record<string, unknown>, key: string, path: string, errors: ValidationError[]): void {
+  if (obj[key] !== undefined) {
+    const val = obj[key];
+    if (typeof val !== "number" || !Number.isInteger(val) || val < 0) {
+      errors.push({ path: `${path}.${key}`, message: "must be a non-negative integer" });
+    }
+  }
 }
 
 function hasPayloadBeyondVersion(obj: Record<string, unknown>): boolean {
@@ -53,6 +102,7 @@ function validateSourceRef(obj: unknown, path: string, errors: ValidationError[]
     return;
   }
   const ref = obj as Record<string, unknown>;
+  checkExtraKeys(ref, SOURCE_REF_KEYS, path, errors);
   if (ref.version !== "1") {
     errors.push({ path: `${path}.version`, message: "must be \"1\"" });
   }
@@ -60,9 +110,10 @@ function validateSourceRef(obj: unknown, path: string, errors: ValidationError[]
     errors.push({ path, message: "empty sub-schema (only version); must contain at least one payload field" });
     return;
   }
-  if (ref.snippet !== undefined && typeof ref.snippet !== "string") {
-    errors.push({ path: `${path}.snippet`, message: "must be a string" });
-  }
+  checkOptionalStr(ref, "snippet", path, errors);
+  checkOptionalNonNegInt(ref, "offset_start", path, errors);
+  checkOptionalNonNegInt(ref, "offset_end", path, errors);
+  checkOptionalNonNegInt(ref, "sentence_index", path, errors);
 }
 
 function validateSignals(obj: unknown, path: string, errors: ValidationError[]): void {
@@ -71,6 +122,7 @@ function validateSignals(obj: unknown, path: string, errors: ValidationError[]):
     return;
   }
   const sig = obj as Record<string, unknown>;
+  checkExtraKeys(sig, SIGNALS_KEYS, path, errors);
   if (sig.version !== "1") {
     errors.push({ path: `${path}.version`, message: "must be \"1\"" });
   }
@@ -100,12 +152,20 @@ function validateEmbedding(obj: unknown, path: string, errors: ValidationError[]
     return;
   }
   const emb = obj as Record<string, unknown>;
+  checkExtraKeys(emb, EMBEDDING_KEYS, path, errors);
   if (emb.version !== "1") {
     errors.push({ path: `${path}.version`, message: "must be \"1\"" });
   }
   const vector = emb.vector;
   if (!Array.isArray(vector)) {
     errors.push({ path: `${path}.vector`, message: "required array" });
+  } else {
+    for (let i = 0; i < vector.length; i++) {
+      if (typeof vector[i] !== "number") {
+        errors.push({ path: `${path}.vector[${i}]`, message: "must be a number" });
+        break;
+      }
+    }
   }
   if (typeof emb.model !== "string") {
     errors.push({ path: `${path}.model`, message: "required string" });
@@ -120,6 +180,12 @@ function validateEmbedding(obj: unknown, path: string, errors: ValidationError[]
   } else if (Array.isArray(vector) && emb.dimensions !== vector.length) {
     errors.push({ path: `${path}.dimensions`, message: `dimensions (${emb.dimensions}) must equal vector length (${vector.length})` });
   }
+  checkOptionalStr(emb, "space", path, errors);
+  if (emb.computed_at !== undefined) {
+    if (typeof emb.computed_at !== "string" || !isIsoDatetimeStrict(emb.computed_at)) {
+      errors.push({ path: `${path}.computed_at`, message: "must be a valid ISO 8601 date-time" });
+    }
+  }
 }
 
 function validateRelation(obj: unknown, path: string, errors: ValidationError[]): void {
@@ -128,12 +194,14 @@ function validateRelation(obj: unknown, path: string, errors: ValidationError[])
     return;
   }
   const rel = obj as Record<string, unknown>;
+  checkExtraKeys(rel, RELATION_KEYS, path, errors);
   if (typeof rel.target !== "string" || rel.target.length === 0) {
     errors.push({ path: `${path}.target`, message: "required non-empty string" });
   }
   if (typeof rel.type !== "string" || rel.type.length === 0) {
     errors.push({ path: `${path}.type`, message: "required non-empty string" });
   }
+  checkOptionalStr(rel, "origin", path, errors);
   if (rel.signals !== undefined) {
     validateSignals(rel.signals, `${path}.signals`, errors);
   }
@@ -145,12 +213,17 @@ function validateEntity(obj: unknown, path: string, errors: ValidationError[]): 
     return;
   }
   const ent = obj as Record<string, unknown>;
+  checkExtraKeys(ent, ENTITY_KEYS, path, errors);
   if (typeof ent.name !== "string" || ent.name.length === 0) {
     errors.push({ path: `${path}.name`, message: "required non-empty string" });
   }
   if (typeof ent.type !== "string" || ent.type.length === 0) {
     errors.push({ path: `${path}.type`, message: "required non-empty string" });
   }
+  checkOptionalStr(ent, "id", path, errors);
+  checkOptionalStr(ent, "state", path, errors);
+  checkOptionalStr(ent, "context", path, errors);
+  checkOptionalStr(ent, "date_hint", path, errors);
   if (ent.source !== undefined) {
     validateSourceRef(ent.source, `${path}.source`, errors);
   }
@@ -174,6 +247,7 @@ function validateGoal(obj: unknown, path: string, errors: ValidationError[]): vo
     return;
   }
   const goal = obj as Record<string, unknown>;
+  checkExtraKeys(goal, GOAL_KEYS, path, errors);
   if (typeof goal.text !== "string" || goal.text.length === 0) {
     errors.push({ path: `${path}.text`, message: "required non-empty string" });
   }
@@ -182,6 +256,12 @@ function validateGoal(obj: unknown, path: string, errors: ValidationError[]): vo
   }
   if (!Array.isArray(goal.entity_refs)) {
     errors.push({ path: `${path}.entity_refs`, message: "required array of strings" });
+  } else {
+    for (let i = 0; i < goal.entity_refs.length; i++) {
+      if (typeof goal.entity_refs[i] !== "string") {
+        errors.push({ path: `${path}.entity_refs[${i}]`, message: "must be a string" });
+      }
+    }
   }
   if (goal.stated_at !== undefined) {
     if (typeof goal.stated_at !== "string" || !isIsoDatetime(goal.stated_at)) {
@@ -207,9 +287,11 @@ function validateFact(obj: unknown, path: string, errors: ValidationError[]): vo
     return;
   }
   const fact = obj as Record<string, unknown>;
+  checkExtraKeys(fact, FACT_KEYS, path, errors);
   if (typeof fact.text !== "string" || fact.text.length === 0) {
     errors.push({ path: `${path}.text`, message: "required non-empty string" });
   }
+  checkOptionalStr(fact, "category", path, errors);
   if (fact.source !== undefined) {
     validateSourceRef(fact.source, `${path}.source`, errors);
   }
@@ -224,6 +306,7 @@ function validateTemporalRef(obj: unknown, path: string, errors: ValidationError
     return;
   }
   const ref = obj as Record<string, unknown>;
+  checkExtraKeys(ref, TEMPORAL_REF_KEYS, path, errors);
   if (ref.version !== "1") {
     errors.push({ path: `${path}.version`, message: "must be \"1\"" });
   }
@@ -254,6 +337,7 @@ function validateTemporalRef(obj: unknown, path: string, errors: ValidationError
       errors.push({ path: `${path}.resolved_end`, message: "must be a valid ISO 8601 date/datetime" });
     }
   }
+  checkOptionalStr(ref, "context", path, errors);
 }
 
 export function validateExtraction(obj: unknown): ValidationResult {
@@ -265,14 +349,16 @@ export function validateExtraction(obj: unknown): ValidationResult {
 
   const doc = obj as Record<string, unknown>;
 
+  checkExtraKeys(doc, ROOT_KEYS, "", errors);
+
   if (doc.version !== "1") {
     errors.push({ path: "version", message: "must be \"1\"" });
   }
 
   if (typeof doc.extracted_at !== "string") {
-    errors.push({ path: "extracted_at", message: "required string (ISO 8601)" });
-  } else if (!isIsoDatetime(doc.extracted_at)) {
-    errors.push({ path: "extracted_at", message: "must be a valid ISO 8601 date/datetime" });
+    errors.push({ path: "extracted_at", message: "required string (ISO 8601 date-time)" });
+  } else if (!isIsoDatetimeStrict(doc.extracted_at)) {
+    errors.push({ path: "extracted_at", message: "must be a valid ISO 8601 date-time (e.g. 2026-04-26T12:00:00Z)" });
   }
 
   if (typeof doc.produced_by !== "string") {
@@ -287,10 +373,19 @@ export function validateExtraction(obj: unknown): ValidationResult {
     }
   }
 
-  if (doc.extensions !== undefined && typeof doc.extensions === "object" && doc.extensions !== null) {
-    for (const key of Object.keys(doc.extensions as Record<string, unknown>)) {
-      if (!isNamespaced(key)) {
-        errors.push({ path: `extensions.${key}`, message: "extension key must be namespaced (e.g. 'conversa/prayer')" });
+  checkOptionalStr(doc, "sentiment", "", errors);
+  checkOptionalStr(doc, "source_id", "", errors);
+  checkOptionalStr(doc, "source_type", "", errors);
+  checkOptionalStr(doc, "user_id", "", errors);
+
+  if (doc.extensions !== undefined) {
+    if (typeof doc.extensions !== "object" || doc.extensions === null || Array.isArray(doc.extensions)) {
+      errors.push({ path: "extensions", message: "must be an object" });
+    } else {
+      for (const key of Object.keys(doc.extensions as Record<string, unknown>)) {
+        if (!isNamespaced(key)) {
+          errors.push({ path: `extensions.${key}`, message: "extension key must be namespaced (e.g. 'conversa/prayer')" });
+        }
       }
     }
   }
