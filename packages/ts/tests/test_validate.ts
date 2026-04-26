@@ -355,7 +355,7 @@ describe("validateExtraction", () => {
   });
 
   test.each([
-    ["2026-04-26", true],
+    ["2026-04-26", false],
     ["2026-04-26T10:30:00Z", true],
     ["not-a-date", false],
   ])("validates extracted_at shape: %s", (value, expectedValid) => {
