@@ -16,3 +16,6 @@ export type { ValidationResult, ValidationError } from "./validate.js";
 
 export { finalizeExtraction } from "./finalize.js";
 export type { FinalizeContext, FinalizeResult } from "./finalize.js";
+
+export { buildExtractionPrompt, resolveCapabilities } from "./prompt.js";
+export type { PromptOptions } from "./prompt.js";

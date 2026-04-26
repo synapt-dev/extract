@@ -1,0 +1,8 @@
+Extract structured data from the following text.
+
+{{#if categories}}Available categories: {{categories}}{{/if}}
+{{#if source_type}}Content type: {{source_type}}{{/if}}
+{{#if date}}Date: {{date}}{{/if}}
+
+Return a JSON object with the following fields:
+- "extracted_at": current ISO 8601 timestamp

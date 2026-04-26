@@ -1,0 +1,1 @@
+- "temporal_refs": array with "raw" (as it appeared) and "resolved" (ISO 8601). Resolve relative dates using: {{date}}

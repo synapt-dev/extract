@@ -1,0 +1,1 @@
+  - include "type" ("point", "range", "duration", "unresolved") and "resolved_end" for ranges

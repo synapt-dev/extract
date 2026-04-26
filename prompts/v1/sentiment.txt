@@ -1,0 +1,1 @@
+- "sentiment": overall emotional tone in one word
