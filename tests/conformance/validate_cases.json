@@ -1,0 +1,63 @@
+[
+  {
+    "name": "minimal-valid",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T00:00:00Z",
+      "produced_by": "openai://gpt-4o-mini",
+      "entities": [],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes"]
+    },
+    "expected_valid": true,
+    "expected_error_paths": []
+  },
+  {
+    "name": "range-missing-resolved-end",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T00:00:00Z",
+      "produced_by": "openai://gpt-4o-mini",
+      "entities": [],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes", "temporal_refs", "temporal_classes"],
+      "temporal_refs": [
+        {
+          "version": "1",
+          "raw": "April 20 to May 1",
+          "type": "range",
+          "resolved": "2026-04-20"
+        }
+      ]
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["temporal_refs[0].resolved_end"]
+  },
+  {
+    "name": "dangling-goal-entity-ref",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T00:00:00Z",
+      "produced_by": "openai://gpt-4o-mini",
+      "entities": [
+        {
+          "name": "Mom",
+          "type": "person"
+        }
+      ],
+      "goals": [
+        {
+          "text": "Recovery",
+          "status": "open",
+          "entity_refs": ["e1"]
+        }
+      ],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes", "goal_entity_refs"]
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["goals[0].entity_refs[0]"]
+  }
+]

@@ -1,0 +1,100 @@
+[
+  {
+    "name": "happy-path-finalize",
+    "llm_output": {
+      "extracted_at": "2026-04-26T00:00:00Z",
+      "entities": [
+        {
+          "id": "e1",
+          "name": "Mom",
+          "type": "person",
+          "state": "recovering",
+          "source": {
+            "snippet": "My mom is recovering"
+          },
+          "signals": {
+            "confidence": 0.9
+          }
+        }
+      ],
+      "goals": [
+        {
+          "text": "Full recovery",
+          "status": "open",
+          "entity_refs": ["e1"],
+          "stated_at": "2026-04-20"
+        }
+      ],
+      "themes": ["Health"],
+      "facts": [
+        {
+          "text": "Mom had surgery",
+          "source": {
+            "snippet": "Mom had surgery"
+          }
+        }
+      ],
+      "summary": "Prayer for mom's recovery.",
+      "sentiment": "hopeful"
+    },
+    "context": {
+      "produced_by": "openai://gpt-4o-mini",
+      "user_id": "user_123",
+      "source_id": "prayer-001",
+      "kind": "conversa/prayer",
+      "extensions": {
+        "conversa/prayer": {
+          "category": "Health"
+        }
+      }
+    },
+    "expected_valid": true,
+    "expected_capabilities": [
+      "entities",
+      "entity_state",
+      "entity_ids",
+      "goals",
+      "goal_timing",
+      "goal_entity_refs",
+      "themes",
+      "summary",
+      "sentiment",
+      "facts",
+      "assertion_signals",
+      "evidence_anchoring"
+    ]
+  },
+  {
+    "name": "invalid-embedding-validation",
+    "llm_output": {
+      "extracted_at": "2026-04-26T00:00:00Z",
+      "entities": [
+        {
+          "name": "Mom",
+          "type": "person"
+        }
+      ],
+      "goals": [
+        {
+          "text": "Recovery",
+          "status": "open",
+          "entity_refs": []
+        }
+      ],
+      "themes": ["Health"]
+    },
+    "context": {
+      "produced_by": "openai://gpt-4o-mini",
+      "embeddings": [
+        {
+          "vector": [0.1, 0.2],
+          "model": "not-a-uri",
+          "input": "source",
+          "dimensions": 99
+        }
+      ]
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["embeddings[0].model", "embeddings[0].dimensions"]
+  }
+]

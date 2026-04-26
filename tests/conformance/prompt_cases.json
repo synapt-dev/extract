@@ -1,0 +1,37 @@
+[
+  {
+    "name": "standard-profile",
+    "text": "Please pray for my mom. She had surgery on April 20 and is recovering well.",
+    "options": {
+      "profile": "standard",
+      "categories": ["Health", "Family"],
+      "source_type": "prayer",
+      "date": "2026-04-25"
+    },
+    "expected_capabilities": [
+      "entities",
+      "goals",
+      "themes",
+      "summary",
+      "sentiment",
+      "facts",
+      "temporal_refs",
+      "entity_state",
+      "entity_context",
+      "goal_timing",
+      "evidence_anchoring"
+    ],
+    "prompt_includes": ["Health", "Family", "prayer", "2026-04-25", "\"facts\""],
+    "prompt_excludes": ["\"relations\""]
+  },
+  {
+    "name": "dependency-closure",
+    "text": "Mom encouraged me.",
+    "options": {
+      "capabilities": ["relation_origin"]
+    },
+    "expected_capabilities": ["entities", "entity_ids", "relations", "relation_origin"],
+    "prompt_includes": ["\"relations\"", "\"id\""],
+    "prompt_excludes": []
+  }
+]
