@@ -555,6 +555,41 @@ class TestEmbeddingDimensionEquality:
         result = validate_extraction(doc)
         assert result.valid
 
+    def test_vector_non_number_rejected(self):
+        doc = _minimal_extraction(embeddings=[{
+            "version": "1",
+            "vector": [0.1, "bad", 0.3],
+            "model": "openai://text-embedding-3-small",
+            "input": "source",
+            "dimensions": 3,
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("vector" in e.path for e in result.errors)
+
+    def test_vector_bool_rejected(self):
+        doc = _minimal_extraction(embeddings=[{
+            "version": "1",
+            "vector": [0.1, True, 0.3],
+            "model": "openai://text-embedding-3-small",
+            "input": "source",
+            "dimensions": 3,
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("vector" in e.path for e in result.errors)
+
+    def test_vector_all_numbers_accepted(self):
+        doc = _minimal_extraction(embeddings=[{
+            "version": "1",
+            "vector": [0.1, 0.2, 0.3],
+            "model": "openai://text-embedding-3-small",
+            "input": "source",
+            "dimensions": 3,
+        }])
+        result = validate_extraction(doc)
+        assert result.valid
+
     def test_embedding_model_requires_scheme(self):
         doc = _minimal_extraction(embeddings=[{
             "version": "1",

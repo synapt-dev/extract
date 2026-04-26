@@ -159,6 +159,13 @@ function validateEmbedding(obj: unknown, path: string, errors: ValidationError[]
   const vector = emb.vector;
   if (!Array.isArray(vector)) {
     errors.push({ path: `${path}.vector`, message: "required array" });
+  } else {
+    for (let i = 0; i < vector.length; i++) {
+      if (typeof vector[i] !== "number") {
+        errors.push({ path: `${path}.vector[${i}]`, message: "must be a number" });
+        break;
+      }
+    }
   }
   if (typeof emb.model !== "string") {
     errors.push({ path: `${path}.model`, message: "required string" });

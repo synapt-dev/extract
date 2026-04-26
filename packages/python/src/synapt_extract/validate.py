@@ -152,6 +152,11 @@ def _check_embedding(obj: Any, path: str, errors: list[ValidationError]) -> None
     vector = obj.get("vector")
     if not isinstance(vector, list):
         errors.append(ValidationError(f"{path}.vector", "required array"))
+    else:
+        for i, v in enumerate(vector):
+            if not isinstance(v, (int, float)) or isinstance(v, bool):
+                errors.append(ValidationError(f"{path}.vector[{i}]", "must be a number"))
+                break
     model = obj.get("model")
     if not isinstance(model, str):
         errors.append(ValidationError(f"{path}.model", "required string"))
