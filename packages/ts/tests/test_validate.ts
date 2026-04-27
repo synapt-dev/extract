@@ -326,6 +326,108 @@ describe("validateExtraction", () => {
     expect(result.valid).toBe(expectedValid);
   });
 
+  test("accepts v1.0 string produced_by for backwards compatibility", () => {
+    const result = validateExtraction(minimalExtraction({
+      produced_by: "anthropic://claude-sonnet-4-6",
+    }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("accepts minimal v1.1 structured producer", () => {
+    const result = validateExtraction(minimalExtraction({
+      produced_by: {
+        version: "1",
+        model: "anthropic://claude-sonnet-4-6",
+      },
+    }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("accepts full v1.1 structured producer", () => {
+    const result = validateExtraction(minimalExtraction({
+      produced_by: {
+        version: "1",
+        model: "anthropic://claude-sonnet-4-6",
+        model_version: "claude-sonnet-4-6-20250514",
+        deployment: "bedrock",
+        configuration: {
+          reasoning_effort: "high",
+          system_prompt_hash: "abc123",
+          temperature: 0.2,
+          top_p: 0.95,
+          max_tokens: 2048,
+          vendor_flag: true,
+        },
+        operator: "synapt-dev",
+        signature: "eyJhbGciOiJIUzI1NiJ9.payload.signature",
+      },
+    }));
+    expect(result.valid).toBe(true);
+  });
+
+  test.each([
+    [
+      "missing version",
+      { model: "anthropic://claude-sonnet-4-6" },
+      "produced_by.version",
+    ],
+    [
+      "missing model",
+      { version: "1" },
+      "produced_by.model",
+    ],
+    [
+      "unknown root field",
+      { version: "1", model: "anthropic://claude-sonnet-4-6", extra_field: "boom" },
+      "produced_by.extra_field",
+    ],
+    [
+      "malformed model uri",
+      { version: "1", model: "claude-sonnet-4-6" },
+      "produced_by.model",
+    ],
+    [
+      "non-string signature",
+      { version: "1", model: "anthropic://claude-sonnet-4-6", signature: { alg: "HS256" } },
+      "produced_by.signature",
+    ],
+  ])("rejects structured producer with %s", (_name, producedBy, errorPath) => {
+    const result = validateExtraction(minimalExtraction({ produced_by: producedBy }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((error) => error.path === errorPath)).toBe(true);
+  });
+
+  test("accepts open configuration object with arbitrary extra fields", () => {
+    const result = validateExtraction(minimalExtraction({
+      produced_by: {
+        version: "1",
+        model: "anthropic://claude-sonnet-4-6",
+        configuration: {
+          provider_sampling_mode: "adaptive",
+          vendor_flag: true,
+        },
+      },
+    }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("accepts known configuration fields", () => {
+    const result = validateExtraction(minimalExtraction({
+      produced_by: {
+        version: "1",
+        model: "anthropic://claude-sonnet-4-6",
+        configuration: {
+          reasoning_effort: "medium",
+          system_prompt_hash: "f00dbabe",
+          temperature: 0.1,
+          top_p: 0.95,
+          max_tokens: 2048,
+        },
+      },
+    }));
+    expect(result.valid).toBe(true);
+  });
+
   test.each([
     ["entity name empty", minimalExtraction({ entities: [{ name: "", type: "person" }] }), "entities[0].name"],
     ["entity type empty", minimalExtraction({ entities: [{ name: "Mom", type: "" }] }), "entities[0].type"],
@@ -529,6 +631,7 @@ describe("JSON Schema dereference", () => {
     expect(schema).toContain("embedding/v1.json");
     expect(schema).toContain("assertion-signals/v1.json");
     expect(schema).toContain("temporal-ref/v1.json");
+    expect(schema).toContain("producer/v1.json");
   });
 
   test("extraction schema carries the expected required fields", () => {
@@ -554,6 +657,7 @@ describe("JSON Schema dereference", () => {
       resolve(SCHEMAS_DIR, "producer", "v1.json"),
       resolve(SCHEMAS_DIR, "source-ref", "v1.json"),
       resolve(SCHEMAS_DIR, "temporal-ref", "v1.json"),
+      resolve(SCHEMAS_DIR, "producer", "v1.json"),
       resolve(SCHEMAS_DIR, "extract", "v1.json"),
     ];
 
@@ -568,6 +672,12 @@ describe("JSON Schema dereference", () => {
     const cases = [
       minimalExtraction(),
       minimalExtraction({ version: "2" }),
+      minimalExtraction({
+        produced_by: {
+          version: "1",
+          model: "anthropic://claude-sonnet-4-6",
+        },
+      }),
       minimalExtraction({
         entities: [{ id: "e1", name: "Mom", type: "person" }],
         goals: [{ text: "Recovery", status: "open", entity_refs: ["e1"] }],
@@ -590,6 +700,7 @@ describe("JSON Schema dereference", () => {
       resolve(SCHEMAS_DIR, "producer", "v1.json"),
       resolve(SCHEMAS_DIR, "source-ref", "v1.json"),
       resolve(SCHEMAS_DIR, "temporal-ref", "v1.json"),
+      resolve(SCHEMAS_DIR, "producer", "v1.json"),
       resolve(SCHEMAS_DIR, "extract", "v1.json"),
     ]) {
       const schema = loadJson<Record<string, unknown>>(file);
@@ -621,5 +732,12 @@ describe("JSON Schema dereference", () => {
     const schemaValid = ajv.getSchema("https://synapt.dev/schemas/extract/v1.json")!(doc);
     const validatorValid = validateExtraction(doc).valid;
     expect(schemaValid).toBe(validatorValid);
+  });
+
+  test("producer schema exists with canonical id", () => {
+    const producerSchema = loadJson<Record<string, unknown>>(
+      resolve(SCHEMAS_DIR, "producer", "v1.json"),
+    );
+    expect(producerSchema.$id).toBe("https://synapt.dev/schemas/producer/v1.json");
   });
 });
