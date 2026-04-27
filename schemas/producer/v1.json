@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://synapt.dev/schemas/producer/v1.json",
   "title": "SynaptProducer",
-  "description": "Structured identity for the model that produced a SynaptExtraction. Captures model, deployment, configuration, operator, and optional cryptographic attestation.",
+  "description": "Structured identity for the model that produced a SynaptExtraction. Describes the final extraction-producing model (not auxiliary models in a pipeline), its deployment context, configuration, accountable operator, and an optional opaque attestation slot.",
   "type": "object",
   "properties": {
     "version": {
@@ -12,21 +12,21 @@
     "model": {
       "type": "string",
       "pattern": "^[a-zA-Z][a-zA-Z0-9+.\\-]*://\\S+$",
-      "description": "Model that produced the extraction (URI format: \"provider://model-name\"). E.g. \"anthropic://claude-sonnet-4-6\"."
+      "description": "Stable logical identifier for the model that emitted the final extraction payload (URI format: \"provider://model-name\"). If the version is embedded in the URI, model_version SHOULD be omitted. E.g. \"anthropic://claude-sonnet-4-6\"."
     },
     "model_version": {
       "type": "string",
       "minLength": 1,
-      "description": "Specific model checkpoint or version string. E.g. \"claude-sonnet-4-6-20250514\"."
+      "description": "Provider-reported checkpoint, build, or revision for the logical model. SHOULD be omitted if the version is already embedded in the model URI. MUST agree semantically with model when both are present. E.g. \"claude-sonnet-4-6-20250514\"."
     },
     "deployment": {
       "type": "string",
       "minLength": 1,
-      "description": "Deployment context: region, platform, or routing tier. E.g. \"us-east-1\", \"bedrock\", \"vertex\"."
+      "description": "Opaque deployment label supplied by the producer. May represent a region, platform, routing tier, or other deployment-specific context. Consumers MUST NOT assume cross-provider comparability. E.g. \"us-east-1\", \"bedrock\", \"vertex\"."
     },
     "configuration": {
       "type": "object",
-      "description": "Model configuration at extraction time. Known fields are standardized; provider-specific parameters are allowed.",
+      "description": "Model configuration at extraction time. Known fields are standardized; provider-specific parameters are allowed but are opaque and not portable across providers. Provider-specific keys SHOULD use a vendor prefix (e.g. \"anthropic:beta_flag\"). Do not store secrets or raw prompt text; use system_prompt_hash for prompt provenance.",
       "properties": {
         "reasoning_effort": {
           "type": "string",
@@ -35,7 +35,7 @@
         "system_prompt_hash": {
           "type": "string",
           "pattern": "^[0-9a-fA-F]+$",
-          "description": "Hex digest of the system prompt used for extraction."
+          "description": "Hex digest of the system prompt used for extraction. Preferred provenance surface for prompts; raw prompt text SHOULD NOT appear in configuration."
         },
         "temperature": {
           "type": "number",
@@ -59,12 +59,12 @@
     "operator": {
       "type": "string",
       "minLength": 1,
-      "description": "Legally accountable entity that deployed the model. E.g. \"synapt-dev\", \"acme-corp\"."
+      "description": "Accountability metadata: the entity that deployed the model and is responsible for its output. Not sufficient proof of identity on its own; v1.1 does not standardize key discovery or verification. E.g. \"synapt-dev\", \"acme-corp\"."
     },
     "signature": {
       "type": "string",
       "minLength": 1,
-      "description": "Cryptographic attestation. JWS compact serialization recommended. Verifier resolves the signing key from the operator field."
+      "description": "Opaque attestation slot for cryptographic signatures. JWS compact serialization is the recommended convention, but raw Ed25519, COSE, and other formats are acceptable. v1.1 does not standardize what is signed, key discovery, or verification; this field records the attestation for consumers that implement their own verification. The signature SHOULD cover the finalized extraction payload."
     }
   },
   "required": ["version", "model"],

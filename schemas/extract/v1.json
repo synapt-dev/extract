@@ -37,7 +37,7 @@
           "$ref": "https://synapt.dev/schemas/producer/v1.json"
         }
       ],
-      "description": "Model that produced the extraction. String form (v1.0): provider URI. Object form (v1.1): structured SynaptProducer."
+      "description": "Model that produced the extraction. String form (v1.0): provider URI. Object form (v1.1): structured SynaptProducer. v1.1 is additive for schema validators and type-tolerant readers; v1.0 consumer code that performs string operations on produced_by without a type guard will break on v1.1 object-form documents. Readers MUST branch on string vs object."
     },
     "kind": {
       "type": "string",
