@@ -657,7 +657,6 @@ describe("JSON Schema dereference", () => {
       resolve(SCHEMAS_DIR, "producer", "v1.json"),
       resolve(SCHEMAS_DIR, "source-ref", "v1.json"),
       resolve(SCHEMAS_DIR, "temporal-ref", "v1.json"),
-      resolve(SCHEMAS_DIR, "producer", "v1.json"),
       resolve(SCHEMAS_DIR, "extract", "v1.json"),
     ];
 
@@ -700,7 +699,6 @@ describe("JSON Schema dereference", () => {
       resolve(SCHEMAS_DIR, "producer", "v1.json"),
       resolve(SCHEMAS_DIR, "source-ref", "v1.json"),
       resolve(SCHEMAS_DIR, "temporal-ref", "v1.json"),
-      resolve(SCHEMAS_DIR, "producer", "v1.json"),
       resolve(SCHEMAS_DIR, "extract", "v1.json"),
     ]) {
       const schema = loadJson<Record<string, unknown>>(file);
