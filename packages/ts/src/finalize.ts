@@ -5,12 +5,13 @@ import type {
   SynaptFact,
   SynaptEmbedding,
   SynaptTemporalRef,
+  SynaptProducer,
   ExtractionCapability,
 } from "./schema.js";
 import { validateExtraction, type ValidationResult } from "./validate.js";
 
 export interface FinalizeContext {
-  produced_by: string;
+  produced_by: string | Omit<SynaptProducer, "version">;
   user_id?: string;
   source_id?: string;
   source_type?: string;
@@ -113,7 +114,11 @@ export function finalizeExtraction(
 
   // Stage 2: inject client context
   doc.version = "1";
-  doc.produced_by = context.produced_by;
+  if (typeof context.produced_by === "object") {
+    doc.produced_by = { version: "1", ...context.produced_by };
+  } else {
+    doc.produced_by = context.produced_by;
+  }
   if (context.user_id !== undefined) doc.user_id = context.user_id;
   if (context.source_id !== undefined) doc.source_id = context.source_id;
   if (context.source_type !== undefined) doc.source_type = context.source_type;

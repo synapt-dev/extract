@@ -40,6 +40,24 @@ class SynaptTemporalRef(TypedDict, total=False):
     context: str
 
 
+class SynaptProducerConfiguration(TypedDict, total=False):
+    reasoning_effort: str
+    system_prompt_hash: str
+    temperature: float
+    top_p: float
+    max_tokens: int
+
+
+class SynaptProducer(TypedDict, total=False):
+    version: str
+    model: str
+    model_version: str
+    deployment: str
+    configuration: SynaptProducerConfiguration
+    operator: str
+    signature: str
+
+
 class SynaptRelation(TypedDict, total=False):
     target: str
     type: str
@@ -92,7 +110,7 @@ class SynaptExtraction(TypedDict, total=False):
     source_id: str
     source_type: str
     user_id: str
-    produced_by: str
+    produced_by: str | SynaptProducer
     kind: str
     entities: list[SynaptEntity]
     goals: list[SynaptGoal]

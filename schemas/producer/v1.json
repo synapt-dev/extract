@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://synapt.dev/schemas/producer/v1.json",
+  "title": "SynaptProducer",
+  "description": "Structured identity for the model that produced a SynaptExtraction. Captures model, deployment, configuration, operator, and optional cryptographic attestation.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "1",
+      "description": "Sub-schema version."
+    },
+    "model": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9+.\\-]*://\\S+$",
+      "description": "Model that produced the extraction (URI format: \"provider://model-name\"). E.g. \"anthropic://claude-sonnet-4-6\"."
+    },
+    "model_version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Specific model checkpoint or version string. E.g. \"claude-sonnet-4-6-20250514\"."
+    },
+    "deployment": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Deployment context: region, platform, or routing tier. E.g. \"us-east-1\", \"bedrock\", \"vertex\"."
+    },
+    "configuration": {
+      "type": "object",
+      "description": "Model configuration at extraction time. Known fields are standardized; provider-specific parameters are allowed.",
+      "properties": {
+        "reasoning_effort": {
+          "type": "string",
+          "description": "Reasoning effort level. E.g. \"low\", \"medium\", \"high\"."
+        },
+        "system_prompt_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]+$",
+          "description": "Hex digest of the system prompt used for extraction."
+        },
+        "temperature": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Sampling temperature."
+        },
+        "top_p": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Nucleus sampling threshold."
+        },
+        "max_tokens": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum output tokens."
+        }
+      },
+      "additionalProperties": true
+    },
+    "operator": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Legally accountable entity that deployed the model. E.g. \"synapt-dev\", \"acme-corp\"."
+    },
+    "signature": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Cryptographic attestation. JWS compact serialization recommended. Verifier resolves the signing key from the operator field."
+    }
+  },
+  "required": ["version", "model"],
+  "additionalProperties": false
+}

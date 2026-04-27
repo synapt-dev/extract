@@ -43,6 +43,13 @@ _SOURCE_REF_KEYS = frozenset(["version", "snippet", "offset_start", "offset_end"
 _SIGNALS_KEYS = frozenset(["version", "confidence", "negated", "hedged", "condition"])
 _TEMPORAL_REF_KEYS = frozenset(["version", "raw", "type", "resolved", "resolved_end", "context"])
 _EMBEDDING_KEYS = frozenset(["version", "vector", "model", "input", "dimensions", "space", "computed_at"])
+_PRODUCER_KEYS = frozenset([
+    "version", "model", "model_version", "deployment", "configuration",
+    "operator", "signature",
+])
+_PRODUCER_CONFIG_KNOWN_KEYS = frozenset([
+    "reasoning_effort", "system_prompt_hash", "temperature", "top_p", "max_tokens",
+])
 
 
 @dataclass
@@ -284,6 +291,53 @@ def _check_temporal_ref(obj: Any, path: str, errors: list[ValidationError]) -> N
     _check_optional_str(obj, "context", path, errors)
 
 
+_HEX_RE = re.compile(r"^[0-9a-fA-F]+$")
+
+
+def _check_producer(obj: Any, path: str, errors: list[ValidationError]) -> None:
+    if not isinstance(obj, dict):
+        errors.append(ValidationError(path, "must be an object"))
+        return
+    _check_extra_keys(obj, _PRODUCER_KEYS, path, errors)
+
+    if obj.get("version") != "1":
+        errors.append(ValidationError(f"{path}.version", 'must be "1"'))
+
+    model = obj.get("model")
+    if not isinstance(model, str):
+        errors.append(ValidationError(f"{path}.model", "required string (provider URI)"))
+    elif not _is_uri(model):
+        errors.append(ValidationError(f"{path}.model", "must be a provider URI (scheme://identifier)"))
+
+    _check_optional_str(obj, "model_version", path, errors)
+    _check_optional_str(obj, "deployment", path, errors)
+    _check_optional_str(obj, "operator", path, errors)
+    _check_optional_str(obj, "signature", path, errors)
+
+    if "configuration" in obj:
+        config = obj["configuration"]
+        if not isinstance(config, dict):
+            errors.append(ValidationError(f"{path}.configuration", "must be an object"))
+        else:
+            _check_optional_str(config, "reasoning_effort", f"{path}.configuration", errors)
+            if "system_prompt_hash" in config:
+                val = config["system_prompt_hash"]
+                if not isinstance(val, str) or not _HEX_RE.match(val):
+                    errors.append(ValidationError(f"{path}.configuration.system_prompt_hash", "must be a hex string"))
+            if "temperature" in config:
+                val = config["temperature"]
+                if not isinstance(val, (int, float)) or isinstance(val, bool) or val < 0:
+                    errors.append(ValidationError(f"{path}.configuration.temperature", "must be a non-negative number"))
+            if "top_p" in config:
+                val = config["top_p"]
+                if not isinstance(val, (int, float)) or isinstance(val, bool) or val < 0 or val > 1:
+                    errors.append(ValidationError(f"{path}.configuration.top_p", "must be a number between 0 and 1"))
+            if "max_tokens" in config:
+                val = config["max_tokens"]
+                if not isinstance(val, int) or isinstance(val, bool) or val < 1:
+                    errors.append(ValidationError(f"{path}.configuration.max_tokens", "must be a positive integer"))
+
+
 def validate_extraction(obj: Any) -> ValidationResult:
     errors: list[ValidationError] = []
 
@@ -302,10 +356,13 @@ def validate_extraction(obj: Any) -> ValidationResult:
         errors.append(ValidationError("extracted_at", "must be a valid ISO 8601 date-time (e.g. 2026-04-26T12:00:00Z)"))
 
     produced_by = obj.get("produced_by")
-    if not isinstance(produced_by, str):
-        errors.append(ValidationError("produced_by", "required string (provider URI)"))
-    elif not _is_uri(produced_by):
-        errors.append(ValidationError("produced_by", "must be a provider URI (scheme://identifier)"))
+    if isinstance(produced_by, str):
+        if not _is_uri(produced_by):
+            errors.append(ValidationError("produced_by", "must be a provider URI (scheme://identifier)"))
+    elif isinstance(produced_by, dict):
+        _check_producer(produced_by, "produced_by", errors)
+    else:
+        errors.append(ValidationError("produced_by", "required string (provider URI) or SynaptProducer object"))
 
     if "kind" in obj:
         kind = obj["kind"]

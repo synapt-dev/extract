@@ -10,7 +10,7 @@ from synapt_extract.validate import ValidationResult, validate_extraction
 
 @dataclass
 class FinalizeContext:
-    produced_by: str
+    produced_by: str | dict[str, Any]
     user_id: str | None = None
     source_id: str | None = None
     source_type: str | None = None
@@ -109,7 +109,10 @@ def finalize_extraction(
 
     # Stage 2: inject client context
     doc["version"] = "1"
-    doc["produced_by"] = context.produced_by
+    if isinstance(context.produced_by, dict):
+        doc["produced_by"] = {"version": "1", **context.produced_by}
+    else:
+        doc["produced_by"] = context.produced_by
     if context.user_id is not None:
         doc["user_id"] = context.user_id
     if context.source_id is not None:

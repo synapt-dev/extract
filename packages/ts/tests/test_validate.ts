@@ -551,6 +551,7 @@ describe("JSON Schema dereference", () => {
     const schemaFiles = [
       resolve(SCHEMAS_DIR, "assertion-signals", "v1.json"),
       resolve(SCHEMAS_DIR, "embedding", "v1.json"),
+      resolve(SCHEMAS_DIR, "producer", "v1.json"),
       resolve(SCHEMAS_DIR, "source-ref", "v1.json"),
       resolve(SCHEMAS_DIR, "temporal-ref", "v1.json"),
       resolve(SCHEMAS_DIR, "extract", "v1.json"),
@@ -586,6 +587,7 @@ describe("JSON Schema dereference", () => {
     for (const file of [
       resolve(SCHEMAS_DIR, "assertion-signals", "v1.json"),
       resolve(SCHEMAS_DIR, "embedding", "v1.json"),
+      resolve(SCHEMAS_DIR, "producer", "v1.json"),
       resolve(SCHEMAS_DIR, "source-ref", "v1.json"),
       resolve(SCHEMAS_DIR, "temporal-ref", "v1.json"),
       resolve(SCHEMAS_DIR, "extract", "v1.json"),
@@ -606,6 +608,7 @@ describe("JSON Schema dereference", () => {
     for (const file of [
       resolve(SCHEMAS_DIR, "assertion-signals", "v1.json"),
       resolve(SCHEMAS_DIR, "embedding", "v1.json"),
+      resolve(SCHEMAS_DIR, "producer", "v1.json"),
       resolve(SCHEMAS_DIR, "source-ref", "v1.json"),
       resolve(SCHEMAS_DIR, "temporal-ref", "v1.json"),
       resolve(SCHEMAS_DIR, "extract", "v1.json"),

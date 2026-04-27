@@ -28,9 +28,16 @@
       "description": "Customer's user identifier."
     },
     "produced_by": {
-      "type": "string",
-      "pattern": "^[a-zA-Z][a-zA-Z0-9+.\\-]*://\\S+$",
-      "description": "Model that produced the Stage 1 extraction (URI format: \"provider://model-name\")."
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9+.\\-]*://\\S+$"
+        },
+        {
+          "$ref": "https://synapt.dev/schemas/producer/v1.json"
+        }
+      ],
+      "description": "Model that produced the extraction. String form (v1.0): provider URI. Object form (v1.1): structured SynaptProducer."
     },
     "kind": {
       "type": "string",
