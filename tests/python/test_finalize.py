@@ -39,6 +39,25 @@ class TestStage2Injection:
         )
         assert result.extraction["produced_by"] == "openai://gpt-4o-mini"
 
+    def test_injects_structured_produced_by(self):
+        producer = {
+            "version": "1",
+            "model": "anthropic://claude-sonnet-4-6",
+            "deployment": "bedrock",
+            "configuration": {
+                "reasoning_effort": "high",
+                "temperature": 0.2,
+                "provider_flag": True,
+            },
+            "operator": "synapt-dev",
+            "signature": "eyJhbGciOiJIUzI1NiJ9.payload.signature",
+        }
+        result = finalize_extraction(
+            _llm_output(),
+            FinalizeContext(produced_by=producer),  # type: ignore[arg-type]
+        )
+        assert result.extraction["produced_by"] == producer
+
     def test_injects_user_id(self):
         result = finalize_extraction(
             _llm_output(),
@@ -405,6 +424,19 @@ class TestStage3ValidationCatchesBadInput:
         assert not result.validation.valid
         assert any("model" in e.path for e in result.validation.errors)
         assert any("dimensions" in e.path for e in result.validation.errors)
+
+    def test_invalid_structured_producer_reported_in_validation(self):
+        result = finalize_extraction(
+            _llm_output(),
+            FinalizeContext(
+                produced_by={
+                    "version": "1",
+                    "model": "claude-sonnet-4-6",
+                },  # type: ignore[arg-type]
+            ),
+        )
+        assert not result.validation.valid
+        assert any("produced_by.model" in e.path for e in result.validation.errors)
 
 
 class TestEndToEnd:
