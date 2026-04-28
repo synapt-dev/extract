@@ -1,0 +1,394 @@
+{
+  "extracted_at": "2026-04-22T00:00:00Z",
+  "entities": [
+    {
+      "name": "Marcus",
+      "type": "person",
+      "state": "stressed but hopeful, losing sleep, managing family stress and work pressure",
+      "context": "client in weekly counseling session",
+      "date_hint": "2026-04-22",
+      "source": {
+        "snippet": "Weekly check-in with Marcus, April 22, 2026",
+        "version": "1"
+      }
+    },
+    {
+      "name": "Elena",
+      "type": "person",
+      "state": "has not responded to Marcus's apology text",
+      "context": "Marcus's sister, co-decision-maker on mother's care",
+      "date_hint": "2026-04-22",
+      "source": {
+        "snippet": "My sister Elena and I have been trying to figure out care options, but we keep disagreeing.",
+        "version": "1"
+      }
+    },
+    {
+      "name": "Mom",
+      "type": "person",
+      "state": "diagnosed with early-stage Alzheimer's, still pretty independent",
+      "context": "Marcus's mother, subject of care planning",
+      "date_hint": "2026-03-28",
+      "source": {
+        "snippet": "my mom was diagnosed with early-stage Alzheimer's last month. We got the results back March 28th.",
+        "version": "1"
+      }
+    },
+    {
+      "name": "Dr. Patel",
+      "type": "person",
+      "state": "active therapist seeing Marcus weekly",
+      "context": "therapist recommended by a friend of Marcus",
+      "date_hint": "2026-04-10",
+      "source": {
+        "snippet": "I started seeing Dr. Patel — she's a therapist my friend recommended — on April 10th.",
+        "version": "1"
+      }
+    },
+    {
+      "name": "Jake",
+      "type": "person",
+      "state": "piling more tasks on Marcus ahead of product launch",
+      "context": "Marcus's manager at Meridian Tech",
+      "date_hint": "2026-04-22",
+      "source": {
+        "snippet": "my manager Jake keeps piling on more tasks.",
+        "version": "1"
+      }
+    },
+    {
+      "name": "Sunrise Senior Care",
+      "type": "organization",
+      "state": "proposed assisted living facility, not yet decided upon",
+      "context": "assisted living facility in Portland proposed by Elena for Marcus's mother",
+      "date_hint": "2026-04-22",
+      "source": {
+        "snippet": "She wants to move Mom into assisted living at Sunrise Senior Care in Portland",
+        "version": "1"
+      }
+    },
+    {
+      "name": "Meridian Tech",
+      "type": "organization",
+      "state": "active employer of Marcus with upcoming product launch",
+      "context": "Marcus's employer",
+      "date_hint": "2026-04-22",
+      "source": {
+        "snippet": "work at Meridian Tech has been intense too.",
+        "version": "1"
+      }
+    },
+    {
+      "name": "Portland",
+      "type": "place",
+      "state": "location of proposed assisted living facility",
+      "context": "city where Sunrise Senior Care is located",
+      "date_hint": "2026-04-22",
+      "source": {
+        "snippet": "move Mom into assisted living at Sunrise Senior Care in Portland",
+        "version": "1"
+      }
+    },
+    {
+      "name": "Lake Oswego",
+      "type": "place",
+      "state": "current location of Mom's apartment with lease expiring June 30",
+      "context": "city where Marcus's mother's apartment is located",
+      "date_hint": "2026-06-30",
+      "source": {
+        "snippet": "the lease on Mom's apartment in Lake Oswego expires June 30th",
+        "version": "1"
+      }
+    },
+    {
+      "name": "FMLA leave",
+      "type": "concept",
+      "state": "under consideration, not yet discussed with Jake or HR",
+      "context": "potential leave Marcus is considering to assist with mother's care transition",
+      "date_hint": "2026-04-22",
+      "source": {
+        "snippet": "I'm also thinking about whether I should take FMLA leave from work to help with the transition",
+        "version": "1"
+      }
+    },
+    {
+      "name": "Alzheimer's diagnosis",
+      "type": "event",
+      "state": "confirmed, early-stage",
+      "context": "diagnosis received by Marcus's mother",
+      "date_hint": "2026-03-28",
+      "source": {
+        "snippet": "my mom was diagnosed with early-stage Alzheimer's last month. We got the results back March 28th.",
+        "version": "1"
+      }
+    },
+    {
+      "name": "Product launch",
+      "type": "event",
+      "state": "upcoming, scheduled May 15",
+      "context": "Meridian Tech product launch adding pressure on Marcus",
+      "date_hint": "2026-05-15",
+      "source": {
+        "snippet": "We have a product launch May 15th and my manager Jake keeps piling on more tasks.",
+        "version": "1"
+      }
+    },
+    {
+      "name": "Argument with Elena",
+      "type": "event",
+      "state": "occurred last Saturday, apology sent but unanswered",
+      "context": "disagreement between Marcus and Elena over mother's care",
+      "date_hint": "2026-04-18",
+      "source": {
+        "snippet": "We had a big argument last Saturday about it. I said some things I regret.",
+        "version": "1"
+      }
+    }
+  ],
+  "goals": [
+    {
+      "text": "Get aligned with Elena on Mom's care plan by end of May",
+      "status": "open",
+      "source": {
+        "snippet": "First, get aligned with Elena on Mom's care plan.",
+        "version": "1"
+      },
+      "entity_refs": []
+    },
+    {
+      "text": "Figure out the FMLA situation at work, including speaking with Jake and HR",
+      "status": "open",
+      "source": {
+        "snippet": "Second, figure out the FMLA situation at work. I haven't talked to Jake or HR about it yet.",
+        "version": "1"
+      },
+      "entity_refs": []
+    },
+    {
+      "text": "Keep up with therapy with Dr. Patel weekly instead of biweekly",
+      "status": "in_progress",
+      "source": {
+        "snippet": "Third, keep up with therapy — Dr. Patel wants me to come weekly and I've only been going biweekly.",
+        "version": "1"
+      },
+      "entity_refs": []
+    },
+    {
+      "text": "Repair relationship with Elena after the argument",
+      "status": "in_progress",
+      "source": {
+        "snippet": "I texted her an apology yesterday but haven't heard back.",
+        "version": "1"
+      },
+      "entity_refs": []
+    }
+  ],
+  "themes": [
+    "caregiver stress",
+    "family conflict",
+    "elder care planning",
+    "work-life balance",
+    "mental health treatment",
+    "sibling disagreement",
+    "FMLA consideration",
+    "grief and loss"
+  ],
+  "summary": "Marcus is managing his mother's early-stage Alzheimer's diagnosis, a care disagreement with his sister Elena, work pressure at Meridian Tech, and is newly in therapy.",
+  "sentiment": "anxious",
+  "facts": [
+    {
+      "text": "Marcus's mother was diagnosed with early-stage Alzheimer's; results received March 28, 2026",
+      "category": "medical",
+      "source": {
+        "snippet": "my mom was diagnosed with early-stage Alzheimer's last month. We got the results back March 28th.",
+        "version": "1"
+      }
+    },
+    {
+      "text": "Elena wants to move Mom into assisted living at Sunrise Senior Care in Portland",
+      "category": "care planning",
+      "source": {
+        "snippet": "She wants to move Mom into assisted living at Sunrise Senior Care in Portland",
+        "version": "1"
+      }
+    },
+    {
+      "text": "Marcus prefers hiring a home aide first instead of assisted living",
+      "category": "care planning",
+      "source": {
+        "snippet": "I think we should hire a home aide first.",
+        "version": "1"
+      }
+    },
+    {
+      "text": "Marcus started seeing Dr. Patel, a therapist, on April 10, 2026",
+      "category": "mental health",
+      "source": {
+        "snippet": "I started seeing Dr. Patel — she's a therapist my friend recommended — on April 10th.",
+        "version": "1"
+      }
+    },
+    {
+      "text": "Dr. Patel wants Marcus to attend therapy weekly; Marcus has been going biweekly",
+      "category": "mental health",
+      "source": {
+        "snippet": "Dr. Patel wants me to come weekly and I've only been going biweekly.",
+        "version": "1"
+      }
+    },
+    {
+      "text": "Marcus works at Meridian Tech and has a product launch on May 15, 2026",
+      "category": "employment",
+      "source": {
+        "snippet": "work at Meridian Tech has been intense too. We have a product launch May 15th",
+        "version": "1"
+      }
+    },
+    {
+      "text": "Marcus's manager is named Jake",
+      "category": "employment",
+      "source": {
+        "snippet": "my manager Jake keeps piling on more tasks.",
+        "version": "1"
+      }
+    },
+    {
+      "text": "The lease on Mom's apartment in Lake Oswego expires June 30, 2026",
+      "category": "housing",
+      "source": {
+        "snippet": "the lease on Mom's apartment in Lake Oswego expires June 30th",
+        "version": "1"
+      }
+    },
+    {
+      "text": "Marcus and Elena need to make a care decision by end of May 2026",
+      "category": "care planning",
+      "source": {
+        "snippet": "Elena and I need to make a decision by end of May",
+        "version": "1"
+      }
+    },
+    {
+      "text": "Marcus and Elena had a big argument last Saturday (April 18, 2026)",
+      "category": "interpersonal",
+      "source": {
+        "snippet": "We had a big argument last Saturday about it.",
+        "version": "1"
+      }
+    },
+    {
+      "text": "Marcus texted Elena an apology on April 21, 2026; she had not responded as of the session",
+      "category": "interpersonal",
+      "source": {
+        "snippet": "I texted her an apology yesterday but haven't heard back.",
+        "version": "1"
+      }
+    },
+    {
+      "text": "Marcus is considering taking FMLA leave from work but has not spoken to Jake or HR",
+      "category": "employment",
+      "source": {
+        "snippet": "I'm also thinking about whether I should take FMLA leave from work to help with the transition, whatever we decide. I haven't talked to Jake or HR about it yet.",
+        "version": "1"
+      }
+    },
+    {
+      "text": "Marcus's mother is still pretty independent at this time",
+      "category": "medical",
+      "source": {
+        "snippet": "Mom is still pretty independent right now — it's early stage, so we have some time.",
+        "version": "1"
+      }
+    }
+  ],
+  "temporal_refs": [
+    {
+      "raw": "April 22, 2026",
+      "resolved": "2026-04-22",
+      "context": "date of the counseling session",
+      "version": "1"
+    },
+    {
+      "raw": "last month",
+      "resolved": "2026-03-22",
+      "context": "approximate time of Alzheimer's diagnosis discussion",
+      "version": "1"
+    },
+    {
+      "raw": "March 28th",
+      "resolved": "2026-03-28",
+      "context": "date Alzheimer's diagnosis results were received",
+      "version": "1"
+    },
+    {
+      "raw": "April 10th",
+      "resolved": "2026-04-10",
+      "context": "date Marcus began seeing Dr. Patel",
+      "version": "1"
+    },
+    {
+      "raw": "May 15th",
+      "resolved": "2026-05-15",
+      "context": "Meridian Tech product launch date",
+      "version": "1"
+    },
+    {
+      "raw": "end of May",
+      "resolved": "2026-05-31",
+      "context": "deadline for Marcus and Elena to decide on Mom's care plan",
+      "version": "1"
+    },
+    {
+      "raw": "June 30th",
+      "resolved": "2026-06-30",
+      "context": "expiration date of Mom's apartment lease in Lake Oswego",
+      "version": "1"
+    },
+    {
+      "raw": "last Saturday",
+      "resolved": "2026-04-18",
+      "context": "date of the argument between Marcus and Elena",
+      "version": "1"
+    },
+    {
+      "raw": "yesterday",
+      "resolved": "2026-04-21",
+      "context": "date Marcus sent an apology text to Elena",
+      "version": "1"
+    },
+    {
+      "raw": "a rough couple weeks",
+      "resolved": "2026-04-08",
+      "context": "approximate period of difficulty Marcus has been experiencing",
+      "version": "1"
+    }
+  ],
+  "version": "1",
+  "produced_by": {
+    "version": "1",
+    "model": "anthropic://claude-sonnet-4-6",
+    "model_version": "claude-sonnet-4-6",
+    "deployment": "dogfood-extract-v020",
+    "configuration": {
+      "temperature": 0,
+      "max_tokens": 4096
+    },
+    "operator": "synapt-dev/extract-dogfood"
+  },
+  "user_id": "dogfood-user",
+  "source_id": "dogfood-session-2026-04-22",
+  "source_type": "counseling_session",
+  "kind": "synapt/counseling",
+  "capabilities": [
+    "entities",
+    "entity_state",
+    "entity_context",
+    "evidence_anchoring",
+    "goals",
+    "themes",
+    "summary",
+    "sentiment",
+    "facts",
+    "temporal_refs"
+  ]
+}

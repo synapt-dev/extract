@@ -18,6 +18,14 @@ v1.1 is additive for schema validators and type-tolerant readers. v1.0 documents
 
 v1.x schema updates are additive only. Breaking changes require v2.
 
+### Known Prompt Gaps (v0.3.0 backlog)
+
+Discovered during dogfooding (examples/dogfood-2026-04-27.json):
+
+1. `entity_refs` is required on Goal schema but only prompted when `goal_entity_refs` capability is active. Standard profile omits it, causing systematic empty-array fixups.
+2. `temporal_refs` prompt fragment describes only `raw` and `resolved` fields. LLM hallucinates entity-like properties (`stated_at`, `resolved_at`) onto temporal refs because the full sub-schema shape is not prompted.
+3. `goal_timing` prompt fragment leaks into entity output: LLM adds `stated_at`/`resolved_at` to entities, which are not in the entity schema.
+
 ## v0.1.1
 
 Initial public release. SynaptExtraction IL v1 with schema, validation, finalization, and composable prompt system.
