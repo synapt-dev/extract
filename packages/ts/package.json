@@ -1,6 +1,6 @@
 {
   "name": "@synapt-dev/extract",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "SynaptExtraction IL v1 -- schema, validation, and finalization",
   "type": "module",
   "main": "dist/index.js",

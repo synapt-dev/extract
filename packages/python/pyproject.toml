@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "synapt-extract"
-version = "0.2.0"
+version = "0.2.1"
 description = "SynaptExtraction IL v1 -- schema, validation, and finalization"
 readme = "README.md"
 license = "MIT"
