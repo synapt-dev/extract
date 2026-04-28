@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.1
+
+Boundary correction: `packages/intelligence/` migrated to synapt-private per the Premium Boundary Policy. Intelligence queries (entity timeline, goal tracking, cross-extraction matching, theme trends) are differentiated workflow behavior and belong in the premium layer.
+
+v0.2.0 originally included a reference intelligence library at `packages/intelligence/`. The schema, validators, prompts, and dogfood example remain OSS in extract. See extract#16.
+
 ## v0.2.0
 
 v1.1 spec: typed SynaptProducer schema, additive backwards-compat, in-place v1.x = additive only policy.
