@@ -8,6 +8,8 @@ export type {
   SynaptEmbedding,
   SynaptAssertionSignals,
   SynaptTemporalRef,
+  SynaptProducer,
+  SynaptProducerConfiguration,
   ExtractionCapability,
 } from "./schema.js";
 

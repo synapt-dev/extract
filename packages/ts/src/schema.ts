@@ -33,6 +33,25 @@ export interface SynaptTemporalRef {
   context?: string;
 }
 
+export interface SynaptProducerConfiguration {
+  reasoning_effort?: string;
+  system_prompt_hash?: string;
+  temperature?: number;
+  top_p?: number;
+  max_tokens?: number;
+  [key: string]: unknown;
+}
+
+export interface SynaptProducer {
+  version: "1";
+  model: string;
+  model_version?: string;
+  deployment?: string;
+  configuration?: SynaptProducerConfiguration;
+  operator?: string;
+  signature?: string;
+}
+
 export interface SynaptRelation {
   target: string;
   type: string;
@@ -94,7 +113,7 @@ export interface SynaptExtraction {
   source_id?: string;
   source_type?: string;
   user_id?: string;
-  produced_by: string;
+  produced_by: string | SynaptProducer;
   kind?: string;
   entities: SynaptEntity[];
   goals: SynaptGoal[];

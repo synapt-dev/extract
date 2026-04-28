@@ -309,6 +309,114 @@ class TestProducedByFormat:
         assert not result.valid
 
 
+class TestProducedByProducerObject:
+
+    def test_produced_by_string_backwards_compat_valid(self):
+        doc = _minimal_extraction(produced_by="anthropic://claude-sonnet-4-6")
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_produced_by_structured_minimal_valid(self):
+        doc = _minimal_extraction(produced_by={
+            "version": "1",
+            "model": "anthropic://claude-sonnet-4-6",
+        })
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_produced_by_structured_full_valid(self):
+        doc = _minimal_extraction(produced_by={
+            "version": "1",
+            "model": "anthropic://claude-sonnet-4-6",
+            "model_version": "claude-sonnet-4-6-20250514",
+            "deployment": "bedrock",
+            "configuration": {
+                "reasoning_effort": "high",
+                "system_prompt_hash": "abc123",
+                "temperature": 0.2,
+                "top_p": 0.95,
+                "max_tokens": 2048,
+                "vendor_flag": True,
+            },
+            "operator": "synapt-dev",
+            "signature": "eyJhbGciOiJIUzI1NiJ9.payload.signature",
+        })
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_produced_by_structured_missing_version_fails(self):
+        doc = _minimal_extraction(produced_by={
+            "model": "anthropic://claude-sonnet-4-6",
+        })
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any(e.path == "produced_by.version" for e in result.errors)
+
+    def test_produced_by_structured_missing_model_fails(self):
+        doc = _minimal_extraction(produced_by={
+            "version": "1",
+        })
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any(e.path == "produced_by.model" for e in result.errors)
+
+    def test_produced_by_structured_unknown_root_field_fails(self):
+        doc = _minimal_extraction(produced_by={
+            "version": "1",
+            "model": "anthropic://claude-sonnet-4-6",
+            "extra_field": "boom",
+        })
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any(e.path == "produced_by.extra_field" for e in result.errors)
+
+    def test_produced_by_structured_open_configuration_passes(self):
+        doc = _minimal_extraction(produced_by={
+            "version": "1",
+            "model": "anthropic://claude-sonnet-4-6",
+            "configuration": {
+                "provider_sampling_mode": "adaptive",
+                "vendor_flag": True,
+            },
+        })
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_produced_by_structured_known_configuration_fields_pass(self):
+        doc = _minimal_extraction(produced_by={
+            "version": "1",
+            "model": "anthropic://claude-sonnet-4-6",
+            "configuration": {
+                "reasoning_effort": "medium",
+                "system_prompt_hash": "f00dbabe",
+                "temperature": 0.1,
+                "top_p": 0.95,
+                "max_tokens": 2048,
+            },
+        })
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_produced_by_structured_malformed_model_fails(self):
+        doc = _minimal_extraction(produced_by={
+            "version": "1",
+            "model": "claude-sonnet-4-6",
+        })
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any(e.path == "produced_by.model" for e in result.errors)
+
+    def test_produced_by_structured_non_string_signature_fails(self):
+        doc = _minimal_extraction(produced_by={
+            "version": "1",
+            "model": "anthropic://claude-sonnet-4-6",
+            "signature": {"alg": "HS256"},
+        })
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any(e.path == "produced_by.signature" for e in result.errors)
+
+
 class TestNonEmptyStrings:
 
     def test_entity_name_empty(self):
@@ -967,6 +1075,13 @@ class TestJsonSchemaFiles:
         assert "embedding/v1.json" in schema_str
         assert "assertion-signals/v1.json" in schema_str
         assert "temporal-ref/v1.json" in schema_str
+        assert "producer/v1.json" in schema_str
+
+    def test_producer_schema_file_exists(self):
+        producer_path = Path(__file__).resolve().parents[2] / "schemas" / "producer" / "v1.json"
+        assert producer_path.exists()
+        schema = json.loads(producer_path.read_text())
+        assert schema["$id"] == "https://synapt.dev/schemas/producer/v1.json"
 
     def test_extraction_schema_required_fields(self):
         schema_path = Path(__file__).resolve().parents[2] / "schemas" / "extract" / "v1.json"

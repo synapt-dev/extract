@@ -51,6 +51,13 @@ const SOURCE_REF_KEYS = new Set(["version", "snippet", "offset_start", "offset_e
 const SIGNALS_KEYS = new Set(["version", "confidence", "negated", "hedged", "condition"]);
 const TEMPORAL_REF_KEYS = new Set(["version", "raw", "type", "resolved", "resolved_end", "context"]);
 const EMBEDDING_KEYS = new Set(["version", "vector", "model", "input", "dimensions", "space", "computed_at"]);
+const PRODUCER_KEYS = new Set([
+  "version", "model", "model_version", "deployment", "configuration",
+  "operator", "signature",
+]);
+const PRODUCER_CONFIG_KNOWN_KEYS = new Set([
+  "reasoning_effort", "system_prompt_hash", "temperature", "top_p", "max_tokens",
+]);
 
 function isUri(s: string): boolean {
   return URI_RE.test(s);
@@ -94,6 +101,54 @@ function checkOptionalNonNegInt(obj: Record<string, unknown>, key: string, path:
 
 function hasPayloadBeyondVersion(obj: Record<string, unknown>): boolean {
   return Object.keys(obj).some((k) => k !== "version");
+}
+
+function validateProducer(obj: Record<string, unknown>, path: string, errors: ValidationError[]): void {
+  checkExtraKeys(obj, PRODUCER_KEYS, path, errors);
+
+  if (obj.version !== "1") {
+    errors.push({ path: `${path}.version`, message: 'must be "1"' });
+  }
+
+  if (typeof obj.model !== "string") {
+    errors.push({ path: `${path}.model`, message: "required string (provider URI)" });
+  } else if (!isUri(obj.model)) {
+    errors.push({ path: `${path}.model`, message: "must be a provider URI (scheme://identifier)" });
+  }
+
+  checkOptionalStr(obj, "model_version", path, errors);
+  checkOptionalStr(obj, "deployment", path, errors);
+  checkOptionalStr(obj, "operator", path, errors);
+  checkOptionalStr(obj, "signature", path, errors);
+
+  if (obj.configuration !== undefined) {
+    if (typeof obj.configuration !== "object" || obj.configuration === null || Array.isArray(obj.configuration)) {
+      errors.push({ path: `${path}.configuration`, message: "must be an object" });
+    } else {
+      const config = obj.configuration as Record<string, unknown>;
+      checkOptionalStr(config, "reasoning_effort", `${path}.configuration`, errors);
+      if (config.system_prompt_hash !== undefined) {
+        if (typeof config.system_prompt_hash !== "string" || !/^[0-9a-fA-F]+$/.test(config.system_prompt_hash)) {
+          errors.push({ path: `${path}.configuration.system_prompt_hash`, message: "must be a hex string" });
+        }
+      }
+      if (config.temperature !== undefined) {
+        if (typeof config.temperature !== "number" || config.temperature < 0) {
+          errors.push({ path: `${path}.configuration.temperature`, message: "must be a non-negative number" });
+        }
+      }
+      if (config.top_p !== undefined) {
+        if (typeof config.top_p !== "number" || config.top_p < 0 || config.top_p > 1) {
+          errors.push({ path: `${path}.configuration.top_p`, message: "must be a number between 0 and 1" });
+        }
+      }
+      if (config.max_tokens !== undefined) {
+        if (typeof config.max_tokens !== "number" || !Number.isInteger(config.max_tokens) || config.max_tokens < 1) {
+          errors.push({ path: `${path}.configuration.max_tokens`, message: "must be a positive integer" });
+        }
+      }
+    }
+  }
 }
 
 function validateSourceRef(obj: unknown, path: string, errors: ValidationError[]): void {
@@ -361,10 +416,15 @@ export function validateExtraction(obj: unknown): ValidationResult {
     errors.push({ path: "extracted_at", message: "must be a valid ISO 8601 date-time (e.g. 2026-04-26T12:00:00Z)" });
   }
 
-  if (typeof doc.produced_by !== "string") {
-    errors.push({ path: "produced_by", message: "required string (provider URI)" });
-  } else if (!isUri(doc.produced_by)) {
-    errors.push({ path: "produced_by", message: "must be a provider URI (scheme://identifier)" });
+  const producedBy = doc.produced_by;
+  if (typeof producedBy === "string") {
+    if (!isUri(producedBy)) {
+      errors.push({ path: "produced_by", message: "must be a provider URI (scheme://identifier)" });
+    }
+  } else if (typeof producedBy === "object" && producedBy !== null && !Array.isArray(producedBy)) {
+    validateProducer(producedBy as Record<string, unknown>, "produced_by", errors);
+  } else {
+    errors.push({ path: "produced_by", message: "required string (provider URI) or SynaptProducer object" });
   }
 
   if (doc.kind !== undefined) {

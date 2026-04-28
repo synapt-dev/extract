@@ -37,6 +37,29 @@ describe("finalizeExtraction", () => {
     expect(result.extraction[field as keyof typeof result.extraction]).toBe(expected);
   });
 
+  test("round-trips a structured producer", () => {
+    const producer = {
+      version: "1",
+      model: "anthropic://claude-sonnet-4-6",
+      deployment: "bedrock",
+      configuration: {
+        reasoning_effort: "high",
+        temperature: 0.2,
+        provider_flag: true,
+      },
+      operator: "synapt-dev",
+      signature: "eyJhbGciOiJIUzI1NiJ9.payload.signature",
+    };
+
+    const result = finalizeExtraction(
+      llmOutput(),
+      { produced_by: producer } as unknown as Parameters<typeof finalizeExtraction>[1],
+    );
+
+    expect(result.extraction.produced_by).toEqual(producer);
+    expect(result.validation.valid).toBe(true);
+  });
+
   test("injects extensions and extension versions", () => {
     const result = finalizeExtraction(llmOutput(), {
       produced_by: "test://model",
@@ -214,6 +237,21 @@ describe("finalizeExtraction", () => {
     expect(result.validation.valid).toBe(false);
     expect(result.validation.errors.some((error) => error.path === "embeddings[0].model")).toBe(true);
     expect(result.validation.errors.some((error) => error.path === "embeddings[0].dimensions")).toBe(true);
+  });
+
+  test("reports invalid structured producer in validation result", () => {
+    const result = finalizeExtraction(
+      llmOutput(),
+      {
+        produced_by: {
+          version: "1",
+          model: "claude-sonnet-4-6",
+        },
+      } as unknown as Parameters<typeof finalizeExtraction>[1],
+    );
+
+    expect(result.validation.valid).toBe(false);
+    expect(result.validation.errors.some((error) => error.path === "produced_by.model")).toBe(true);
   });
 
   test("passes end-to-end finalization", () => {

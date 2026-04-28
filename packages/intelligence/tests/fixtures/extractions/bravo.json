@@ -1,0 +1,41 @@
+{
+  "version": "1",
+  "extracted_at": "2026-04-24T12:00:00Z",
+  "source_id": "bravo",
+  "produced_by": "anthropic://claude-sonnet-4-6",
+  "entities": [
+    {
+      "id": "e1",
+      "name": "Mom",
+      "type": "person",
+      "state": "home from hospital",
+      "date_hint": "2026-04-24"
+    },
+    {
+      "id": "e3",
+      "name": "Dad",
+      "type": "person",
+      "relations": [
+        {
+          "target": "e1",
+          "type": "married_to"
+        }
+      ]
+    }
+  ],
+  "goals": [
+    {
+      "text": "Keep physical therapy on schedule",
+      "status": "open",
+      "entity_refs": ["e1"]
+    },
+    {
+      "text": "File insurance paperwork",
+      "status": "resolved",
+      "entity_refs": ["e3"]
+    }
+  ],
+  "themes": ["Health", "Logistics"],
+  "summary": "Mom is back home and therapy is ongoing.",
+  "capabilities": ["entities", "entity_state", "entity_ids", "goals", "goal_entity_refs", "themes", "summary", "relations"]
+}
