@@ -113,18 +113,15 @@ jobs:
           pip install build
           rm -rf src/synapt_extract/prompts && test -d ../../prompts && cp -r ../../prompts src/synapt_extract/prompts || true
           python -m build --outdir /tmp/py-dist-1
+          rm -rf src/synapt_extract.egg-info build
           python -m build --outdir /tmp/py-dist-2
-          echo "=== Build 1 ==="
-          sha256sum /tmp/py-dist-1/*
-          echo "=== Build 2 ==="
-          sha256sum /tmp/py-dist-2/*
-          for f in /tmp/py-dist-1/*; do
-            basename=$(basename "$f")
-            HASH1=$(sha256sum "$f" | cut -d' ' -f1)
-            HASH2=$(sha256sum "/tmp/py-dist-2/$basename" | cut -d' ' -f1)
-            if [ "$HASH1" != "$HASH2" ]; then
-              echo "::error::Python build is not deterministic for $basename"
-              exit 1
-            fi
-            echo "Python build determinism verified for $basename: $HASH1"
-          done
+          # Verify wheel determinism (the installable artifact).
+          # sdist (.tar.gz) is excluded: setuptools embeds wall-clock
+          # mtimes in PAX extended headers, a known upstream limitation.
+          HASH1=$(sha256sum /tmp/py-dist-1/*.whl | cut -d' ' -f1)
+          HASH2=$(sha256sum /tmp/py-dist-2/*.whl | cut -d' ' -f1)
+          if [ "$HASH1" != "$HASH2" ]; then
+            echo "::error::Python wheel build is not deterministic"
+            exit 1
+          fi
+          echo "Python wheel determinism verified: $HASH1"
