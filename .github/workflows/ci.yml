@@ -36,7 +36,7 @@ jobs:
 
       - run: pip install build
 
-      - run: test -d ../../prompts && cp -r ../../prompts src/synapt_extract/prompts || true
+      - run: rm -rf src/synapt_extract/prompts && test -d ../../prompts && cp -r ../../prompts src/synapt_extract/prompts || true
 
       - run: python -m build
 
@@ -111,7 +111,7 @@ jobs:
           SOURCE_DATE_EPOCH: "1704067200"
         run: |
           pip install build
-          test -d ../../prompts && cp -r ../../prompts src/synapt_extract/prompts || true
+          rm -rf src/synapt_extract/prompts && test -d ../../prompts && cp -r ../../prompts src/synapt_extract/prompts || true
           python -m build --outdir /tmp/py-dist-1
           python -m build --outdir /tmp/py-dist-2
           echo "=== Build 1 ==="
