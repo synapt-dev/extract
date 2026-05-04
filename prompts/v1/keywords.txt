@@ -1,0 +1,1 @@
+- "keywords": array of specific lexical terms extracted from the source text

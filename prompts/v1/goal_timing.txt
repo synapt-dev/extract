@@ -1,1 +1,1 @@
-  - include "stated_at" and "resolved_at" (ISO 8601)
+  - on goals, include "stated_at" and "resolved_at" (ISO 8601). These fields apply only to goals, not to entities or other objects.

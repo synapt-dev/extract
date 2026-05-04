@@ -69,6 +69,7 @@ class SynaptEntity(TypedDict, total=False):
     id: str
     name: str
     type: str
+    aliases: list[str]
     state: str
     context: str
     date_hint: str
@@ -94,13 +95,54 @@ class SynaptFact(TypedDict, total=False):
     signals: SynaptAssertionSignals
 
 
+class SynaptQuestion(TypedDict, total=False):
+    text: str
+    directed_to: str
+    source: SynaptSourceRef
+    signals: SynaptAssertionSignals
+
+
+class SynaptAction(TypedDict, total=False):
+    text: str
+    origin: Literal["extracted", "proposed_from_goals"]
+    entity_refs: list[str]
+    due: str
+    source: SynaptSourceRef
+    signals: SynaptAssertionSignals
+
+
+class SynaptDecision(TypedDict, total=False):
+    text: str
+    entity_refs: list[str]
+    decided_at: str
+    source: SynaptSourceRef
+    signals: SynaptAssertionSignals
+
+
+class SynaptSentiment(TypedDict, total=False):
+    version: str
+    valence: Literal["positive", "negative", "neutral", "mixed"]
+    intensity: float
+    confidence: float
+
+
+class SynaptSourceMetadata(TypedDict, total=False):
+    version: str
+    token_count: int
+    character_count: int
+    modality: str
+    format: str
+
+
 EXTRACTION_CAPABILITIES = frozenset([
     "entities", "entity_state", "entity_context", "entity_ids",
     "goals", "goal_timing", "goal_entity_refs",
-    "themes", "summary", "sentiment", "facts",
+    "themes", "keywords", "summary", "sentiment", "structured_sentiment",
+    "facts", "questions", "actions", "decisions",
     "temporal_refs", "temporal_classes",
     "relations", "relation_origin",
     "assertion_signals", "evidence_anchoring",
+    "language", "source_metadata", "confidence",
 ])
 
 
@@ -115,10 +157,17 @@ class SynaptExtraction(TypedDict, total=False):
     entities: list[SynaptEntity]
     goals: list[SynaptGoal]
     themes: list[str]
-    sentiment: str
+    keywords: list[str]
+    sentiment: str | SynaptSentiment
     summary: str
     facts: list[SynaptFact]
+    questions: list[SynaptQuestion]
+    actions: list[SynaptAction]
+    decisions: list[SynaptDecision]
     temporal_refs: list[SynaptTemporalRef]
+    language: str
+    source_metadata: SynaptSourceMetadata
+    confidence: float
     capabilities: list[str]
     embeddings: list[SynaptEmbedding]
     extensions: dict[str, Any]

@@ -8,12 +8,20 @@ Any text + Any LLM  ->  SynaptExtraction (IL)  ->  @synapt/memory (intelligence)
 
 This repo contains the v1 schema, types, validators, finalization pipeline, and composable prompt system in both TypeScript and Python.
 
-## Packages
+## Install
 
 | Package | Registry | Install |
 |---------|----------|---------|
-| `@synapt-dev/extract` | npm | `npm install @synapt-dev/extract` |
-| `synapt-extract` | PyPI | `pip install synapt-extract` |
+| `@synapt-dev/extract` | npm | `npm install @synapt-dev/extract@0.3.0` |
+| `synapt-extract` | PyPI | `pip install synapt-extract==0.3.0` |
+
+**Deno:**
+
+```typescript
+import { buildExtractionPrompt } from "npm:@synapt-dev/extract@0.3.0";
+```
+
+**Version pinning:** Always pin to an exact version (`@0.3.0`, `==0.3.0`). Do not use ranges (`^0.3.0`, `~0.3.0`, `>=0.3.0`). The IL schema evolves across minor versions (v1.1 added `produced_by` object form, v1.2 added 8 new fields). Pinning prevents unexpected schema changes from affecting your extraction pipeline.
 
 ## Quick start
 
@@ -81,11 +89,11 @@ SynaptExtraction documents are assembled in three stages:
 
 ## Prompt profiles
 
-| Profile | Model class | Capabilities |
+| Profile | Model class | Capabilities (25 total) |
 |---------|------------|--------------|
 | `minimal` | 3B-7B local | entities, entity_state, goals, themes, summary |
 | `standard` | GPT-4o-mini, Haiku | + entity_context, goal_timing, facts, temporal_refs, sentiment, evidence_anchoring |
-| `full` | GPT-4o, Sonnet, Opus | + entity_ids, goal_entity_refs, relations, relation_origin, assertion_signals, temporal_classes |
+| `full` | GPT-4o, Sonnet, Opus | + entity_ids, goal_entity_refs, keywords, structured_sentiment, questions, actions, decisions, relations, relation_origin, assertion_signals, temporal_classes, language, source_metadata, confidence |
 
 ## JSON Schema
 
@@ -95,7 +103,20 @@ The canonical schema is hosted at:
 https://synapt.dev/schemas/extract/v1.json
 ```
 
-Sub-schemas: `source-ref/v1.json`, `embedding/v1.json`, `assertion-signals/v1.json`, `temporal-ref/v1.json`.
+Sub-schemas: `source-ref/v1.json`, `embedding/v1.json`, `assertion-signals/v1.json`, `temporal-ref/v1.json`, `producer/v1.json`, `entity/v1.json`, `goal/v1.json`, `question/v1.json`, `action/v1.json`, `decision/v1.json`, `sentiment/v1.json`, `source-metadata/v1.json`.
+
+## Compatibility
+
+v1.x schema updates are additive only. Breaking changes require v2.
+
+- v1.0 documents remain valid under v1.2 validators
+- `produced_by` accepts string (v1.0) or SynaptProducer object (v1.1+)
+- `sentiment` accepts string (v1.0) or SynaptSentiment object (v1.2+)
+- Readers MUST branch on string vs object for both fields
+
+## Supply chain
+
+Releases are published with Sigstore provenance via npm OIDC trusted publishing and PyPI trusted publishing. Each GitHub Release includes a CycloneDX SBOM (`sbom.cdx.json`).
 
 ## Repo structure
 
@@ -106,10 +127,12 @@ extract/
     python/      # synapt-extract (Python, PyPI)
   schemas/       # JSON Schema files (language-agnostic)
   prompts/
-    v1/          # Capability prompt fragments
+    v1/          # 25 capability prompt fragments + preamble/postamble
     profiles/    # Profile definitions (minimal, standard, full)
   tests/
     python/      # Python test suite
+    conformance/ # Cross-language conformance fixtures
+  docs/          # Design documents
 ```
 
 ## License

@@ -5,7 +5,7 @@ on:
     types: [published]
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
@@ -27,3 +27,11 @@ jobs:
       - run: npm run build
 
       - run: npm publish --provenance --access public
+
+      - name: Generate SBOM
+        run: npm sbom --omit=dev --sbom-format cyclonedx > sbom.cdx.json
+
+      - name: Upload SBOM to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload ${{ github.event.release.tag_name }} sbom.cdx.json --clobber

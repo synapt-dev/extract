@@ -190,6 +190,54 @@ class TestEntityValidation:
         assert not result.valid
         assert any("target" in e.path for e in result.errors)
 
+    def test_entity_aliases_valid(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom",
+            "type": "person",
+            "aliases": ["Mother", "Mama"],
+        }])
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_entity_aliases_empty_array(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom",
+            "type": "person",
+            "aliases": [],
+        }])
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_entity_aliases_not_array(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom",
+            "type": "person",
+            "aliases": "Mother",
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("aliases" in e.path for e in result.errors)
+
+    def test_entity_aliases_empty_string(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom",
+            "type": "person",
+            "aliases": [""],
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("aliases[0]" in e.path for e in result.errors)
+
+    def test_entity_aliases_non_string(self):
+        doc = _minimal_extraction(entities=[{
+            "name": "Mom",
+            "type": "person",
+            "aliases": [123],
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("aliases[0]" in e.path for e in result.errors)
+
 
 class TestGoalValidation:
 
@@ -1055,6 +1103,309 @@ class TestSourceRefOffsets:
         result = validate_extraction(doc)
         assert not result.valid
         assert any("sentence_index" in e.path for e in result.errors)
+
+
+class TestV12Keywords:
+
+    def test_valid_keywords(self):
+        result = validate_extraction(_minimal_extraction(keywords=["prayer", "healing"]))
+        assert result.valid
+
+    def test_empty_keywords(self):
+        result = validate_extraction(_minimal_extraction(keywords=[]))
+        assert result.valid
+
+    def test_keywords_empty_string_rejected(self):
+        result = validate_extraction(_minimal_extraction(keywords=["prayer", ""]))
+        assert not result.valid
+        assert any("keywords[1]" in e.path for e in result.errors)
+
+    def test_keywords_not_array_rejected(self):
+        result = validate_extraction(_minimal_extraction(keywords="prayer"))
+        assert not result.valid
+        assert any(e.path == "keywords" for e in result.errors)
+
+
+class TestV12Questions:
+
+    def test_valid_question(self):
+        result = validate_extraction(_minimal_extraction(questions=[{"text": "How are you?"}]))
+        assert result.valid
+
+    def test_question_with_directed_to(self):
+        result = validate_extraction(_minimal_extraction(
+            entities=[{"id": "e1", "name": "Mom", "type": "person"}],
+            questions=[{"text": "How is Mom?", "directed_to": "e1"}],
+        ))
+        assert result.valid
+
+    def test_question_missing_text_rejected(self):
+        result = validate_extraction(_minimal_extraction(questions=[{"directed_to": "someone"}]))
+        assert not result.valid
+        assert any("questions[0].text" in e.path for e in result.errors)
+
+    def test_question_empty_text_rejected(self):
+        result = validate_extraction(_minimal_extraction(questions=[{"text": ""}]))
+        assert not result.valid
+        assert any("questions[0].text" in e.path for e in result.errors)
+
+    def test_question_unknown_property_rejected(self):
+        result = validate_extraction(_minimal_extraction(questions=[{"text": "Why?", "badProp": True}]))
+        assert not result.valid
+        assert any("questions[0].badProp" in e.path for e in result.errors)
+
+    def test_questions_not_array_rejected(self):
+        result = validate_extraction(_minimal_extraction(questions="why?"))
+        assert not result.valid
+        assert any(e.path == "questions" for e in result.errors)
+
+
+class TestV12Actions:
+
+    def test_valid_action(self):
+        result = validate_extraction(_minimal_extraction(
+            actions=[{"text": "Schedule appointment", "origin": "extracted"}],
+        ))
+        assert result.valid
+
+    def test_action_proposed_from_goals(self):
+        result = validate_extraction(_minimal_extraction(
+            actions=[{"text": "Follow up", "origin": "proposed_from_goals"}],
+        ))
+        assert result.valid
+
+    def test_action_missing_origin_rejected(self):
+        result = validate_extraction(_minimal_extraction(actions=[{"text": "Do something"}]))
+        assert not result.valid
+        assert any("actions[0].origin" in e.path for e in result.errors)
+
+    def test_action_invalid_origin_rejected(self):
+        result = validate_extraction(_minimal_extraction(
+            actions=[{"text": "Do something", "origin": "unknown"}],
+        ))
+        assert not result.valid
+        assert any("actions[0].origin" in e.path for e in result.errors)
+
+    def test_action_missing_text_rejected(self):
+        result = validate_extraction(_minimal_extraction(actions=[{"origin": "extracted"}]))
+        assert not result.valid
+        assert any("actions[0].text" in e.path for e in result.errors)
+
+    def test_action_with_entity_refs(self):
+        result = validate_extraction(_minimal_extraction(
+            entities=[{"id": "e1", "name": "Mom", "type": "person"}],
+            actions=[{"text": "Call Mom", "origin": "extracted", "entity_refs": ["e1"]}],
+        ))
+        assert result.valid
+
+    def test_action_dangling_entity_ref_rejected(self):
+        result = validate_extraction(_minimal_extraction(
+            entities=[{"id": "e1", "name": "Mom", "type": "person"}],
+            actions=[{"text": "Call Dad", "origin": "extracted", "entity_refs": ["e99"]}],
+        ))
+        assert not result.valid
+        assert any("actions[0].entity_refs[0]" in e.path for e in result.errors)
+
+    def test_action_unknown_property_rejected(self):
+        result = validate_extraction(_minimal_extraction(
+            actions=[{"text": "Go", "origin": "extracted", "priority": "high"}],
+        ))
+        assert not result.valid
+        assert any("actions[0].priority" in e.path for e in result.errors)
+
+
+class TestV12Decisions:
+
+    def test_valid_decision(self):
+        result = validate_extraction(_minimal_extraction(decisions=[{"text": "Go forward"}]))
+        assert result.valid
+
+    def test_decision_with_entity_refs_and_decided_at(self):
+        result = validate_extraction(_minimal_extraction(
+            entities=[{"id": "e1", "name": "Team", "type": "organization"}],
+            decisions=[{"text": "Chose option A", "entity_refs": ["e1"], "decided_at": "2026-05-01"}],
+        ))
+        assert result.valid
+
+    def test_decision_missing_text_rejected(self):
+        result = validate_extraction(_minimal_extraction(decisions=[{"entity_refs": []}]))
+        assert not result.valid
+        assert any("decisions[0].text" in e.path for e in result.errors)
+
+    def test_decision_dangling_entity_ref_rejected(self):
+        result = validate_extraction(_minimal_extraction(
+            entities=[],
+            decisions=[{"text": "Go with plan B", "entity_refs": ["e99"]}],
+        ))
+        assert not result.valid
+        assert any("decisions[0].entity_refs[0]" in e.path for e in result.errors)
+
+    def test_decision_unknown_property_rejected(self):
+        result = validate_extraction(_minimal_extraction(
+            decisions=[{"text": "Yes", "importance": "high"}],
+        ))
+        assert not result.valid
+        assert any("decisions[0].importance" in e.path for e in result.errors)
+
+
+class TestV12SentimentDualShape:
+
+    def test_string_sentiment(self):
+        result = validate_extraction(_minimal_extraction(sentiment="hopeful"))
+        assert result.valid
+
+    def test_structured_sentiment(self):
+        result = validate_extraction(_minimal_extraction(
+            sentiment={"version": "1", "valence": "positive", "intensity": 0.8, "confidence": 0.9},
+        ))
+        assert result.valid
+
+    def test_structured_sentiment_minimal(self):
+        result = validate_extraction(_minimal_extraction(
+            sentiment={"version": "1", "valence": "negative"},
+        ))
+        assert result.valid
+
+    def test_structured_sentiment_invalid_valence_rejected(self):
+        result = validate_extraction(_minimal_extraction(
+            sentiment={"version": "1", "valence": "angry"},
+        ))
+        assert not result.valid
+        assert any("sentiment.valence" in e.path for e in result.errors)
+
+    def test_structured_sentiment_missing_valence_rejected(self):
+        result = validate_extraction(_minimal_extraction(
+            sentiment={"version": "1", "intensity": 0.5},
+        ))
+        assert not result.valid
+        assert any("sentiment.valence" in e.path for e in result.errors)
+
+    def test_structured_sentiment_intensity_out_of_range_rejected(self):
+        result = validate_extraction(_minimal_extraction(
+            sentiment={"version": "1", "valence": "positive", "intensity": 1.5},
+        ))
+        assert not result.valid
+        assert any("sentiment.intensity" in e.path for e in result.errors)
+
+    def test_structured_sentiment_unknown_property_rejected(self):
+        result = validate_extraction(_minimal_extraction(
+            sentiment={"version": "1", "valence": "neutral", "mood": "calm"},
+        ))
+        assert not result.valid
+        assert any("sentiment.mood" in e.path for e in result.errors)
+
+    def test_sentiment_as_array_rejected(self):
+        result = validate_extraction(_minimal_extraction(sentiment=["positive"]))
+        assert not result.valid
+        assert any(e.path == "sentiment" for e in result.errors)
+
+    def test_sentiment_as_number_rejected(self):
+        result = validate_extraction(_minimal_extraction(sentiment=0.8))
+        assert not result.valid
+        assert any(e.path == "sentiment" for e in result.errors)
+
+
+class TestV12Language:
+
+    def test_valid_language_tag(self):
+        result = validate_extraction(_minimal_extraction(language="en-US"))
+        assert result.valid
+
+    def test_simple_language_tag(self):
+        result = validate_extraction(_minimal_extraction(language="es"))
+        assert result.valid
+
+    def test_three_letter_language_tag(self):
+        result = validate_extraction(_minimal_extraction(language="por"))
+        assert result.valid
+
+    def test_complex_bcp47_tag(self):
+        result = validate_extraction(_minimal_extraction(language="zh-Hans-CN"))
+        assert result.valid
+
+    def test_invalid_language_tag_rejected(self):
+        result = validate_extraction(_minimal_extraction(language="english"))
+        assert not result.valid
+        assert any(e.path == "language" for e in result.errors)
+
+    def test_language_as_number_rejected(self):
+        result = validate_extraction(_minimal_extraction(language=42))
+        assert not result.valid
+        assert any(e.path == "language" for e in result.errors)
+
+
+class TestV12SourceMetadata:
+
+    def test_valid_source_metadata(self):
+        result = validate_extraction(_minimal_extraction(
+            source_metadata={"version": "1", "token_count": 500, "character_count": 2000, "modality": "text", "format": "plain"},
+        ))
+        assert result.valid
+
+    def test_source_metadata_version_only(self):
+        result = validate_extraction(_minimal_extraction(source_metadata={"version": "1"}))
+        assert result.valid
+
+    def test_source_metadata_negative_token_count_rejected(self):
+        result = validate_extraction(_minimal_extraction(source_metadata={"version": "1", "token_count": -1}))
+        assert not result.valid
+        assert any("source_metadata.token_count" in e.path for e in result.errors)
+
+    def test_source_metadata_float_token_count_rejected(self):
+        result = validate_extraction(_minimal_extraction(source_metadata={"version": "1", "token_count": 3.5}))
+        assert not result.valid
+        assert any("source_metadata.token_count" in e.path for e in result.errors)
+
+    def test_source_metadata_unknown_property_rejected(self):
+        result = validate_extraction(_minimal_extraction(source_metadata={"version": "1", "word_count": 100}))
+        assert not result.valid
+        assert any("source_metadata.word_count" in e.path for e in result.errors)
+
+    def test_source_metadata_not_object_rejected(self):
+        result = validate_extraction(_minimal_extraction(source_metadata="text"))
+        assert not result.valid
+        assert any(e.path == "source_metadata" for e in result.errors)
+
+
+class TestV12Confidence:
+
+    def test_valid_confidence(self):
+        result = validate_extraction(_minimal_extraction(confidence=0.85))
+        assert result.valid
+
+    def test_confidence_zero(self):
+        result = validate_extraction(_minimal_extraction(confidence=0))
+        assert result.valid
+
+    def test_confidence_one(self):
+        result = validate_extraction(_minimal_extraction(confidence=1))
+        assert result.valid
+
+    def test_confidence_above_one_rejected(self):
+        result = validate_extraction(_minimal_extraction(confidence=1.1))
+        assert not result.valid
+        assert any(e.path == "confidence" for e in result.errors)
+
+    def test_confidence_below_zero_rejected(self):
+        result = validate_extraction(_minimal_extraction(confidence=-0.1))
+        assert not result.valid
+        assert any(e.path == "confidence" for e in result.errors)
+
+    def test_confidence_as_string_rejected(self):
+        result = validate_extraction(_minimal_extraction(confidence="high"))
+        assert not result.valid
+        assert any(e.path == "confidence" for e in result.errors)
+
+
+class TestV12Capabilities:
+
+    def test_new_capabilities_accepted(self):
+        result = validate_extraction(_minimal_extraction(capabilities=[
+            "entities", "goals", "themes", "keywords", "summary",
+            "sentiment", "structured_sentiment", "facts", "questions",
+            "actions", "decisions", "language", "source_metadata", "confidence",
+        ]))
+        assert result.valid
 
 
 class TestJsonSchemaFiles:

@@ -13,10 +13,12 @@ export interface ValidationResult {
 const VALID_CAPABILITIES: Set<string> = new Set([
   "entities", "entity_state", "entity_context", "entity_ids",
   "goals", "goal_timing", "goal_entity_refs",
-  "themes", "summary", "sentiment", "facts",
+  "themes", "keywords", "summary", "sentiment", "structured_sentiment",
+  "facts", "questions", "actions", "decisions",
   "temporal_refs", "temporal_classes",
   "relations", "relation_origin",
   "assertion_signals", "evidence_anchoring",
+  "language", "source_metadata", "confidence",
 ]);
 
 const VALID_GOAL_STATUSES: Set<string> = new Set([
@@ -27,18 +29,29 @@ const VALID_TEMPORAL_TYPES: Set<string> = new Set([
   "point", "range", "duration", "unresolved",
 ]);
 
+const VALID_SENTIMENT_VALENCES: Set<string> = new Set([
+  "positive", "negative", "neutral", "mixed",
+]);
+
+const VALID_ACTION_ORIGINS: Set<string> = new Set([
+  "extracted", "proposed_from_goals",
+]);
+
 const URI_RE = /^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\/\S+$/;
 const NAMESPACED_RE = /^[a-zA-Z0-9_\-]+\/[a-zA-Z0-9_\-]+$/;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+\-]\d{2}:?\d{2})?)?$/;
 const ISO_DATETIME_STRICT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+\-]\d{2}:?\d{2})?$/;
+const BCP47_RE = /^[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{1,8})*$/;
 
 const ROOT_KEYS = new Set([
   "version", "extracted_at", "source_id", "source_type", "user_id",
-  "produced_by", "kind", "entities", "goals", "themes", "sentiment",
-  "summary", "facts", "temporal_refs", "capabilities", "embeddings", "extensions",
+  "produced_by", "kind", "entities", "goals", "themes", "keywords",
+  "sentiment", "summary", "facts", "questions", "actions", "decisions",
+  "temporal_refs", "language", "source_metadata", "confidence",
+  "capabilities", "embeddings", "extensions",
 ]);
 const ENTITY_KEYS = new Set([
-  "id", "name", "type", "state", "context", "date_hint",
+  "id", "name", "type", "aliases", "state", "context", "date_hint",
   "source", "signals", "relations",
 ]);
 const GOAL_KEYS = new Set([
@@ -46,6 +59,11 @@ const GOAL_KEYS = new Set([
   "source", "signals",
 ]);
 const FACT_KEYS = new Set(["text", "category", "source", "signals"]);
+const QUESTION_KEYS = new Set(["text", "directed_to", "source", "signals"]);
+const ACTION_KEYS = new Set(["text", "origin", "entity_refs", "due", "source", "signals"]);
+const DECISION_KEYS = new Set(["text", "entity_refs", "decided_at", "source", "signals"]);
+const SENTIMENT_OBJ_KEYS = new Set(["version", "valence", "intensity", "confidence"]);
+const SOURCE_METADATA_KEYS = new Set(["version", "token_count", "character_count", "modality", "format"]);
 const RELATION_KEYS = new Set(["target", "type", "origin", "signals"]);
 const SOURCE_REF_KEYS = new Set(["version", "snippet", "offset_start", "offset_end", "sentence_index"]);
 const SIGNALS_KEYS = new Set(["version", "confidence", "negated", "hedged", "condition"]);
@@ -276,6 +294,17 @@ function validateEntity(obj: unknown, path: string, errors: ValidationError[]): 
     errors.push({ path: `${path}.type`, message: "required non-empty string" });
   }
   checkOptionalStr(ent, "id", path, errors);
+  if (ent.aliases !== undefined) {
+    if (!Array.isArray(ent.aliases)) {
+      errors.push({ path: `${path}.aliases`, message: "must be an array" });
+    } else {
+      for (let i = 0; i < ent.aliases.length; i++) {
+        if (typeof ent.aliases[i] !== "string" || (ent.aliases[i] as string).length === 0) {
+          errors.push({ path: `${path}.aliases[${i}]`, message: "must be a non-empty string" });
+        }
+      }
+    }
+  }
   checkOptionalStr(ent, "state", path, errors);
   checkOptionalStr(ent, "context", path, errors);
   checkOptionalStr(ent, "date_hint", path, errors);
@@ -353,6 +382,133 @@ function validateFact(obj: unknown, path: string, errors: ValidationError[]): vo
   if (fact.signals !== undefined) {
     validateSignals(fact.signals, `${path}.signals`, errors);
   }
+}
+
+function validateQuestion(obj: unknown, path: string, errors: ValidationError[]): void {
+  if (typeof obj !== "object" || obj === null) {
+    errors.push({ path, message: "must be an object" });
+    return;
+  }
+  const q = obj as Record<string, unknown>;
+  checkExtraKeys(q, QUESTION_KEYS, path, errors);
+  if (typeof q.text !== "string" || q.text.length === 0) {
+    errors.push({ path: `${path}.text`, message: "required non-empty string" });
+  }
+  checkOptionalStr(q, "directed_to", path, errors);
+  if (q.source !== undefined) {
+    validateSourceRef(q.source, `${path}.source`, errors);
+  }
+  if (q.signals !== undefined) {
+    validateSignals(q.signals, `${path}.signals`, errors);
+  }
+}
+
+function validateAction(obj: unknown, path: string, errors: ValidationError[]): void {
+  if (typeof obj !== "object" || obj === null) {
+    errors.push({ path, message: "must be an object" });
+    return;
+  }
+  const act = obj as Record<string, unknown>;
+  checkExtraKeys(act, ACTION_KEYS, path, errors);
+  if (typeof act.text !== "string" || act.text.length === 0) {
+    errors.push({ path: `${path}.text`, message: "required non-empty string" });
+  }
+  if (typeof act.origin !== "string" || !VALID_ACTION_ORIGINS.has(act.origin)) {
+    errors.push({ path: `${path}.origin`, message: "must be one of: extracted, proposed_from_goals" });
+  }
+  if (act.entity_refs !== undefined) {
+    if (!Array.isArray(act.entity_refs)) {
+      errors.push({ path: `${path}.entity_refs`, message: "must be an array" });
+    } else {
+      for (let i = 0; i < act.entity_refs.length; i++) {
+        if (typeof act.entity_refs[i] !== "string") {
+          errors.push({ path: `${path}.entity_refs[${i}]`, message: "must be a string" });
+        }
+      }
+    }
+  }
+  checkOptionalStr(act, "due", path, errors);
+  if (act.source !== undefined) {
+    validateSourceRef(act.source, `${path}.source`, errors);
+  }
+  if (act.signals !== undefined) {
+    validateSignals(act.signals, `${path}.signals`, errors);
+  }
+}
+
+function validateDecision(obj: unknown, path: string, errors: ValidationError[]): void {
+  if (typeof obj !== "object" || obj === null) {
+    errors.push({ path, message: "must be an object" });
+    return;
+  }
+  const dec = obj as Record<string, unknown>;
+  checkExtraKeys(dec, DECISION_KEYS, path, errors);
+  if (typeof dec.text !== "string" || dec.text.length === 0) {
+    errors.push({ path: `${path}.text`, message: "required non-empty string" });
+  }
+  if (dec.entity_refs !== undefined) {
+    if (!Array.isArray(dec.entity_refs)) {
+      errors.push({ path: `${path}.entity_refs`, message: "must be an array" });
+    } else {
+      for (let i = 0; i < dec.entity_refs.length; i++) {
+        if (typeof dec.entity_refs[i] !== "string") {
+          errors.push({ path: `${path}.entity_refs[${i}]`, message: "must be a string" });
+        }
+      }
+    }
+  }
+  if (dec.decided_at !== undefined) {
+    if (typeof dec.decided_at !== "string" || !isIsoDatetime(dec.decided_at)) {
+      errors.push({ path: `${path}.decided_at`, message: "must be a valid ISO 8601 date/datetime" });
+    }
+  }
+  if (dec.source !== undefined) {
+    validateSourceRef(dec.source, `${path}.source`, errors);
+  }
+  if (dec.signals !== undefined) {
+    validateSignals(dec.signals, `${path}.signals`, errors);
+  }
+}
+
+function validateSentimentObj(obj: unknown, path: string, errors: ValidationError[]): void {
+  if (typeof obj !== "object" || obj === null) {
+    errors.push({ path, message: "must be an object" });
+    return;
+  }
+  const s = obj as Record<string, unknown>;
+  checkExtraKeys(s, SENTIMENT_OBJ_KEYS, path, errors);
+  if (s.version !== "1") {
+    errors.push({ path: `${path}.version`, message: 'must be "1"' });
+  }
+  if (typeof s.valence !== "string" || !VALID_SENTIMENT_VALENCES.has(s.valence)) {
+    errors.push({ path: `${path}.valence`, message: "must be one of: positive, negative, neutral, mixed" });
+  }
+  if (s.intensity !== undefined) {
+    if (typeof s.intensity !== "number" || s.intensity < 0 || s.intensity > 1) {
+      errors.push({ path: `${path}.intensity`, message: "must be a number between 0.0 and 1.0" });
+    }
+  }
+  if (s.confidence !== undefined) {
+    if (typeof s.confidence !== "number" || s.confidence < 0 || s.confidence > 1) {
+      errors.push({ path: `${path}.confidence`, message: "must be a number between 0.0 and 1.0" });
+    }
+  }
+}
+
+function validateSourceMetadata(obj: unknown, path: string, errors: ValidationError[]): void {
+  if (typeof obj !== "object" || obj === null) {
+    errors.push({ path, message: "must be an object" });
+    return;
+  }
+  const meta = obj as Record<string, unknown>;
+  checkExtraKeys(meta, SOURCE_METADATA_KEYS, path, errors);
+  if (meta.version !== undefined && meta.version !== "1") {
+    errors.push({ path: `${path}.version`, message: 'must be "1"' });
+  }
+  checkOptionalNonNegInt(meta, "token_count", path, errors);
+  checkOptionalNonNegInt(meta, "character_count", path, errors);
+  checkOptionalStr(meta, "modality", path, errors);
+  checkOptionalStr(meta, "format", path, errors);
 }
 
 function validateTemporalRef(obj: unknown, path: string, errors: ValidationError[]): void {
@@ -433,7 +589,16 @@ export function validateExtraction(obj: unknown): ValidationResult {
     }
   }
 
-  checkOptionalStr(doc, "sentiment", "", errors);
+  if (doc.sentiment !== undefined) {
+    if (typeof doc.sentiment === "string") {
+      // v1.0 string form — accepted as-is
+    } else if (typeof doc.sentiment === "object" && doc.sentiment !== null && !Array.isArray(doc.sentiment)) {
+      validateSentimentObj(doc.sentiment, "sentiment", errors);
+    } else {
+      errors.push({ path: "sentiment", message: "must be a string or SynaptSentiment object" });
+    }
+  }
+
   checkOptionalStr(doc, "source_id", "", errors);
   checkOptionalStr(doc, "source_type", "", errors);
   checkOptionalStr(doc, "user_id", "", errors);
@@ -511,6 +676,18 @@ export function validateExtraction(obj: unknown): ValidationResult {
     }
   }
 
+  if (doc.keywords !== undefined) {
+    if (!Array.isArray(doc.keywords)) {
+      errors.push({ path: "keywords", message: "must be an array" });
+    } else {
+      for (let i = 0; i < doc.keywords.length; i++) {
+        if (typeof doc.keywords[i] !== "string" || (doc.keywords[i] as string).length === 0) {
+          errors.push({ path: `keywords[${i}]`, message: "must be a non-empty string" });
+        }
+      }
+    }
+  }
+
   if (doc.facts !== undefined) {
     if (!Array.isArray(doc.facts)) {
       errors.push({ path: "facts", message: "must be an array" });
@@ -518,6 +695,76 @@ export function validateExtraction(obj: unknown): ValidationResult {
       for (let i = 0; i < doc.facts.length; i++) {
         validateFact(doc.facts[i], `facts[${i}]`, errors);
       }
+    }
+  }
+
+  if (doc.questions !== undefined) {
+    if (!Array.isArray(doc.questions)) {
+      errors.push({ path: "questions", message: "must be an array" });
+    } else {
+      for (let i = 0; i < doc.questions.length; i++) {
+        validateQuestion(doc.questions[i], `questions[${i}]`, errors);
+      }
+    }
+  }
+
+  if (doc.actions !== undefined) {
+    if (!Array.isArray(doc.actions)) {
+      errors.push({ path: "actions", message: "must be an array" });
+    } else {
+      for (let i = 0; i < doc.actions.length; i++) {
+        validateAction(doc.actions[i], `actions[${i}]`, errors);
+        const act = doc.actions[i] as Record<string, unknown> | undefined;
+        if (act && Array.isArray(act.entity_refs)) {
+          for (let j = 0; j < act.entity_refs.length; j++) {
+            const ref = act.entity_refs[j];
+            if (typeof ref === "string" && !entityIds.has(ref)) {
+              errors.push({
+                path: `actions[${i}].entity_refs[${j}]`,
+                message: `references entity ID '${ref}' which is not declared in entities`,
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (doc.decisions !== undefined) {
+    if (!Array.isArray(doc.decisions)) {
+      errors.push({ path: "decisions", message: "must be an array" });
+    } else {
+      for (let i = 0; i < doc.decisions.length; i++) {
+        validateDecision(doc.decisions[i], `decisions[${i}]`, errors);
+        const dec = doc.decisions[i] as Record<string, unknown> | undefined;
+        if (dec && Array.isArray(dec.entity_refs)) {
+          for (let j = 0; j < dec.entity_refs.length; j++) {
+            const ref = dec.entity_refs[j];
+            if (typeof ref === "string" && !entityIds.has(ref)) {
+              errors.push({
+                path: `decisions[${i}].entity_refs[${j}]`,
+                message: `references entity ID '${ref}' which is not declared in entities`,
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (doc.language !== undefined) {
+    if (typeof doc.language !== "string" || !BCP47_RE.test(doc.language)) {
+      errors.push({ path: "language", message: "must be a valid IETF BCP 47 language tag (e.g. 'en-US', 'es', 'pt-BR')" });
+    }
+  }
+
+  if (doc.source_metadata !== undefined) {
+    validateSourceMetadata(doc.source_metadata, "source_metadata", errors);
+  }
+
+  if (doc.confidence !== undefined) {
+    if (typeof doc.confidence !== "number" || doc.confidence < 0 || doc.confidence > 1) {
+      errors.push({ path: "confidence", message: "must be a number between 0.0 and 1.0" });
     }
   }
 

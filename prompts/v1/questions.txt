@@ -1,0 +1,1 @@
+- "questions": array of objects with "text" and optional "directed_to" (entity ID the question is addressed to)

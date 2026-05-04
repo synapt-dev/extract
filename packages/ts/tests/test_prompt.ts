@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, test } from "vitest";
@@ -7,7 +7,8 @@ import { buildExtractionPrompt, resolveCapabilities } from "../src/prompt.js";
 
 const REPO_ROOT = resolve(import.meta.dirname, "..", "..", "..");
 const CONFORMANCE_DIR = resolve(REPO_ROOT, "tests", "conformance");
-const PACKAGE_PROMPTS_DIR = resolve(import.meta.dirname, "..", "prompts");
+const _pkgPrompts = resolve(import.meta.dirname, "..", "prompts");
+const PROMPTS_DIR = existsSync(_pkgPrompts) ? _pkgPrompts : resolve(REPO_ROOT, "prompts");
 const SAMPLE_TEXT = "Please pray for my mom. She had surgery on April 20 and is recovering well.";
 
 function loadJson<T>(...parts: string[]): T {
@@ -198,28 +199,30 @@ describe("prompt assets", () => {
       "preamble.txt", "postamble.txt",
       "entities.txt", "entity_state.txt", "entity_context.txt", "entity_ids.txt",
       "goals.txt", "goal_timing.txt", "goal_entity_refs.txt",
-      "themes.txt", "summary.txt", "sentiment.txt", "facts.txt",
+      "themes.txt", "keywords.txt", "summary.txt", "sentiment.txt", "structured_sentiment.txt",
+      "facts.txt", "questions.txt", "actions.txt", "decisions.txt",
       "temporal_refs.txt", "temporal_classes.txt",
       "relations.txt", "relation_origin.txt",
       "assertion_signals.txt", "evidence_anchoring.txt",
+      "language.txt", "source_metadata.txt", "confidence.txt",
     ];
 
     for (const name of expected) {
-      const content = readFileSync(resolve(PACKAGE_PROMPTS_DIR, "v1", name), "utf-8").trim();
+      const content = readFileSync(resolve(PROMPTS_DIR, "v1", name), "utf-8").trim();
       expect(content.length, name).toBeGreaterThan(0);
     }
   });
 
   test("profile files exist and contain the expected capability sets", () => {
     for (const name of ["minimal", "standard", "full"]) {
-      const data = loadJson<{ capabilities: string[] }>(PACKAGE_PROMPTS_DIR, "profiles", `${name}.json`);
+      const data = loadJson<{ capabilities: string[] }>(PROMPTS_DIR, "profiles", `${name}.json`);
       expect(Array.isArray(data.capabilities), name).toBe(true);
     }
 
-    const minimal = new Set(loadJson<{ capabilities: string[] }>(PACKAGE_PROMPTS_DIR, "profiles", "minimal.json").capabilities);
+    const minimal = new Set(loadJson<{ capabilities: string[] }>(PROMPTS_DIR, "profiles", "minimal.json").capabilities);
     expect(minimal).toEqual(new Set(["entities", "entity_state", "goals", "themes", "summary"]));
 
-    const standard = new Set(loadJson<{ capabilities: string[] }>(PACKAGE_PROMPTS_DIR, "profiles", "standard.json").capabilities);
+    const standard = new Set(loadJson<{ capabilities: string[] }>(PROMPTS_DIR, "profiles", "standard.json").capabilities);
     for (const capability of [
       "entities",
       "entity_context",
@@ -232,18 +235,75 @@ describe("prompt assets", () => {
       expect(standard.has(capability), capability).toBe(true);
     }
 
-    const full = new Set(loadJson<{ capabilities: string[] }>(PACKAGE_PROMPTS_DIR, "profiles", "full.json").capabilities);
+    const full = new Set(loadJson<{ capabilities: string[] }>(PROMPTS_DIR, "profiles", "full.json").capabilities);
     for (const capability of standard) {
       expect(full.has(capability), capability).toBe(true);
     }
     expect(full).toEqual(new Set([
       "entities", "entity_state", "entity_context", "entity_ids",
       "goals", "goal_timing", "goal_entity_refs",
-      "themes", "summary", "sentiment", "facts",
+      "themes", "keywords", "summary", "sentiment", "structured_sentiment",
+      "facts", "questions", "actions", "decisions",
       "temporal_refs", "temporal_classes",
       "relations", "relation_origin",
       "assertion_signals", "evidence_anchoring",
+      "language", "source_metadata", "confidence",
     ]));
+  });
+});
+
+describe("registry consistency", () => {
+  const fragmentDir = resolve(PROMPTS_DIR, "v1");
+  const fragmentFiles = readdirSync(fragmentDir)
+    .filter((f) => f.endsWith(".txt"))
+    .map((f) => f.replace(".txt", ""));
+  const capabilityFragments = fragmentFiles.filter((f) => f !== "preamble" && f !== "postamble");
+
+  const fullProfile = loadJson<{ capabilities: string[] }>(PROMPTS_DIR, "profiles", "full.json").capabilities;
+
+  test("every capability in full profile has a fragment file", () => {
+    for (const cap of fullProfile) {
+      expect(capabilityFragments, `missing fragment for ${cap}`).toContain(cap);
+    }
+  });
+
+  test("every fragment file (except preamble/postamble) is a valid capability", () => {
+    for (const fragment of capabilityFragments) {
+      expect(() => resolveCapabilities({ capabilities: [fragment] })).not.toThrow(/Unknown/);
+    }
+  });
+
+  test("no orphan fragment files beyond declared capabilities", () => {
+    const fullSet = new Set(fullProfile);
+    for (const fragment of capabilityFragments) {
+      expect(fullSet.has(fragment), `orphan fragment: ${fragment}`).toBe(true);
+    }
+  });
+
+  test("full profile has no duplicates", () => {
+    expect(new Set(fullProfile).size).toBe(fullProfile.length);
+  });
+
+  test("buildExtractionPrompt succeeds for every individual capability", () => {
+    const modifierOnly = new Set(["assertion_signals", "evidence_anchoring"]);
+    for (const cap of fullProfile) {
+      const caps = modifierOnly.has(cap) ? ["entities", cap] : [cap];
+      expect(() =>
+        buildExtractionPrompt("test", { capabilities: caps }),
+      ).not.toThrow();
+    }
+  });
+
+  test("profiles are strict subsets: minimal < standard < full", () => {
+    const minimal = new Set(loadJson<{ capabilities: string[] }>(PROMPTS_DIR, "profiles", "minimal.json").capabilities);
+    const standard = new Set(loadJson<{ capabilities: string[] }>(PROMPTS_DIR, "profiles", "standard.json").capabilities);
+    const full = new Set(fullProfile);
+    for (const cap of minimal) {
+      expect(standard.has(cap) || full.has(cap), `minimal cap ${cap} not in standard or full`).toBe(true);
+    }
+    for (const cap of standard) {
+      expect(full.has(cap), `standard cap ${cap} not in full`).toBe(true);
+    }
   });
 });
 

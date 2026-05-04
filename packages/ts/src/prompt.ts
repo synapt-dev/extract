@@ -12,10 +12,12 @@ const PROMPTS_DIR = existsSync(_installedPrompts) ? _installedPrompts : _repoPro
 const VALID_CAPABILITIES: Set<string> = new Set([
   "entities", "entity_state", "entity_context", "entity_ids",
   "goals", "goal_timing", "goal_entity_refs",
-  "themes", "summary", "sentiment", "facts",
+  "themes", "keywords", "summary", "sentiment", "structured_sentiment",
+  "facts", "questions", "actions", "decisions",
   "temporal_refs", "temporal_classes",
   "relations", "relation_origin",
   "assertion_signals", "evidence_anchoring",
+  "language", "source_metadata", "confidence",
 ]);
 
 const BASE_CAPABILITIES: Set<string> = new Set(["entities", "goals", "facts"]);
@@ -43,12 +45,14 @@ const CAPABILITY_DEPS: Partial<Record<ExtractionCapability, ExtractionCapability
 };
 
 const CANONICAL_ORDER: ExtractionCapability[] = [
-  "entities", "goals", "themes", "summary", "sentiment", "facts", "temporal_refs",
+  "entities", "goals", "themes", "keywords", "summary", "sentiment", "structured_sentiment",
+  "facts", "questions", "actions", "decisions", "temporal_refs",
   "entity_state", "entity_context", "entity_ids",
   "goal_timing", "goal_entity_refs",
   "temporal_classes",
   "relations", "relation_origin",
   "assertion_signals", "evidence_anchoring",
+  "language", "source_metadata", "confidence",
 ];
 
 const CAPABILITY_RULES: Partial<Record<ExtractionCapability, string>> = {
@@ -56,6 +60,9 @@ const CAPABILITY_RULES: Partial<Record<ExtractionCapability, string>> = {
   temporal_refs: "Resolve all relative dates to absolute dates.",
   relation_origin: 'Mark relation origin: "explicit" if stated in text, "inferred" if deduced from context, "dependent" if derived from another relation.',
   assertion_signals: 'Preserve negation, hedging, and conditions in signals. "I might move" → hedged=true. "No longer using Redis" → negated=true. "If we get funding" → condition="we get funding".',
+  structured_sentiment: 'Return sentiment as an object with "valence" (positive/negative/neutral/mixed), optional "intensity" (0.0-1.0), and optional "confidence" (0.0-1.0).',
+  actions: 'Set origin to "extracted" for actions stated in the text, "proposed_from_goals" for actions inferred from goals.',
+  keywords: "Extract specific terms from the source, not topical categories (those go in themes).",
 };
 
 function loadProfile(name: string): ExtractionCapability[] {

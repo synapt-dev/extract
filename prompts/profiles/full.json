@@ -2,10 +2,11 @@
   "capabilities": [
     "entities", "entity_state", "entity_context", "entity_ids",
     "goals", "goal_timing", "goal_entity_refs",
-    "themes", "summary", "sentiment",
-    "facts",
+    "themes", "keywords", "summary", "sentiment", "structured_sentiment",
+    "facts", "questions", "actions", "decisions",
     "temporal_refs", "temporal_classes",
     "relations", "relation_origin",
-    "assertion_signals", "evidence_anchoring"
+    "assertion_signals", "evidence_anchoring",
+    "language", "source_metadata", "confidence"
   ]
 }

@@ -68,10 +68,17 @@ def _detect_capabilities(doc: dict[str, Any]) -> list[str]:
     themes = doc.get("themes")
     if isinstance(themes, list) and themes:
         caps.append("themes")
+    keywords = doc.get("keywords")
+    if isinstance(keywords, list) and keywords:
+        caps.append("keywords")
     if isinstance(doc.get("summary"), str):
         caps.append("summary")
-    if isinstance(doc.get("sentiment"), str):
+    sentiment = doc.get("sentiment")
+    if isinstance(sentiment, str):
         caps.append("sentiment")
+    elif isinstance(sentiment, dict):
+        caps.append("sentiment")
+        caps.append("structured_sentiment")
 
     facts = doc.get("facts", [])
     if isinstance(facts, list) and facts:
@@ -81,11 +88,42 @@ def _detect_capabilities(doc: dict[str, Any]) -> list[str]:
         if "assertion_signals" not in caps and any(f.get("signals") is not None for f in facts):
             caps.append("assertion_signals")
 
+    questions = doc.get("questions", [])
+    if isinstance(questions, list) and questions:
+        caps.append("questions")
+        if "evidence_anchoring" not in caps and any(q.get("source") is not None for q in questions):
+            caps.append("evidence_anchoring")
+        if "assertion_signals" not in caps and any(q.get("signals") is not None for q in questions):
+            caps.append("assertion_signals")
+
+    actions = doc.get("actions", [])
+    if isinstance(actions, list) and actions:
+        caps.append("actions")
+        if "evidence_anchoring" not in caps and any(a.get("source") is not None for a in actions):
+            caps.append("evidence_anchoring")
+        if "assertion_signals" not in caps and any(a.get("signals") is not None for a in actions):
+            caps.append("assertion_signals")
+
+    decisions = doc.get("decisions", [])
+    if isinstance(decisions, list) and decisions:
+        caps.append("decisions")
+        if "evidence_anchoring" not in caps and any(d.get("source") is not None for d in decisions):
+            caps.append("evidence_anchoring")
+        if "assertion_signals" not in caps and any(d.get("signals") is not None for d in decisions):
+            caps.append("assertion_signals")
+
     temporal = doc.get("temporal_refs", [])
     if isinstance(temporal, list) and temporal:
         caps.append("temporal_refs")
         if any(r.get("type") is not None or r.get("resolved_end") is not None for r in temporal):
             caps.append("temporal_classes")
+
+    if isinstance(doc.get("language"), str):
+        caps.append("language")
+    if isinstance(doc.get("source_metadata"), dict):
+        caps.append("source_metadata")
+    if isinstance(doc.get("confidence"), (int, float)) and not isinstance(doc.get("confidence"), bool):
+        caps.append("confidence")
 
     return caps
 
@@ -140,7 +178,7 @@ def finalize_extraction(
         doc["embeddings"] = finalized_embs
 
     # Stage 3: inject sub-schema versions, strip empty sub-schemas
-    for items_key in ("entities", "goals", "facts"):
+    for items_key in ("entities", "goals", "facts", "questions", "actions", "decisions"):
         items = doc.get(items_key)
         if not isinstance(items, list):
             continue
@@ -162,6 +200,12 @@ def finalize_extraction(
                             _inject_sub_versions(sig)
                         else:
                             del rel["signals"]
+
+    if isinstance(doc.get("sentiment"), dict):
+        _inject_sub_versions(doc["sentiment"])
+
+    if isinstance(doc.get("source_metadata"), dict):
+        _inject_sub_versions(doc["source_metadata"])
 
     temporal = doc.get("temporal_refs")
     if isinstance(temporal, list):
