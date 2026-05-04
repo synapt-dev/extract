@@ -13,10 +13,12 @@ const SCHEMAS_DIR = resolve(REPO_ROOT, "schemas");
 const ALL_CAPABILITIES = [
   "entities", "entity_state", "entity_context", "entity_ids",
   "goals", "goal_timing", "goal_entity_refs",
-  "themes", "summary", "sentiment", "facts",
+  "themes", "keywords", "summary", "sentiment", "structured_sentiment",
+  "facts", "questions", "actions", "decisions",
   "temporal_refs", "temporal_classes",
   "relations", "relation_origin",
   "assertion_signals", "evidence_anchoring",
+  "language", "source_metadata", "confidence",
 ];
 
 function loadJson<T>(...parts: string[]): T {
@@ -450,6 +452,16 @@ describe("validateExtraction", () => {
       "temporal_refs[0].raw",
     ],
     ["summary empty", minimalExtraction({ summary: "" }), "summary"],
+    [
+      "alias empty string",
+      minimalExtraction({ entities: [{ name: "Mom", type: "person", aliases: [""] }] }),
+      "entities[0].aliases[0]",
+    ],
+    [
+      "alias non-string",
+      minimalExtraction({ entities: [{ name: "Mom", type: "person", aliases: [123] }] }),
+      "entities[0].aliases[0]",
+    ],
   ])("%s", (_name, doc, path) => {
     const result = validateExtraction(doc);
     expect(result.valid).toBe(false);
@@ -567,6 +579,24 @@ describe("validateExtraction", () => {
       true,
       "",
     ],
+    [
+      "entity with aliases accepted",
+      minimalExtraction({ entities: [{ name: "Mom", type: "person", aliases: ["Mother", "Mama"] }] }),
+      true,
+      "",
+    ],
+    [
+      "entity with empty aliases array accepted",
+      minimalExtraction({ entities: [{ name: "Mom", type: "person", aliases: [] }] }),
+      true,
+      "",
+    ],
+    [
+      "entity aliases not array rejected",
+      minimalExtraction({ entities: [{ name: "Mom", type: "person", aliases: "Mother" }] }),
+      false,
+      "entities[0].aliases",
+    ],
   ])("%s", (_name, doc, expectedValid, path) => {
     const result = validateExtraction(doc);
     expect(result.valid).toBe(expectedValid);
@@ -586,6 +616,370 @@ describe("validateExtraction", () => {
     if (path) {
       expect(result.errors.some((error) => error.path === path)).toBe(true);
     }
+  });
+});
+
+describe("v1.2 fields", () => {
+  // --- keywords ---
+  test("valid keywords accepted", () => {
+    const result = validateExtraction(minimalExtraction({ keywords: ["prayer", "healing"] }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("empty keywords array accepted", () => {
+    const result = validateExtraction(minimalExtraction({ keywords: [] }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("keywords with empty string rejected", () => {
+    const result = validateExtraction(minimalExtraction({ keywords: ["prayer", ""] }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "keywords[1]")).toBe(true);
+  });
+
+  test("keywords not array rejected", () => {
+    const result = validateExtraction(minimalExtraction({ keywords: "prayer" }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "keywords")).toBe(true);
+  });
+
+  // --- questions ---
+  test("valid question accepted", () => {
+    const result = validateExtraction(minimalExtraction({
+      questions: [{ text: "How are you feeling?" }],
+    }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("question with directed_to accepted", () => {
+    const result = validateExtraction(minimalExtraction({
+      entities: [{ id: "e1", name: "Mom", type: "person" }],
+      questions: [{ text: "How is Mom?", directed_to: "e1" }],
+    }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("question missing text rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      questions: [{ directed_to: "someone" }],
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "questions[0].text")).toBe(true);
+  });
+
+  test("question with empty text rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      questions: [{ text: "" }],
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "questions[0].text")).toBe(true);
+  });
+
+  test("question unknown property rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      questions: [{ text: "Why?", badProp: true }],
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "questions[0].badProp")).toBe(true);
+  });
+
+  test("questions not array rejected", () => {
+    const result = validateExtraction(minimalExtraction({ questions: "why?" }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "questions")).toBe(true);
+  });
+
+  // --- actions ---
+  test("valid action accepted", () => {
+    const result = validateExtraction(minimalExtraction({
+      actions: [{ text: "Schedule appointment", origin: "extracted" }],
+    }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("action with proposed_from_goals origin accepted", () => {
+    const result = validateExtraction(minimalExtraction({
+      actions: [{ text: "Follow up with doctor", origin: "proposed_from_goals" }],
+    }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("action missing origin rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      actions: [{ text: "Do something" }],
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "actions[0].origin")).toBe(true);
+  });
+
+  test("action invalid origin rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      actions: [{ text: "Do something", origin: "unknown" }],
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "actions[0].origin")).toBe(true);
+  });
+
+  test("action missing text rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      actions: [{ origin: "extracted" }],
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "actions[0].text")).toBe(true);
+  });
+
+  test("action with entity_refs accepted", () => {
+    const result = validateExtraction(minimalExtraction({
+      entities: [{ id: "e1", name: "Mom", type: "person" }],
+      actions: [{ text: "Call Mom", origin: "extracted", entity_refs: ["e1"] }],
+    }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("action with dangling entity_ref rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      entities: [{ id: "e1", name: "Mom", type: "person" }],
+      actions: [{ text: "Call Dad", origin: "extracted", entity_refs: ["e99"] }],
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "actions[0].entity_refs[0]")).toBe(true);
+  });
+
+  test("action unknown property rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      actions: [{ text: "Go", origin: "extracted", priority: "high" }],
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "actions[0].priority")).toBe(true);
+  });
+
+  // --- decisions ---
+  test("valid decision accepted", () => {
+    const result = validateExtraction(minimalExtraction({
+      decisions: [{ text: "Decided to move forward" }],
+    }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("decision with entity_refs and decided_at accepted", () => {
+    const result = validateExtraction(minimalExtraction({
+      entities: [{ id: "e1", name: "Team", type: "organization" }],
+      decisions: [{ text: "Team chose option A", entity_refs: ["e1"], decided_at: "2026-05-01" }],
+    }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("decision missing text rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      decisions: [{ entity_refs: [] }],
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "decisions[0].text")).toBe(true);
+  });
+
+  test("decision with dangling entity_ref rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      entities: [],
+      decisions: [{ text: "Go with plan B", entity_refs: ["e99"] }],
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "decisions[0].entity_refs[0]")).toBe(true);
+  });
+
+  test("decision unknown property rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      decisions: [{ text: "Yes", importance: "high" }],
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "decisions[0].importance")).toBe(true);
+  });
+
+  // --- sentiment dual-shape ---
+  test("string sentiment accepted", () => {
+    const result = validateExtraction(minimalExtraction({ sentiment: "hopeful" }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("structured sentiment accepted", () => {
+    const result = validateExtraction(minimalExtraction({
+      sentiment: { version: "1", valence: "positive", intensity: 0.8, confidence: 0.9 },
+    }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("structured sentiment minimal (valence only) accepted", () => {
+    const result = validateExtraction(minimalExtraction({
+      sentiment: { version: "1", valence: "negative" },
+    }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("structured sentiment invalid valence rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      sentiment: { version: "1", valence: "angry" },
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "sentiment.valence")).toBe(true);
+  });
+
+  test("structured sentiment missing valence rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      sentiment: { version: "1", intensity: 0.5 },
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "sentiment.valence")).toBe(true);
+  });
+
+  test("structured sentiment intensity out of range rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      sentiment: { version: "1", valence: "positive", intensity: 1.5 },
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "sentiment.intensity")).toBe(true);
+  });
+
+  test("structured sentiment unknown property rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      sentiment: { version: "1", valence: "neutral", mood: "calm" },
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "sentiment.mood")).toBe(true);
+  });
+
+  test("sentiment as array rejected", () => {
+    const result = validateExtraction(minimalExtraction({ sentiment: ["positive"] }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "sentiment")).toBe(true);
+  });
+
+  test("sentiment as number rejected", () => {
+    const result = validateExtraction(minimalExtraction({ sentiment: 0.8 }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "sentiment")).toBe(true);
+  });
+
+  // --- language ---
+  test("valid language tag accepted", () => {
+    const result = validateExtraction(minimalExtraction({ language: "en-US" }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("simple language tag accepted", () => {
+    const result = validateExtraction(minimalExtraction({ language: "es" }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("three-letter language tag accepted", () => {
+    const result = validateExtraction(minimalExtraction({ language: "por" }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("complex BCP 47 tag accepted", () => {
+    const result = validateExtraction(minimalExtraction({ language: "zh-Hans-CN" }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("invalid language tag rejected", () => {
+    const result = validateExtraction(minimalExtraction({ language: "english" }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "language")).toBe(true);
+  });
+
+  test("language as number rejected", () => {
+    const result = validateExtraction(minimalExtraction({ language: 42 }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "language")).toBe(true);
+  });
+
+  // --- source_metadata ---
+  test("valid source_metadata accepted", () => {
+    const result = validateExtraction(minimalExtraction({
+      source_metadata: { version: "1", token_count: 500, character_count: 2000, modality: "text", format: "plain" },
+    }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("source_metadata with only version accepted", () => {
+    const result = validateExtraction(minimalExtraction({
+      source_metadata: { version: "1" },
+    }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("source_metadata negative token_count rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      source_metadata: { version: "1", token_count: -1 },
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "source_metadata.token_count")).toBe(true);
+  });
+
+  test("source_metadata non-integer token_count rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      source_metadata: { version: "1", token_count: 3.5 },
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "source_metadata.token_count")).toBe(true);
+  });
+
+  test("source_metadata unknown property rejected", () => {
+    const result = validateExtraction(minimalExtraction({
+      source_metadata: { version: "1", word_count: 100 },
+    }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "source_metadata.word_count")).toBe(true);
+  });
+
+  test("source_metadata not object rejected", () => {
+    const result = validateExtraction(minimalExtraction({ source_metadata: "text" }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "source_metadata")).toBe(true);
+  });
+
+  // --- confidence ---
+  test("valid confidence accepted", () => {
+    const result = validateExtraction(minimalExtraction({ confidence: 0.85 }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("confidence 0 accepted", () => {
+    const result = validateExtraction(minimalExtraction({ confidence: 0 }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("confidence 1 accepted", () => {
+    const result = validateExtraction(minimalExtraction({ confidence: 1 }));
+    expect(result.valid).toBe(true);
+  });
+
+  test("confidence above 1 rejected", () => {
+    const result = validateExtraction(minimalExtraction({ confidence: 1.1 }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "confidence")).toBe(true);
+  });
+
+  test("confidence below 0 rejected", () => {
+    const result = validateExtraction(minimalExtraction({ confidence: -0.1 }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "confidence")).toBe(true);
+  });
+
+  test("confidence as string rejected", () => {
+    const result = validateExtraction(minimalExtraction({ confidence: "high" }));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.path === "confidence")).toBe(true);
+  });
+
+  // --- new capabilities recognized ---
+  test("new v1.2 capabilities accepted", () => {
+    const result = validateExtraction(minimalExtraction({
+      capabilities: [
+        "entities", "goals", "themes", "keywords", "summary",
+        "sentiment", "structured_sentiment", "facts", "questions",
+        "actions", "decisions", "language", "source_metadata", "confidence",
+      ],
+    }));
+    expect(result.valid).toBe(true);
   });
 });
 
@@ -611,9 +1005,16 @@ describe("validateExtraction conformance fixtures", () => {
 describe("JSON Schema dereference", () => {
   test("schema files are valid JSON with ids", () => {
     const files = [
+      resolve(SCHEMAS_DIR, "action", "v1.json"),
       resolve(SCHEMAS_DIR, "assertion-signals", "v1.json"),
+      resolve(SCHEMAS_DIR, "decision", "v1.json"),
       resolve(SCHEMAS_DIR, "embedding", "v1.json"),
+      resolve(SCHEMAS_DIR, "entity", "v1.json"),
       resolve(SCHEMAS_DIR, "extract", "v1.json"),
+      resolve(SCHEMAS_DIR, "goal", "v1.json"),
+      resolve(SCHEMAS_DIR, "question", "v1.json"),
+      resolve(SCHEMAS_DIR, "sentiment", "v1.json"),
+      resolve(SCHEMAS_DIR, "source-metadata", "v1.json"),
       resolve(SCHEMAS_DIR, "source-ref", "v1.json"),
       resolve(SCHEMAS_DIR, "temporal-ref", "v1.json"),
     ];
@@ -632,6 +1033,13 @@ describe("JSON Schema dereference", () => {
     expect(schema).toContain("assertion-signals/v1.json");
     expect(schema).toContain("temporal-ref/v1.json");
     expect(schema).toContain("producer/v1.json");
+    expect(schema).toContain("entity/v1.json");
+    expect(schema).toContain("goal/v1.json");
+    expect(schema).toContain("question/v1.json");
+    expect(schema).toContain("action/v1.json");
+    expect(schema).toContain("decision/v1.json");
+    expect(schema).toContain("sentiment/v1.json");
+    expect(schema).toContain("source-metadata/v1.json");
   });
 
   test("extraction schema carries the expected required fields", () => {
@@ -652,9 +1060,16 @@ describe("JSON Schema dereference", () => {
     addFormats(ajv);
 
     const schemaFiles = [
+      resolve(SCHEMAS_DIR, "action", "v1.json"),
       resolve(SCHEMAS_DIR, "assertion-signals", "v1.json"),
+      resolve(SCHEMAS_DIR, "decision", "v1.json"),
       resolve(SCHEMAS_DIR, "embedding", "v1.json"),
+      resolve(SCHEMAS_DIR, "entity", "v1.json"),
+      resolve(SCHEMAS_DIR, "goal", "v1.json"),
       resolve(SCHEMAS_DIR, "producer", "v1.json"),
+      resolve(SCHEMAS_DIR, "question", "v1.json"),
+      resolve(SCHEMAS_DIR, "sentiment", "v1.json"),
+      resolve(SCHEMAS_DIR, "source-metadata", "v1.json"),
       resolve(SCHEMAS_DIR, "source-ref", "v1.json"),
       resolve(SCHEMAS_DIR, "temporal-ref", "v1.json"),
       resolve(SCHEMAS_DIR, "extract", "v1.json"),
@@ -694,9 +1109,16 @@ describe("JSON Schema dereference", () => {
     const ajv = new Ajv2020({ strict: false, allErrors: true });
     addFormats(ajv);
     for (const file of [
+      resolve(SCHEMAS_DIR, "action", "v1.json"),
       resolve(SCHEMAS_DIR, "assertion-signals", "v1.json"),
+      resolve(SCHEMAS_DIR, "decision", "v1.json"),
       resolve(SCHEMAS_DIR, "embedding", "v1.json"),
+      resolve(SCHEMAS_DIR, "entity", "v1.json"),
+      resolve(SCHEMAS_DIR, "goal", "v1.json"),
       resolve(SCHEMAS_DIR, "producer", "v1.json"),
+      resolve(SCHEMAS_DIR, "question", "v1.json"),
+      resolve(SCHEMAS_DIR, "sentiment", "v1.json"),
+      resolve(SCHEMAS_DIR, "source-metadata", "v1.json"),
       resolve(SCHEMAS_DIR, "source-ref", "v1.json"),
       resolve(SCHEMAS_DIR, "temporal-ref", "v1.json"),
       resolve(SCHEMAS_DIR, "extract", "v1.json"),
@@ -715,9 +1137,16 @@ describe("JSON Schema dereference", () => {
     const ajv = new Ajv2020({ strict: false, allErrors: true });
     addFormats(ajv);
     for (const file of [
+      resolve(SCHEMAS_DIR, "action", "v1.json"),
       resolve(SCHEMAS_DIR, "assertion-signals", "v1.json"),
+      resolve(SCHEMAS_DIR, "decision", "v1.json"),
       resolve(SCHEMAS_DIR, "embedding", "v1.json"),
+      resolve(SCHEMAS_DIR, "entity", "v1.json"),
+      resolve(SCHEMAS_DIR, "goal", "v1.json"),
       resolve(SCHEMAS_DIR, "producer", "v1.json"),
+      resolve(SCHEMAS_DIR, "question", "v1.json"),
+      resolve(SCHEMAS_DIR, "sentiment", "v1.json"),
+      resolve(SCHEMAS_DIR, "source-metadata", "v1.json"),
       resolve(SCHEMAS_DIR, "source-ref", "v1.json"),
       resolve(SCHEMAS_DIR, "temporal-ref", "v1.json"),
       resolve(SCHEMAS_DIR, "extract", "v1.json"),

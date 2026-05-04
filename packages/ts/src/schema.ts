@@ -63,6 +63,7 @@ export interface SynaptEntity {
   id?: string;
   name: string;
   type: "person" | "place" | "event" | "concept" | "organization" | "object" | string;
+  aliases?: string[];
   state?: string;
   context?: string;
   date_hint?: string;
@@ -88,6 +89,45 @@ export interface SynaptFact {
   signals?: SynaptAssertionSignals;
 }
 
+export interface SynaptQuestion {
+  text: string;
+  directed_to?: string;
+  source?: SynaptSourceRef;
+  signals?: SynaptAssertionSignals;
+}
+
+export interface SynaptAction {
+  text: string;
+  origin: "extracted" | "proposed_from_goals";
+  entity_refs?: string[];
+  due?: string;
+  source?: SynaptSourceRef;
+  signals?: SynaptAssertionSignals;
+}
+
+export interface SynaptDecision {
+  text: string;
+  entity_refs?: string[];
+  decided_at?: string;
+  source?: SynaptSourceRef;
+  signals?: SynaptAssertionSignals;
+}
+
+export interface SynaptSentiment {
+  version: "1";
+  valence: "positive" | "negative" | "neutral" | "mixed";
+  intensity?: number;
+  confidence?: number;
+}
+
+export interface SynaptSourceMetadata {
+  version: "1";
+  token_count?: number;
+  character_count?: number;
+  modality?: string;
+  format?: string;
+}
+
 export type ExtractionCapability =
   | "entities"
   | "entity_state"
@@ -97,15 +137,23 @@ export type ExtractionCapability =
   | "goal_timing"
   | "goal_entity_refs"
   | "themes"
+  | "keywords"
   | "summary"
   | "sentiment"
+  | "structured_sentiment"
   | "facts"
+  | "questions"
+  | "actions"
+  | "decisions"
   | "temporal_refs"
   | "temporal_classes"
   | "relations"
   | "relation_origin"
   | "assertion_signals"
-  | "evidence_anchoring";
+  | "evidence_anchoring"
+  | "language"
+  | "source_metadata"
+  | "confidence";
 
 export interface SynaptExtraction {
   version: "1";
@@ -118,10 +166,17 @@ export interface SynaptExtraction {
   entities: SynaptEntity[];
   goals: SynaptGoal[];
   themes: string[];
-  sentiment?: string;
+  keywords?: string[];
+  sentiment?: string | SynaptSentiment;
   summary?: string;
   facts?: SynaptFact[];
+  questions?: SynaptQuestion[];
+  actions?: SynaptAction[];
+  decisions?: SynaptDecision[];
   temporal_refs?: SynaptTemporalRef[];
+  language?: string;
+  source_metadata?: SynaptSourceMetadata;
+  confidence?: number;
   capabilities: ExtractionCapability[];
   embeddings?: SynaptEmbedding[];
   extensions?: Record<string, unknown>;

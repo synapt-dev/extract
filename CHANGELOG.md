@@ -1,5 +1,76 @@
 # Changelog
 
+## v0.3.0
+
+v1.2 spec: 8 new extraction fields, 5 new sub-schemas, sentiment dual-shape, entity/goal sub-schema promotion.
+
+### New sub-schemas
+
+- `schemas/entity/v1.json` -- promoted from inline `$defs` to standalone with `$id`
+- `schemas/goal/v1.json` -- promoted from inline `$defs` to standalone with `$id`
+- `schemas/question/v1.json` -- questions raised in source text
+- `schemas/action/v1.json` -- concrete next-steps with origin tracking (extracted vs proposed_from_goals)
+- `schemas/decision/v1.json` -- directional commitments identified in source
+- `schemas/sentiment/v1.json` -- structured sentiment with valence/intensity/confidence
+- `schemas/source-metadata/v1.json` -- source document metadata (token count, modality, format)
+
+### New extraction fields
+
+- `keywords`: surface lexical terms (sibling to themes; keywords are specific terms, themes are topical categories)
+- `questions`: questions raised in the source text, with optional `directed_to` entity ref
+- `actions`: action items with required `origin` field ("extracted" or "proposed_from_goals")
+- `decisions`: directional commitments with optional `decided_at` timestamp
+- `language`: IETF BCP 47 language tag (e.g. "en-US", "es", "pt-BR")
+- `source_metadata`: source document metadata for normalization across lengths and formats
+- `confidence`: extraction-level overall confidence score (0.0 to 1.0)
+- `sentiment` dual-shape: accepts string (v1.0) or structured SynaptSentiment object (v1.2)
+
+### New capabilities
+
+`keywords`, `structured_sentiment`, `questions`, `actions`, `decisions`, `language`, `source_metadata`, `confidence` (8 new, 25 total)
+
+### Entity enhancements
+
+- `aliases` field on entities for per-extraction same-entity grouping
+
+### Prompt system
+
+- 8 new prompt fragment files for all new capabilities
+- `CAPABILITY_RULES` for structured_sentiment, actions, and keywords
+- Updated full.json profile with all 25 capabilities
+- `CANONICAL_ORDER` updated for deterministic prompt composition
+
+### Finalize pipeline
+
+- `detectCapabilities` detects all 8 new capabilities from payload structure
+- Sub-schema version injection for questions, actions, decisions, sentiment object, and source_metadata
+- Evidence anchoring and assertion signals detection extended to questions, actions, and decisions
+
+### Validators
+
+- Entity ID cross-referencing extended to actions and decisions (dangling entity_ref detection)
+- 5 new sub-schema validators with additionalProperties enforcement
+- Sentiment dual-shape dispatch (string vs object)
+- BCP 47 language tag validation
+- Confidence bounds validation (0.0 to 1.0)
+
+### Tests
+
+- 219 TypeScript tests, 273 Python tests, 15 conformance cases
+- 9 new conformance fixtures for v1.2 fields
+
+### Compatibility
+
+v1.2 is additive. v1.0 and v1.1 documents remain valid. The `sentiment` field now accepts either a string (v1.0) or a SynaptSentiment object (v1.2). Readers MUST branch on string vs object, same pattern as `produced_by`.
+
+### Prompt gap fixes (from v0.2.0)
+
+Three gaps discovered during v0.2.0 dogfooding are now fixed:
+
+1. `goals.txt` now always mentions `entity_refs` as a required field (was only prompted with `goal_entity_refs` capability)
+2. `temporal_refs.txt` now describes the full sub-schema shape (`type`, `resolved_end`, `context`) instead of just `raw` and `resolved`
+3. `goal_timing.txt` now explicitly scopes `stated_at`/`resolved_at` to goals only, preventing LLM from adding these to entities
+
 ## v0.2.0
 
 v1.1 spec: typed SynaptProducer schema, additive backwards-compat, in-place v1.x = additive only policy.

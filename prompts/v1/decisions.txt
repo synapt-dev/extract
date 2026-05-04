@@ -1,0 +1,1 @@
+- "decisions": array of objects with "text", optional "entity_refs" and "decided_at"

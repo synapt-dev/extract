@@ -82,8 +82,14 @@ function detectCapabilities(doc: Record<string, unknown>): ExtractionCapability[
   }
 
   if (Array.isArray(doc.themes) && (doc.themes as unknown[]).length > 0) caps.push("themes");
+  if (Array.isArray(doc.keywords) && (doc.keywords as unknown[]).length > 0) caps.push("keywords");
   if (typeof doc.summary === "string") caps.push("summary");
-  if (typeof doc.sentiment === "string") caps.push("sentiment");
+  if (typeof doc.sentiment === "string") {
+    caps.push("sentiment");
+  } else if (typeof doc.sentiment === "object" && doc.sentiment !== null && !Array.isArray(doc.sentiment)) {
+    caps.push("sentiment");
+    caps.push("structured_sentiment");
+  }
 
   if (Array.isArray(doc.facts) && (doc.facts as unknown[]).length > 0) {
     caps.push("facts");
@@ -96,11 +102,48 @@ function detectCapabilities(doc: Record<string, unknown>): ExtractionCapability[
     }
   }
 
+  if (Array.isArray(doc.questions) && (doc.questions as unknown[]).length > 0) {
+    caps.push("questions");
+    const questions = doc.questions as Record<string, unknown>[];
+    if (!caps.includes("evidence_anchoring") && questions.some((q) => q.source !== undefined)) {
+      caps.push("evidence_anchoring");
+    }
+    if (!caps.includes("assertion_signals") && questions.some((q) => q.signals !== undefined)) {
+      caps.push("assertion_signals");
+    }
+  }
+
+  if (Array.isArray(doc.actions) && (doc.actions as unknown[]).length > 0) {
+    caps.push("actions");
+    const actions = doc.actions as Record<string, unknown>[];
+    if (!caps.includes("evidence_anchoring") && actions.some((a) => a.source !== undefined)) {
+      caps.push("evidence_anchoring");
+    }
+    if (!caps.includes("assertion_signals") && actions.some((a) => a.signals !== undefined)) {
+      caps.push("assertion_signals");
+    }
+  }
+
+  if (Array.isArray(doc.decisions) && (doc.decisions as unknown[]).length > 0) {
+    caps.push("decisions");
+    const decisions = doc.decisions as Record<string, unknown>[];
+    if (!caps.includes("evidence_anchoring") && decisions.some((d) => d.source !== undefined)) {
+      caps.push("evidence_anchoring");
+    }
+    if (!caps.includes("assertion_signals") && decisions.some((d) => d.signals !== undefined)) {
+      caps.push("assertion_signals");
+    }
+  }
+
   if (Array.isArray(doc.temporal_refs) && (doc.temporal_refs as unknown[]).length > 0) {
     caps.push("temporal_refs");
     const refs = doc.temporal_refs as Record<string, unknown>[];
     if (refs.some((r) => r.type !== undefined || r.resolved_end !== undefined)) caps.push("temporal_classes");
   }
+
+  if (typeof doc.language === "string") caps.push("language");
+  if (typeof doc.source_metadata === "object" && doc.source_metadata !== null) caps.push("source_metadata");
+  if (typeof doc.confidence === "number") caps.push("confidence");
 
   return caps;
 }
@@ -220,6 +263,37 @@ export function finalizeExtraction(
         }
       }
     }
+  }
+
+  for (const arrayKey of ["questions", "actions", "decisions"] as const) {
+    if (Array.isArray(doc[arrayKey])) {
+      for (const item of doc[arrayKey] as Record<string, unknown>[]) {
+        if (item.source && typeof item.source === "object") {
+          const src = item.source as Record<string, unknown>;
+          if (hasPayloadBeyondVersion(src)) {
+            injectSubSchemaVersions(src);
+          } else {
+            delete item.source;
+          }
+        }
+        if (item.signals && typeof item.signals === "object") {
+          const sig = item.signals as Record<string, unknown>;
+          if (hasPayloadBeyondVersion(sig)) {
+            injectSubSchemaVersions(sig);
+          } else {
+            delete item.signals;
+          }
+        }
+      }
+    }
+  }
+
+  if (typeof doc.sentiment === "object" && doc.sentiment !== null && !Array.isArray(doc.sentiment)) {
+    injectSubSchemaVersions(doc.sentiment as Record<string, unknown>);
+  }
+
+  if (typeof doc.source_metadata === "object" && doc.source_metadata !== null && !Array.isArray(doc.source_metadata)) {
+    injectSubSchemaVersions(doc.source_metadata as Record<string, unknown>);
   }
 
   if (Array.isArray(doc.temporal_refs)) {

@@ -59,5 +59,188 @@
     },
     "expected_valid": false,
     "expected_error_paths": ["goals[0].entity_refs[0]"]
+  },
+  {
+    "name": "entity_aliases_valid",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [
+        { "name": "Mom", "type": "person", "aliases": ["Mother", "Mama"] }
+      ],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities"]
+    },
+    "expected_valid": true,
+    "expected_error_paths": []
+  },
+  {
+    "name": "entity_aliases_empty_string_rejected",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [
+        { "name": "Mom", "type": "person", "aliases": [""] }
+      ],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities"]
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["entities[0].aliases[0]"]
+  },
+  {
+    "name": "entity_aliases_not_array_rejected",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [
+        { "name": "Mom", "type": "person", "aliases": "Mother" }
+      ],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities"]
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["entities[0].aliases"]
+  },
+  {
+    "name": "structured_sentiment_valid",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes", "sentiment", "structured_sentiment"],
+      "sentiment": { "version": "1", "valence": "positive", "intensity": 0.8 }
+    },
+    "expected_valid": true,
+    "expected_error_paths": []
+  },
+  {
+    "name": "structured_sentiment_invalid_valence_rejected",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes", "sentiment"],
+      "sentiment": { "version": "1", "valence": "angry" }
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["sentiment.valence"]
+  },
+  {
+    "name": "action_missing_origin_rejected",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes", "actions"],
+      "actions": [{ "text": "Do something" }]
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["actions[0].origin"]
+  },
+  {
+    "name": "action_dangling_entity_ref_rejected",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [{ "id": "e1", "name": "Mom", "type": "person" }],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes", "actions"],
+      "actions": [{ "text": "Call Dad", "origin": "extracted", "entity_refs": ["e99"] }]
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["actions[0].entity_refs[0]"]
+  },
+  {
+    "name": "language_valid",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes", "language"],
+      "language": "en-US"
+    },
+    "expected_valid": true,
+    "expected_error_paths": []
+  },
+  {
+    "name": "language_invalid_rejected",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes", "language"],
+      "language": "english"
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["language"]
+  },
+  {
+    "name": "confidence_out_of_range_rejected",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes", "confidence"],
+      "confidence": 1.5
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["confidence"]
+  },
+  {
+    "name": "full_v12_extraction_valid",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [{ "id": "e1", "name": "Mom", "type": "person", "aliases": ["Mother"] }],
+      "goals": [{ "text": "Recovery", "status": "open", "entity_refs": ["e1"] }],
+      "themes": ["health"],
+      "keywords": ["recovery", "prayer"],
+      "summary": "Prayer for Mom's recovery.",
+      "sentiment": { "version": "1", "valence": "mixed", "intensity": 0.6 },
+      "facts": [{ "text": "Mom is in the hospital" }],
+      "questions": [{ "text": "Will she recover?", "directed_to": "e1" }],
+      "actions": [{ "text": "Visit Mom", "origin": "extracted", "entity_refs": ["e1"] }],
+      "decisions": [{ "text": "Chose to pray daily", "decided_at": "2026-04-25" }],
+      "temporal_refs": [{ "version": "1", "raw": "yesterday", "type": "point", "resolved": "2026-04-25" }],
+      "language": "en-US",
+      "source_metadata": { "version": "1", "token_count": 150, "modality": "text" },
+      "confidence": 0.92,
+      "capabilities": [
+        "entities", "entity_ids", "goals", "goal_entity_refs", "themes", "keywords",
+        "summary", "sentiment", "structured_sentiment", "facts", "questions",
+        "actions", "decisions", "temporal_refs", "temporal_classes",
+        "language", "source_metadata", "confidence"
+      ]
+    },
+    "expected_valid": true,
+    "expected_error_paths": []
   }
 ]

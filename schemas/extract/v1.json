@@ -46,12 +46,12 @@
     },
     "entities": {
       "type": "array",
-      "items": { "$ref": "#/$defs/SynaptEntity" },
+      "items": { "$ref": "https://synapt.dev/schemas/entity/v1.json" },
       "description": "Extracted entities."
     },
     "goals": {
       "type": "array",
-      "items": { "$ref": "#/$defs/SynaptGoal" },
+      "items": { "$ref": "https://synapt.dev/schemas/goal/v1.json" },
       "description": "Extracted goals."
     },
     "themes": {
@@ -59,9 +59,21 @@
       "items": { "type": "string", "minLength": 1 },
       "description": "Topic strings."
     },
+    "keywords": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Surface lexical terms extracted from the source. Sibling to themes; keywords are specific terms while themes are topical categories."
+    },
     "sentiment": {
-      "type": "string",
-      "description": "Overall emotional tone."
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "https://synapt.dev/schemas/sentiment/v1.json"
+        }
+      ],
+      "description": "Overall emotional tone. String form (v1.0): free-text sentiment. Object form (v1.2): structured SynaptSentiment with valence, intensity, confidence. Readers MUST branch on string vs object."
     },
     "summary": {
       "type": "string",
@@ -73,10 +85,40 @@
       "items": { "$ref": "#/$defs/SynaptFact" },
       "description": "Extracted factual statements."
     },
+    "questions": {
+      "type": "array",
+      "items": { "$ref": "https://synapt.dev/schemas/question/v1.json" },
+      "description": "Questions raised in the source text."
+    },
+    "actions": {
+      "type": "array",
+      "items": { "$ref": "https://synapt.dev/schemas/action/v1.json" },
+      "description": "Concrete next-steps or action items. Origin field distinguishes extracted actions from those inferred from goals."
+    },
+    "decisions": {
+      "type": "array",
+      "items": { "$ref": "https://synapt.dev/schemas/decision/v1.json" },
+      "description": "Directional commitments identified in the source text."
+    },
     "temporal_refs": {
       "type": "array",
       "items": { "$ref": "https://synapt.dev/schemas/temporal-ref/v1.json" },
       "description": "Temporal references extracted from the source."
+    },
+    "language": {
+      "type": "string",
+      "pattern": "^[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{1,8})*$",
+      "description": "IETF BCP 47 language tag of the source text (e.g., \"en-US\", \"es\", \"pt-BR\")."
+    },
+    "source_metadata": {
+      "$ref": "https://synapt.dev/schemas/source-metadata/v1.json",
+      "description": "Metadata about the source document (token count, character count, modality, format)."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Extraction-level overall confidence score (0.0 to 1.0)."
     },
     "capabilities": {
       "type": "array",
@@ -85,10 +127,12 @@
         "enum": [
           "entities", "entity_state", "entity_context", "entity_ids",
           "goals", "goal_timing", "goal_entity_refs",
-          "themes", "summary", "sentiment", "facts",
+          "themes", "keywords", "summary", "sentiment", "structured_sentiment",
+          "facts", "questions", "actions", "decisions",
           "temporal_refs", "temporal_classes",
           "relations", "relation_origin",
-          "assertion_signals", "evidence_anchoring"
+          "assertion_signals", "evidence_anchoring",
+          "language", "source_metadata", "confidence"
         ]
       },
       "description": "Which extraction capabilities the producer attempted to fill."
@@ -115,103 +159,6 @@
     },
     "SynaptAssertionSignals": {
       "$ref": "https://synapt.dev/schemas/assertion-signals/v1.json"
-    },
-    "SynaptRelation": {
-      "type": "object",
-      "description": "Best-effort extracted edge between entities.",
-      "properties": {
-        "target": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Extraction-local ID of the target entity."
-        },
-        "type": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Relationship type."
-        },
-        "origin": {
-          "type": "string",
-          "description": "How this relation was derived: \"explicit\", \"inferred\", or \"dependent\"."
-        },
-        "signals": { "$ref": "https://synapt.dev/schemas/assertion-signals/v1.json" }
-      },
-      "required": ["target", "type"],
-      "additionalProperties": false
-    },
-    "SynaptEntity": {
-      "type": "object",
-      "description": "Extracted entity with optional state, context, relations, and evidence.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Extraction-local ID. Stable within this extraction only."
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Display name as it appeared in the source text."
-        },
-        "type": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Entity type: \"person\", \"place\", \"event\", \"concept\", \"organization\", \"object\", or custom string."
-        },
-        "state": {
-          "type": "string",
-          "description": "Current state described in text."
-        },
-        "context": {
-          "type": "string",
-          "description": "Role or relationship context."
-        },
-        "date_hint": {
-          "type": "string",
-          "description": "Relevant date hint."
-        },
-        "source": { "$ref": "https://synapt.dev/schemas/source-ref/v1.json" },
-        "signals": { "$ref": "https://synapt.dev/schemas/assertion-signals/v1.json" },
-        "relations": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/SynaptRelation" },
-          "description": "Relations from this entity to other entities."
-        }
-      },
-      "required": ["name", "type"],
-      "additionalProperties": false
-    },
-    "SynaptGoal": {
-      "type": "object",
-      "description": "Extracted goal with status tracking.",
-      "properties": {
-        "text": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Goal description."
-        },
-        "status": {
-          "type": "string",
-          "enum": ["open", "resolved", "abandoned", "in_progress"],
-          "description": "Current goal status."
-        },
-        "entity_refs": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Extraction-local IDs of entities involved."
-        },
-        "stated_at": {
-          "type": "string",
-          "description": "When the goal was stated (ISO 8601)."
-        },
-        "resolved_at": {
-          "type": "string",
-          "description": "When the goal was resolved (ISO 8601)."
-        },
-        "source": { "$ref": "https://synapt.dev/schemas/source-ref/v1.json" },
-        "signals": { "$ref": "https://synapt.dev/schemas/assertion-signals/v1.json" }
-      },
-      "required": ["text", "status", "entity_refs"],
-      "additionalProperties": false
     },
     "SynaptFact": {
       "type": "object",

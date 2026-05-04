@@ -10,6 +10,8 @@ from synapt_extract.schema import EXTRACTION_CAPABILITIES
 
 VALID_GOAL_STATUSES = frozenset(["open", "resolved", "abandoned", "in_progress"])
 VALID_TEMPORAL_TYPES = frozenset(["point", "range", "duration", "unresolved"])
+VALID_SENTIMENT_VALENCES = frozenset(["positive", "negative", "neutral", "mixed"])
+VALID_ACTION_ORIGINS = frozenset(["extracted", "proposed_from_goals"])
 
 _URI_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.\-]*://\S+$")
 _NAMESPACED_RE = re.compile(r"^[a-zA-Z0-9_\-]+/[a-zA-Z0-9_\-]+$")
@@ -23,14 +25,17 @@ _ISO_DATETIME_STRICT_RE = re.compile(
     r"T\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?"
     r"(?:Z|[+\-]\d{2}:?\d{2})?$"
 )
+_BCP47_RE = re.compile(r"^[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{1,8})*$")
 
 _ROOT_KEYS = frozenset([
     "version", "extracted_at", "source_id", "source_type", "user_id",
-    "produced_by", "kind", "entities", "goals", "themes", "sentiment",
-    "summary", "facts", "temporal_refs", "capabilities", "embeddings", "extensions",
+    "produced_by", "kind", "entities", "goals", "themes", "keywords",
+    "sentiment", "summary", "facts", "questions", "actions", "decisions",
+    "temporal_refs", "language", "source_metadata", "confidence",
+    "capabilities", "embeddings", "extensions",
 ])
 _ENTITY_KEYS = frozenset([
-    "id", "name", "type", "state", "context", "date_hint",
+    "id", "name", "type", "aliases", "state", "context", "date_hint",
     "source", "signals", "relations",
 ])
 _GOAL_KEYS = frozenset([
@@ -38,6 +43,11 @@ _GOAL_KEYS = frozenset([
     "source", "signals",
 ])
 _FACT_KEYS = frozenset(["text", "category", "source", "signals"])
+_QUESTION_KEYS = frozenset(["text", "directed_to", "source", "signals"])
+_ACTION_KEYS = frozenset(["text", "origin", "entity_refs", "due", "source", "signals"])
+_DECISION_KEYS = frozenset(["text", "entity_refs", "decided_at", "source", "signals"])
+_SENTIMENT_OBJ_KEYS = frozenset(["version", "valence", "intensity", "confidence"])
+_SOURCE_METADATA_KEYS = frozenset(["version", "token_count", "character_count", "modality", "format"])
 _RELATION_KEYS = frozenset(["target", "type", "origin", "signals"])
 _SOURCE_REF_KEYS = frozenset(["version", "snippet", "offset_start", "offset_end", "sentence_index"])
 _SIGNALS_KEYS = frozenset(["version", "confidence", "negated", "hedged", "condition"])
@@ -206,6 +216,13 @@ def _check_entity(obj: Any, path: str, errors: list[ValidationError]) -> None:
     _require_non_empty_str(obj, "name", path, errors)
     _require_non_empty_str(obj, "type", path, errors)
     _check_optional_str(obj, "id", path, errors)
+    if "aliases" in obj:
+        if not isinstance(obj["aliases"], list):
+            errors.append(ValidationError(f"{path}.aliases", "must be an array"))
+        else:
+            for i, alias in enumerate(obj["aliases"]):
+                if not isinstance(alias, str) or len(alias) == 0:
+                    errors.append(ValidationError(f"{path}.aliases[{i}]", "must be a non-empty string"))
     _check_optional_str(obj, "state", path, errors)
     _check_optional_str(obj, "context", path, errors)
     _check_optional_str(obj, "date_hint", path, errors)
@@ -259,6 +276,97 @@ def _check_fact(obj: Any, path: str, errors: list[ValidationError]) -> None:
         _check_source_ref(obj["source"], f"{path}.source", errors)
     if "signals" in obj:
         _check_signals(obj["signals"], f"{path}.signals", errors)
+
+
+def _check_question(obj: Any, path: str, errors: list[ValidationError]) -> None:
+    if not isinstance(obj, dict):
+        errors.append(ValidationError(path, "must be an object"))
+        return
+    _check_extra_keys(obj, _QUESTION_KEYS, path, errors)
+    _require_non_empty_str(obj, "text", path, errors)
+    _check_optional_str(obj, "directed_to", path, errors)
+    if "source" in obj:
+        _check_source_ref(obj["source"], f"{path}.source", errors)
+    if "signals" in obj:
+        _check_signals(obj["signals"], f"{path}.signals", errors)
+
+
+def _check_action(obj: Any, path: str, errors: list[ValidationError]) -> None:
+    if not isinstance(obj, dict):
+        errors.append(ValidationError(path, "must be an object"))
+        return
+    _check_extra_keys(obj, _ACTION_KEYS, path, errors)
+    _require_non_empty_str(obj, "text", path, errors)
+    origin = obj.get("origin")
+    if not isinstance(origin, str) or origin not in VALID_ACTION_ORIGINS:
+        errors.append(ValidationError(f"{path}.origin", "must be one of: extracted, proposed_from_goals"))
+    if "entity_refs" in obj:
+        if not isinstance(obj["entity_refs"], list):
+            errors.append(ValidationError(f"{path}.entity_refs", "must be an array"))
+        else:
+            for i, ref in enumerate(obj["entity_refs"]):
+                if not isinstance(ref, str):
+                    errors.append(ValidationError(f"{path}.entity_refs[{i}]", "must be a string"))
+    _check_optional_str(obj, "due", path, errors)
+    if "source" in obj:
+        _check_source_ref(obj["source"], f"{path}.source", errors)
+    if "signals" in obj:
+        _check_signals(obj["signals"], f"{path}.signals", errors)
+
+
+def _check_decision(obj: Any, path: str, errors: list[ValidationError]) -> None:
+    if not isinstance(obj, dict):
+        errors.append(ValidationError(path, "must be an object"))
+        return
+    _check_extra_keys(obj, _DECISION_KEYS, path, errors)
+    _require_non_empty_str(obj, "text", path, errors)
+    if "entity_refs" in obj:
+        if not isinstance(obj["entity_refs"], list):
+            errors.append(ValidationError(f"{path}.entity_refs", "must be an array"))
+        else:
+            for i, ref in enumerate(obj["entity_refs"]):
+                if not isinstance(ref, str):
+                    errors.append(ValidationError(f"{path}.entity_refs[{i}]", "must be a string"))
+    if "decided_at" in obj:
+        if not isinstance(obj["decided_at"], str) or not _is_iso_datetime(obj["decided_at"]):
+            errors.append(ValidationError(f"{path}.decided_at", "must be a valid ISO 8601 date/datetime"))
+    if "source" in obj:
+        _check_source_ref(obj["source"], f"{path}.source", errors)
+    if "signals" in obj:
+        _check_signals(obj["signals"], f"{path}.signals", errors)
+
+
+def _check_sentiment_obj(obj: Any, path: str, errors: list[ValidationError]) -> None:
+    if not isinstance(obj, dict):
+        errors.append(ValidationError(path, "must be an object"))
+        return
+    _check_extra_keys(obj, _SENTIMENT_OBJ_KEYS, path, errors)
+    if obj.get("version") != "1":
+        errors.append(ValidationError(f"{path}.version", 'must be "1"'))
+    valence = obj.get("valence")
+    if not isinstance(valence, str) or valence not in VALID_SENTIMENT_VALENCES:
+        errors.append(ValidationError(f"{path}.valence", "must be one of: positive, negative, neutral, mixed"))
+    if "intensity" in obj:
+        v = obj["intensity"]
+        if not isinstance(v, (int, float)) or isinstance(v, bool) or v < 0 or v > 1:
+            errors.append(ValidationError(f"{path}.intensity", "must be a number between 0.0 and 1.0"))
+    if "confidence" in obj:
+        v = obj["confidence"]
+        if not isinstance(v, (int, float)) or isinstance(v, bool) or v < 0 or v > 1:
+            errors.append(ValidationError(f"{path}.confidence", "must be a number between 0.0 and 1.0"))
+
+
+def _check_source_metadata(obj: Any, path: str, errors: list[ValidationError]) -> None:
+    if not isinstance(obj, dict):
+        errors.append(ValidationError(path, "must be an object"))
+        return
+    _check_extra_keys(obj, _SOURCE_METADATA_KEYS, path, errors)
+    if "version" in obj and obj["version"] != "1":
+        errors.append(ValidationError(f"{path}.version", 'must be "1"'))
+    _check_optional_non_neg_int(obj, "token_count", path, errors)
+    _check_optional_non_neg_int(obj, "character_count", path, errors)
+    _check_optional_str(obj, "modality", path, errors)
+    _check_optional_str(obj, "format", path, errors)
 
 
 def _check_temporal_ref(obj: Any, path: str, errors: list[ValidationError]) -> None:
@@ -369,7 +477,15 @@ def validate_extraction(obj: Any) -> ValidationResult:
         if not isinstance(kind, str) or not _is_namespaced(kind):
             errors.append(ValidationError("kind", "must be namespaced (e.g. 'conversa/prayer')"))
 
-    _check_optional_str(obj, "sentiment", "", errors)
+    if "sentiment" in obj:
+        s = obj["sentiment"]
+        if isinstance(s, str):
+            pass  # v1.0 string form
+        elif isinstance(s, dict):
+            _check_sentiment_obj(s, "sentiment", errors)
+        else:
+            errors.append(ValidationError("sentiment", "must be a string or SynaptSentiment object"))
+
     _check_optional_str(obj, "source_id", "", errors)
     _check_optional_str(obj, "source_type", "", errors)
     _check_optional_str(obj, "user_id", "", errors)
@@ -425,12 +541,68 @@ def validate_extraction(obj: Any) -> ValidationResult:
             elif cap not in EXTRACTION_CAPABILITIES:
                 errors.append(ValidationError(f"capabilities[{i}]", f'unknown capability: "{cap}"'))
 
+    if "keywords" in obj:
+        if not isinstance(obj["keywords"], list):
+            errors.append(ValidationError("keywords", "must be an array"))
+        else:
+            for i, kw in enumerate(obj["keywords"]):
+                if not isinstance(kw, str) or len(kw) == 0:
+                    errors.append(ValidationError(f"keywords[{i}]", "must be a non-empty string"))
+
     if "facts" in obj:
         if not isinstance(obj["facts"], list):
             errors.append(ValidationError("facts", "must be an array"))
         else:
             for i, fact in enumerate(obj["facts"]):
                 _check_fact(fact, f"facts[{i}]", errors)
+
+    if "questions" in obj:
+        if not isinstance(obj["questions"], list):
+            errors.append(ValidationError("questions", "must be an array"))
+        else:
+            for i, q in enumerate(obj["questions"]):
+                _check_question(q, f"questions[{i}]", errors)
+
+    if "actions" in obj:
+        if not isinstance(obj["actions"], list):
+            errors.append(ValidationError("actions", "must be an array"))
+        else:
+            for i, act in enumerate(obj["actions"]):
+                _check_action(act, f"actions[{i}]", errors)
+                if isinstance(act, dict) and isinstance(act.get("entity_refs"), list):
+                    for j, ref in enumerate(act["entity_refs"]):
+                        if isinstance(ref, str) and ref not in entity_ids:
+                            errors.append(ValidationError(
+                                f"actions[{i}].entity_refs[{j}]",
+                                f"references entity ID '{ref}' which is not declared in entities",
+                            ))
+
+    if "decisions" in obj:
+        if not isinstance(obj["decisions"], list):
+            errors.append(ValidationError("decisions", "must be an array"))
+        else:
+            for i, dec in enumerate(obj["decisions"]):
+                _check_decision(dec, f"decisions[{i}]", errors)
+                if isinstance(dec, dict) and isinstance(dec.get("entity_refs"), list):
+                    for j, ref in enumerate(dec["entity_refs"]):
+                        if isinstance(ref, str) and ref not in entity_ids:
+                            errors.append(ValidationError(
+                                f"decisions[{i}].entity_refs[{j}]",
+                                f"references entity ID '{ref}' which is not declared in entities",
+                            ))
+
+    if "language" in obj:
+        lang = obj["language"]
+        if not isinstance(lang, str) or not _BCP47_RE.match(lang):
+            errors.append(ValidationError("language", "must be a valid IETF BCP 47 language tag (e.g. 'en-US', 'es', 'pt-BR')"))
+
+    if "source_metadata" in obj:
+        _check_source_metadata(obj["source_metadata"], "source_metadata", errors)
+
+    if "confidence" in obj:
+        c = obj["confidence"]
+        if not isinstance(c, (int, float)) or isinstance(c, bool) or c < 0 or c > 1:
+            errors.append(ValidationError("confidence", "must be a number between 0.0 and 1.0"))
 
     if "temporal_refs" in obj:
         if not isinstance(obj["temporal_refs"], list):

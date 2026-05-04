@@ -368,10 +368,12 @@ class TestPromptFragmentFiles:
             "preamble.txt", "postamble.txt",
             "entities.txt", "entity_state.txt", "entity_context.txt", "entity_ids.txt",
             "goals.txt", "goal_timing.txt", "goal_entity_refs.txt",
-            "themes.txt", "summary.txt", "sentiment.txt", "facts.txt",
+            "themes.txt", "keywords.txt", "summary.txt", "sentiment.txt", "structured_sentiment.txt",
+            "facts.txt", "questions.txt", "actions.txt", "decisions.txt",
             "temporal_refs.txt", "temporal_classes.txt",
             "relations.txt", "relation_origin.txt",
             "assertion_signals.txt", "evidence_anchoring.txt",
+            "language.txt", "source_metadata.txt", "confidence.txt",
         ]
         for name in expected:
             assert (prompts_dir / name).exists(), f"Missing fragment: {name}"
@@ -428,3 +430,66 @@ class TestProfileFiles:
         data = json.loads((profiles_dir / "full.json").read_text())
         caps = set(data["capabilities"])
         assert caps == EXTRACTION_CAPABILITIES
+
+
+class TestRegistryConsistency:
+
+    def test_every_capability_has_fragment_file(self):
+        from synapt_extract.schema import EXTRACTION_CAPABILITIES
+        prompts_dir = Path(__file__).resolve().parents[2] / "prompts" / "v1"
+        for cap in EXTRACTION_CAPABILITIES:
+            assert (prompts_dir / f"{cap}.txt").exists(), f"missing fragment for {cap}"
+
+    def test_every_fragment_is_valid_capability(self):
+        from synapt_extract.schema import EXTRACTION_CAPABILITIES
+        prompts_dir = Path(__file__).resolve().parents[2] / "prompts" / "v1"
+        for txt_file in prompts_dir.glob("*.txt"):
+            name = txt_file.stem
+            if name in ("preamble", "postamble"):
+                continue
+            assert name in EXTRACTION_CAPABILITIES, f"orphan fragment: {name}"
+
+    def test_canonical_order_covers_all_capabilities(self):
+        from synapt_extract.schema import EXTRACTION_CAPABILITIES
+        from synapt_extract.prompt import CANONICAL_ORDER
+        assert set(CANONICAL_ORDER) == EXTRACTION_CAPABILITIES
+
+    def test_canonical_order_has_no_duplicates(self):
+        from synapt_extract.prompt import CANONICAL_ORDER
+        assert len(CANONICAL_ORDER) == len(set(CANONICAL_ORDER))
+
+    def test_capability_deps_reference_valid_capabilities(self):
+        from synapt_extract.schema import EXTRACTION_CAPABILITIES
+        from synapt_extract.prompt import CAPABILITY_DEPS
+        for cap, deps in CAPABILITY_DEPS.items():
+            assert cap in EXTRACTION_CAPABILITIES, f"dep key {cap} not a valid capability"
+            for dep in deps:
+                assert dep in EXTRACTION_CAPABILITIES, f"dep {dep} (from {cap}) not valid"
+
+    def test_capability_rules_reference_valid_capabilities(self):
+        from synapt_extract.schema import EXTRACTION_CAPABILITIES
+        from synapt_extract.prompt import CAPABILITY_RULES
+        for cap in CAPABILITY_RULES:
+            assert cap in EXTRACTION_CAPABILITIES, f"rule key {cap} not a valid capability"
+
+    def test_full_profile_has_no_duplicates(self):
+        profiles_dir = Path(__file__).resolve().parents[2] / "prompts" / "profiles"
+        data = json.loads((profiles_dir / "full.json").read_text())
+        caps = data["capabilities"]
+        assert len(caps) == len(set(caps)), "full profile has duplicate capabilities"
+
+    def test_build_prompt_succeeds_for_every_capability(self):
+        from synapt_extract.schema import EXTRACTION_CAPABILITIES
+        modifier_only = {"assertion_signals", "evidence_anchoring"}
+        for cap in EXTRACTION_CAPABILITIES:
+            caps = ["entities", cap] if cap in modifier_only else [cap]
+            result = build_extraction_prompt("test", capabilities=caps)
+            assert len(result) > 0, f"empty prompt for capability {cap}"
+
+    def test_profiles_are_strict_subsets(self):
+        profiles_dir = Path(__file__).resolve().parents[2] / "prompts" / "profiles"
+        minimal = set(json.loads((profiles_dir / "minimal.json").read_text())["capabilities"])
+        standard = set(json.loads((profiles_dir / "standard.json").read_text())["capabilities"])
+        full = set(json.loads((profiles_dir / "full.json").read_text())["capabilities"])
+        assert minimal.issubset(full), "minimal is not a subset of full"
+        assert standard.issubset(full), "standard is not a subset of full"

@@ -1,0 +1,38 @@
+name: Feature Request
+description: Propose a new extraction capability, schema field, or API change
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - "Schema (new field or sub-schema)"
+        - "Validation (new check or constraint)"
+        - "Finalization (pipeline behavior)"
+        - "Prompt system (capability or profile)"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should change? Include the schema shape or API signature if applicable.
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: What use case does this enable? What problem does it solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility
+      description: "Is this additive (v1.x safe) or breaking (requires v2)? Would existing documents need migration?"
