@@ -1,5 +1,44 @@
 # Changelog
 
+## v0.3.1
+
+Post-publish adversarial review by Atlas. Schema/runtime parity, artifact bundling, no-network CI guard, doc corrections.
+
+### Schema bundling (critical)
+
+- JSON schema files (`schemas/`) now bundled in both npm and PyPI packages
+- npm `files` includes `schemas`; Python `package-data` includes `schemas/**/*.json`
+- prepack and CI workflows updated to copy schemas alongside prompts
+
+### Schema/runtime parity (high)
+
+- `sentiment/v1.json`: `version` now required (was optional in schema, required in runtime)
+- `decision/v1.json`: `decided_at` now enforces ISO 8601 pattern (was any string in schema)
+- `goal/v1.json`: `stated_at` and `resolved_at` now enforce ISO 8601 pattern
+- `temporal-ref/v1.json`: `resolved_end` required when `type` is `"range"` (if/then constraint)
+- `action/v1.json`: `due` now enforces ISO 8601 pattern (was any string)
+- `source-metadata/v1.json`: `version` now required (was optional in schema, required in TS type)
+
+### Runtime validation tightened
+
+- `action.due` validated as ISO 8601 in both TS and Python runtimes (was unchecked string)
+- `source_metadata.version` required in TS and Python runtimes (was conditionally checked)
+
+### No-network CI guard (high)
+
+- AST-aware forbidden API scanner (`scripts/check-no-network.mjs`, `scripts/check-no-network.py`)
+- Scans source, compiled dist, and packed artifact on every CI run
+- Detects: direct forbidden globals, computed property access on global objects, string concatenation that assembles forbidden names, base64 decode, dynamic imports, forbidden module imports
+- Catches Atlas's PoC (`globalThis["fe"+"tch"](url)`) with two independent detectors
+
+### Doc corrections (moderate)
+
+- SECURITY.md: reproducible builds section clarifies wheel byte-identity vs sdist content-equivalence
+- SECURITY.md: callback architecture marked as proposed (target v0.4.0), not shipped
+- SECURITY.md: forbidden API enforcement described as active CI (no longer "future releases")
+- docs/callback-signature.md: status changed to PROPOSED, target v0.4.0
+- CHANGELOG.md: test counts corrected (227 TS, 282 Python, 14 conformance)
+
 ## v0.3.0
 
 v1.2 spec: 8 new extraction fields, 5 new sub-schemas, sentiment dual-shape, entity/goal sub-schema promotion.
@@ -56,7 +95,7 @@ v1.2 spec: 8 new extraction fields, 5 new sub-schemas, sentiment dual-shape, ent
 
 ### Tests
 
-- 219 TypeScript tests, 273 Python tests, 15 conformance cases
+- 227 TypeScript tests, 282 Python tests, 14 conformance cases
 - 9 new conformance fixtures for v1.2 fields
 
 ### Compatibility

@@ -33,5 +33,12 @@
     }
   },
   "required": ["version", "raw"],
-  "additionalProperties": false
+  "additionalProperties": false,
+  "if": {
+    "properties": { "type": { "const": "range" } },
+    "required": ["type"]
+  },
+  "then": {
+    "required": ["resolved_end"]
+  }
 }

@@ -214,6 +214,80 @@
     "expected_error_paths": ["confidence"]
   },
   {
+    "name": "sentiment_missing_version_rejected",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes", "sentiment", "structured_sentiment"],
+      "sentiment": { "valence": "positive" }
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["sentiment.version"]
+  },
+  {
+    "name": "decision_bad_decided_at_rejected",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes", "decisions"],
+      "decisions": [{ "text": "Decided to leave", "decided_at": "not-a-date" }]
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["decisions[0].decided_at"]
+  },
+  {
+    "name": "goal_bad_stated_at_rejected",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [],
+      "goals": [{ "text": "Get fit", "status": "open", "entity_refs": [], "stated_at": "last week" }],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes", "goal_timing"]
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["goals[0].stated_at"]
+  },
+  {
+    "name": "action_bad_due_rejected",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes", "actions"],
+      "actions": [{ "text": "Call back", "origin": "extracted", "due": "tomorrow" }]
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["actions[0].due"]
+  },
+  {
+    "name": "source_metadata_missing_version_rejected",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes", "source_metadata"],
+      "source_metadata": { "token_count": 100 }
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["source_metadata.version"]
+  },
+  {
     "name": "full_v12_extraction_valid",
     "input": {
       "version": "1",

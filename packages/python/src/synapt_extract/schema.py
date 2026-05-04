@@ -126,8 +126,11 @@ class SynaptSentiment(TypedDict, total=False):
     confidence: float
 
 
-class SynaptSourceMetadata(TypedDict, total=False):
+class _SynaptSourceMetadataRequired(TypedDict):
     version: str
+
+
+class SynaptSourceMetadata(_SynaptSourceMetadataRequired, total=False):
     token_count: int
     character_count: int
     modality: str

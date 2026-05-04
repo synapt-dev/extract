@@ -19,16 +19,18 @@ extract is a **pure computation library**. It builds prompts from text, validate
 
 ### What extract does NOT do
 
-The `extract()` callback architecture (v1.2+) delegates all network operations to the caller. Synapt never sees API keys, auth tokens, or user credentials. The caller owns:
+The proposed `extract()` callback architecture (target: v0.4.0, see `docs/callback-signature.md`) will delegate all network operations to the caller. The design ensures synapt never sees API keys, auth tokens, or user credentials. The caller will own:
 
 - LLM API calls (via `callLlm` callback)
 - Embedding API calls (via `getEmbedding` callback)
 - Retry logic, rate limiting, and fallback providers
 - Credential management and rotation
 
+> **Note:** The callback API is not exported in v0.3.x. The types and `extract()` function described in `docs/callback-signature.md` are proposed; implementation ships in v0.4.0.
+
 ### Forbidden APIs
 
-The following APIs MUST NOT appear in extract's source code. CI linting will enforce this in future releases.
+The following APIs MUST NOT appear in extract's source code. CI enforces this via AST-aware scanning of both source and packed artifacts.
 
 - `fetch`, `XMLHttpRequest`, `WebSocket`
 - `node:net`, `node:http`, `node:https`, `node:http2`
@@ -63,8 +65,9 @@ Each GitHub Release includes a CycloneDX SBOM (`sbom.cdx.json`) listing all depe
 
 The CI pipeline verifies build determinism on every push:
 
-- **npm**: `npm pack` is run twice and SHA256 checksums are compared
-- **Python**: `python -m build` is run twice with a fixed `SOURCE_DATE_EPOCH` and checksums are compared
+- **npm**: `npm pack` is run twice and SHA256 checksums are compared (byte-identical)
+- **Python wheel**: `python -m build` is run twice with a fixed `SOURCE_DATE_EPOCH` and wheel checksums are compared (byte-identical)
+- **Python sdist**: content-equivalent only. Setuptools embeds wall-clock timestamps in gzip/PAX headers, a known upstream limitation. The unpacked contents are identical; the `.tar.gz` wrapper bytes may differ.
 
 You can reproduce a release locally:
 
@@ -73,14 +76,13 @@ You can reproduce a release locally:
 cd packages/ts && npm ci && npm run build && npm pack
 sha256sum *.tgz
 
-# Python
+# Python (wheel)
 cd packages/python
 cp -r ../../prompts src/synapt_extract/prompts
+cp -r ../../schemas src/synapt_extract/schemas
 SOURCE_DATE_EPOCH=1704067200 python -m build
-sha256sum dist/*
+sha256sum dist/*.whl
 ```
-
-Compare against the checksums posted in the GitHub Release notes.
 
 ## Incident response
 

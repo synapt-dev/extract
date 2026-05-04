@@ -427,7 +427,11 @@ function validateAction(obj: unknown, path: string, errors: ValidationError[]): 
       }
     }
   }
-  checkOptionalStr(act, "due", path, errors);
+  if (act.due !== undefined) {
+    if (typeof act.due !== "string" || !isIsoDatetime(act.due)) {
+      errors.push({ path: `${path}.due`, message: "must be a valid ISO 8601 date/datetime" });
+    }
+  }
   if (act.source !== undefined) {
     validateSourceRef(act.source, `${path}.source`, errors);
   }
@@ -502,7 +506,7 @@ function validateSourceMetadata(obj: unknown, path: string, errors: ValidationEr
   }
   const meta = obj as Record<string, unknown>;
   checkExtraKeys(meta, SOURCE_METADATA_KEYS, path, errors);
-  if (meta.version !== undefined && meta.version !== "1") {
+  if (meta.version !== "1") {
     errors.push({ path: `${path}.version`, message: 'must be "1"' });
   }
   checkOptionalNonNegInt(meta, "token_count", path, errors);

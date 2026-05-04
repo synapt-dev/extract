@@ -28,6 +28,6 @@
       "description": "Source format (e.g., \"plain\", \"markdown\", \"html\")."
     }
   },
-  "required": [],
+  "required": ["version"],
   "additionalProperties": false
 }

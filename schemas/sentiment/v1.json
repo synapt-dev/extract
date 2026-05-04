@@ -27,6 +27,6 @@
       "description": "Confidence in the sentiment assessment (0.0 to 1.0)."
     }
   },
-  "required": ["valence"],
+  "required": ["version", "valence"],
   "additionalProperties": false
 }

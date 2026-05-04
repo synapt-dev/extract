@@ -22,6 +22,7 @@
     },
     "due": {
       "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}(:\\d{2})?(\\.\\d+)?(Z|[+\\-]\\d{2}:?\\d{2})?)?$",
       "description": "When the action is due (ISO 8601 date or datetime), if stated."
     },
     "source": { "$ref": "https://synapt.dev/schemas/source-ref/v1.json" },
