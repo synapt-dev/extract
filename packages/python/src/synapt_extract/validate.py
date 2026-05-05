@@ -307,7 +307,9 @@ def _check_action(obj: Any, path: str, errors: list[ValidationError]) -> None:
             for i, ref in enumerate(obj["entity_refs"]):
                 if not isinstance(ref, str):
                     errors.append(ValidationError(f"{path}.entity_refs[{i}]", "must be a string"))
-    _check_optional_str(obj, "due", path, errors)
+    if "due" in obj:
+        if not isinstance(obj["due"], str) or not _is_iso_datetime(obj["due"]):
+            errors.append(ValidationError(f"{path}.due", "must be a valid ISO 8601 date/datetime"))
     if "source" in obj:
         _check_source_ref(obj["source"], f"{path}.source", errors)
     if "signals" in obj:
@@ -361,7 +363,7 @@ def _check_source_metadata(obj: Any, path: str, errors: list[ValidationError]) -
         errors.append(ValidationError(path, "must be an object"))
         return
     _check_extra_keys(obj, _SOURCE_METADATA_KEYS, path, errors)
-    if "version" in obj and obj["version"] != "1":
+    if obj.get("version") != "1":
         errors.append(ValidationError(f"{path}.version", 'must be "1"'))
     _check_optional_non_neg_int(obj, "token_count", path, errors)
     _check_optional_non_neg_int(obj, "character_count", path, errors)

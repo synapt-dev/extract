@@ -4,6 +4,7 @@ dist/
 *.d.ts
 *.js.map
 !packages/ts/src/**/*.ts
+!tests/security-probes/**/*.js
 
 packages/ts/prompts/
 packages/python/src/synapt_extract/prompts/

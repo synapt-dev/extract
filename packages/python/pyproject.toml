@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "synapt-extract"
-version = "0.3.0"
+version = "0.3.1"
 description = "SynaptExtraction IL v1 -- schema, validation, and finalization"
 readme = "README.md"
 license = "MIT"
@@ -34,4 +34,4 @@ Schema = "https://synapt.dev/schemas/extract/v1.json"
 where = ["src"]
 
 [tool.setuptools.package-data]
-synapt_extract = ["prompts/**/*.txt", "prompts/**/*.json"]
+synapt_extract = ["prompts/**/*.txt", "prompts/**/*.json", "schemas/**/*.json"]

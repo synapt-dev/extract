@@ -1,6 +1,6 @@
 # Extract Callback Signature Design
 
-**Status:** Proposed (pending Anchor review at prompt-alignment session)
+**Status:** PROPOSED -- not shipped in v0.3.x. Target: v0.4.0. Pending Anchor review at prompt-alignment session.
 **Author:** Apollo
 **Anchored to:**
 - `config/research/conversa/2026-05-04-wasm-conditions-acceptance.md` (Condition 6: API symmetry)

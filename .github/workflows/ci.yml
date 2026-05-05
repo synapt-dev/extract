@@ -36,9 +36,22 @@ jobs:
 
       - run: pip install build
 
-      - run: rm -rf src/synapt_extract/prompts && test -d ../../prompts && cp -r ../../prompts src/synapt_extract/prompts || true
+      - run: |
+          test -d ../../prompts && rm -rf src/synapt_extract/prompts && cp -r ../../prompts src/synapt_extract/prompts || true
 
       - run: python -m build
+
+      - name: Verify wheel contains schemas
+        run: |
+          COUNT=$(unzip -l dist/*.whl | grep -c '\.json$' | tr -d ' ')
+          SCHEMA_COUNT=$(unzip -l dist/*.whl | grep 'schemas/' | grep -c '\.json$' | tr -d ' ')
+          echo "Schema JSON files in wheel: $SCHEMA_COUNT"
+          if [ "$SCHEMA_COUNT" -ne 13 ]; then
+            echo "::error::Expected 13 schema JSON files in wheel, found $SCHEMA_COUNT"
+            unzip -l dist/*.whl | grep -E '(schemas/|\.json$)'
+            exit 1
+          fi
+          echo "✅ Wheel contains exactly 13 schema files"
 
   check-typescript:
     runs-on: ubuntu-latest
@@ -71,6 +84,77 @@ jobs:
       - run: npm ci
 
       - run: npx vitest run
+
+  no-network-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Scan source for forbidden APIs
+        run: node scripts/check-no-network.mjs packages/ts/src
+
+      - name: Scan compiled dist for forbidden APIs
+        working-directory: packages/ts
+        run: |
+          npm ci
+          npm run build
+          node ../../scripts/check-no-network.mjs dist
+
+      - name: Scan packed artifact for forbidden APIs
+        working-directory: packages/ts
+        run: |
+          mkdir -p /tmp/pack-scan
+          npm pack --pack-destination /tmp/pack-scan
+          cd /tmp/pack-scan
+          tar xzf *.tgz
+          node $GITHUB_WORKSPACE/scripts/check-no-network.mjs package/src package/dist
+
+      - name: Scan Python source for forbidden APIs
+        run: python3 scripts/check-no-network.py packages/python/src
+
+      - name: Check runtime dependency allowlist
+        run: |
+          ALLOWED=$(jq -r '.allowed[]' scripts/allowed-deps.json)
+          DEPS=$(jq -r '.dependencies // {} | keys[]' packages/ts/package.json 2>/dev/null || true)
+          VIOLATIONS=""
+          for dep in $DEPS; do
+            if ! echo "$ALLOWED" | grep -qx "$dep"; then
+              VIOLATIONS="$VIOLATIONS $dep"
+            fi
+          done
+          if [ -n "$VIOLATIONS" ]; then
+            echo "::error::Unlisted runtime dependencies:$VIOLATIONS"
+            echo "Add them to scripts/allowed-deps.json or remove them from package.json"
+            exit 1
+          fi
+          echo "✅ All runtime dependencies are in the allowlist ($(echo "$DEPS" | wc -w | tr -d ' ') deps, $(jq '.allowed | length' scripts/allowed-deps.json) allowed)"
+
+  schema-drift-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Verify Python package schemas match root schemas
+        run: |
+          diff -r schemas packages/python/src/synapt_extract/schemas
+          echo "✅ Python package schemas match root schemas"
+
+  schema-url-check:
+    runs-on: ubuntu-latest
+    if: startsWith(github.head_ref || github.ref_name, 'release/')
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Verify hosted schema URLs match local schemas
+        run: bash scripts/check-schema-urls.sh schemas
 
   reproducibility:
     runs-on: ubuntu-latest
@@ -111,7 +195,7 @@ jobs:
           SOURCE_DATE_EPOCH: "1704067200"
         run: |
           pip install build
-          rm -rf src/synapt_extract/prompts && test -d ../../prompts && cp -r ../../prompts src/synapt_extract/prompts || true
+          test -d ../../prompts && rm -rf src/synapt_extract/prompts && cp -r ../../prompts src/synapt_extract/prompts || true
           python -m build --outdir /tmp/py-dist-1
           rm -rf src/synapt_extract.egg-info build
           python -m build --outdir /tmp/py-dist-2
