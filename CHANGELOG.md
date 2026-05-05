@@ -2,13 +2,15 @@
 
 ## v0.3.1
 
-Post-publish adversarial review by Atlas. Schema/runtime parity, artifact bundling, no-network CI guard, doc corrections.
+Two rounds of Atlas adversarial review. Schema/runtime parity, artifact bundling, no-network CI guard hardening, Python schema self-containment, doc corrections.
 
 ### Schema bundling (critical)
 
 - JSON schema files (`schemas/`) now bundled in both npm and PyPI packages
 - npm `files` includes `schemas`; Python `package-data` includes `schemas/**/*.json`
-- prepack and CI workflows updated to copy schemas alongside prompts
+- Schemas committed into Python package source for standalone buildability
+- CI drift-detection step verifies Python package schemas match root schemas
+- CI assertion verifies built wheel contains exactly 13 schema JSON files
 
 ### Schema/runtime parity (high)
 
@@ -16,6 +18,8 @@ Post-publish adversarial review by Atlas. Schema/runtime parity, artifact bundli
 - `decision/v1.json`: `decided_at` now enforces ISO 8601 pattern (was any string in schema)
 - `goal/v1.json`: `stated_at` and `resolved_at` now enforce ISO 8601 pattern
 - `temporal-ref/v1.json`: `resolved_end` required when `type` is `"range"` (if/then constraint)
+- `temporal-ref/v1.json`: `resolved` and `resolved_end` now enforce ISO 8601 pattern
+- `temporal-ref/v1.json`: `resolved` and `resolved_end` forbidden when `type` is `"unresolved"` (if/then/not constraint)
 - `action/v1.json`: `due` now enforces ISO 8601 pattern (was any string)
 - `source-metadata/v1.json`: `version` now required (was optional in schema, required in TS type)
 
@@ -26,18 +30,24 @@ Post-publish adversarial review by Atlas. Schema/runtime parity, artifact bundli
 
 ### No-network CI guard (high)
 
-- AST-aware forbidden API scanner (`scripts/check-no-network.mjs`, `scripts/check-no-network.py`)
+- Best-effort regex forbidden API scanner (`scripts/check-no-network.mjs`, `scripts/check-no-network.py`)
 - Scans source, compiled dist, and packed artifact on every CI run
-- Detects: direct forbidden globals, computed property access on global objects, string concatenation that assembles forbidden names, base64 decode, dynamic imports, forbidden module imports
-- Catches Atlas's PoC (`globalThis["fe"+"tch"](url)`) with two independent detectors
+- Detects: direct forbidden globals, computed property access on global objects, string concatenation that assembles forbidden names, array `.join("")` assembling forbidden names, `Reflect.get` on global objects, `Function()` constructor (with or without `new`), base64 decode, dynamic imports, forbidden module imports, `importlib.import_module`
+- Runtime dependency allowlist (`scripts/allowed-deps.json`) with CI enforcement
+- Negative test fixtures (`tests/security-probes/`) for all 4 Atlas bypass probes
+- Catches Atlas's PoC patterns: `globalThis["fe"+"tch"]`, `["fe","tch"].join("")`, `Reflect.get(globalThis, "fetch")`, `Function("return 1")`
 
 ### Doc corrections (moderate)
 
 - SECURITY.md: reproducible builds section clarifies wheel byte-identity vs sdist content-equivalence
 - SECURITY.md: callback architecture marked as proposed (target v0.4.0), not shipped
-- SECURITY.md: forbidden API enforcement described as active CI (no longer "future releases")
+- SECURITY.md: forbidden API enforcement described as best-effort regex (not AST-aware)
 - docs/callback-signature.md: status changed to PROPOSED, target v0.4.0
-- CHANGELOG.md: test counts corrected (227 TS, 282 Python, 14 conformance)
+- README.md: install strings updated to 0.3.1
+
+### Conformance
+
+- 22 cross-language conformance test cases (was 14 in v0.3.0)
 
 ## v0.3.0
 

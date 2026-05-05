@@ -30,7 +30,7 @@ The proposed `extract()` callback architecture (target: v0.4.0, see `docs/callba
 
 ### Forbidden APIs
 
-The following APIs MUST NOT appear in extract's source code. CI enforces this via AST-aware scanning of both source and packed artifacts.
+The following APIs MUST NOT appear in extract's source code. CI enforces this via best-effort regex scanning of source, compiled dist, and packed artifacts. The scanner catches direct usage, common obfuscation patterns (computed property access, string concatenation, array `.join()`, base64 decode, `Reflect.get`, `Function()` calls, `importlib`), and blocks unlisted runtime dependencies. Full AST-aware scanning (TypeScript compiler API + Python `ast` module) is planned for v0.4.0.
 
 - `fetch`, `XMLHttpRequest`, `WebSocket`
 - `node:net`, `node:http`, `node:https`, `node:http2`

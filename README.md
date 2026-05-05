@@ -12,16 +12,16 @@ This repo contains the v1 schema, types, validators, finalization pipeline, and 
 
 | Package | Registry | Install |
 |---------|----------|---------|
-| `@synapt-dev/extract` | npm | `npm install @synapt-dev/extract@0.3.0` |
-| `synapt-extract` | PyPI | `pip install synapt-extract==0.3.0` |
+| `@synapt-dev/extract` | npm | `npm install @synapt-dev/extract@0.3.1` |
+| `synapt-extract` | PyPI | `pip install synapt-extract==0.3.1` |
 
 **Deno:**
 
 ```typescript
-import { buildExtractionPrompt } from "npm:@synapt-dev/extract@0.3.0";
+import { buildExtractionPrompt } from "npm:@synapt-dev/extract@0.3.1";
 ```
 
-**Version pinning:** Always pin to an exact version (`@0.3.0`, `==0.3.0`). Do not use ranges (`^0.3.0`, `~0.3.0`, `>=0.3.0`). The IL schema evolves across minor versions (v1.1 added `produced_by` object form, v1.2 added 8 new fields). Pinning prevents unexpected schema changes from affecting your extraction pipeline.
+**Version pinning:** Always pin to an exact version (`@0.3.1`, `==0.3.1`). Do not use ranges (`^0.3.1`, `~0.3.1`, `>=0.3.1`). The IL schema evolves across minor versions (v1.1 added `produced_by` object form, v1.2 added 8 new fields). Pinning prevents unexpected schema changes from affecting your extraction pipeline.
 
 ## Quick start
 

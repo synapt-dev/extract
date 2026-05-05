@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://synapt.dev/schemas/source-metadata/v1.json",
+  "title": "SynaptSourceMetadata",
+  "description": "Metadata about the source document used for extraction. Helps normalize across source lengths and formats.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "1",
+      "description": "Sub-schema version."
+    },
+    "token_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Approximate token count of the source text."
+    },
+    "character_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Character count of the source text."
+    },
+    "modality": {
+      "type": "string",
+      "description": "Source modality (e.g., \"text\", \"audio_transcript\", \"chat\")."
+    },
+    "format": {
+      "type": "string",
+      "description": "Source format (e.g., \"plain\", \"markdown\", \"html\")."
+    }
+  },
+  "required": ["version"],
+  "additionalProperties": false
+}

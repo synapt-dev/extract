@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// AST-aware no-network guard for extract.
+// Best-effort regex no-network guard for extract.
 // Scans JS/TS source files for forbidden API usage including obfuscated forms.
 // Exit 0 = clean, Exit 1 = violations found.
 
@@ -61,9 +61,9 @@ function scanFile(filePath) {
       }
     }
 
-    // 2. new Function() constructor
-    if (/\bnew\s+Function\b/.test(line)) {
-      violations.push({ file: filePath, line: lineNum, match: "new Function", kind: "forbidden constructor" });
+    // 2. Function() constructor (with or without new)
+    if (/\bFunction\s*\(/.test(line) && !trimmed.startsWith("//")) {
+      violations.push({ file: filePath, line: lineNum, match: "Function()", kind: "forbidden constructor" });
     }
 
     // 3. Forbidden module imports/requires
@@ -113,6 +113,23 @@ function scanFile(filePath) {
         const assembled = m.replace(/["']\s*\+\s*["']/g, "").replace(/["']/g, "");
         if (FORBIDDEN_GLOBALS.has(assembled) || FORBIDDEN_CONSTRUCTORS.has(assembled)) {
           violations.push({ file: filePath, line: lineNum, match: m, kind: `string concat assembles "${assembled}"` });
+        }
+      }
+    }
+
+    // 9. Reflect.get on global objects (obfuscation vector for accessing forbidden globals)
+    if (/\bReflect\.get\s*\(\s*(globalThis|window|global|self)\b/.test(line)) {
+      violations.push({ file: filePath, line: lineNum, match: line.trim().slice(0, 60), kind: "Reflect.get on global object" });
+    }
+
+    // 10. Array .join() assembling forbidden names (e.g. ["fe","tch"].join(""))
+    const joinMatch = line.match(/\[([^\]]*)\]\s*\.\s*join\s*\(\s*["'`]\s*["'`]\s*\)/g);
+    if (joinMatch) {
+      for (const m of joinMatch) {
+        const inner = m.match(/\[([^\]]*)\]/)?.[1] ?? "";
+        const assembled = inner.replace(/["'`\s,]/g, "");
+        if (FORBIDDEN_GLOBALS.has(assembled) || FORBIDDEN_CONSTRUCTORS.has(assembled)) {
+          violations.push({ file: filePath, line: lineNum, match: m, kind: `array join assembles "${assembled}"` });
         }
       }
     }

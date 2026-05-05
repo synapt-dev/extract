@@ -288,6 +288,57 @@
     "expected_error_paths": ["source_metadata.version"]
   },
   {
+    "name": "temporal_unresolved_with_resolved_rejected",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes", "temporal_refs", "temporal_classes"],
+      "temporal_refs": [
+        { "version": "1", "raw": "someday", "type": "unresolved", "resolved": "2026-05-01" }
+      ]
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["temporal_refs[0].resolved"]
+  },
+  {
+    "name": "temporal_bad_resolved_date_rejected",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes", "temporal_refs", "temporal_classes"],
+      "temporal_refs": [
+        { "version": "1", "raw": "yesterday", "type": "point", "resolved": "not-a-date" }
+      ]
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["temporal_refs[0].resolved"]
+  },
+  {
+    "name": "temporal_bad_resolved_end_date_rejected",
+    "input": {
+      "version": "1",
+      "extracted_at": "2026-04-26T12:00:00Z",
+      "produced_by": "anthropic://claude-sonnet-4-6",
+      "entities": [],
+      "goals": [],
+      "themes": [],
+      "capabilities": ["entities", "goals", "themes", "temporal_refs", "temporal_classes"],
+      "temporal_refs": [
+        { "version": "1", "raw": "April 20 to May 1", "type": "range", "resolved": "2026-04-20", "resolved_end": "bad-date" }
+      ]
+    },
+    "expected_valid": false,
+    "expected_error_paths": ["temporal_refs[0].resolved_end"]
+  },
+  {
     "name": "full_v12_extraction_valid",
     "input": {
       "version": "1",

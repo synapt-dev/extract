@@ -37,11 +37,21 @@ jobs:
       - run: pip install build
 
       - run: |
-          rm -rf src/synapt_extract/prompts src/synapt_extract/schemas
-          test -d ../../prompts && cp -r ../../prompts src/synapt_extract/prompts || true
-          test -d ../../schemas && cp -r ../../schemas src/synapt_extract/schemas || true
+          test -d ../../prompts && rm -rf src/synapt_extract/prompts && cp -r ../../prompts src/synapt_extract/prompts || true
 
       - run: python -m build
+
+      - name: Verify wheel contains schemas
+        run: |
+          COUNT=$(unzip -l dist/*.whl | grep -c '\.json$' | tr -d ' ')
+          SCHEMA_COUNT=$(unzip -l dist/*.whl | grep 'schemas/' | grep -c '\.json$' | tr -d ' ')
+          echo "Schema JSON files in wheel: $SCHEMA_COUNT"
+          if [ "$SCHEMA_COUNT" -ne 13 ]; then
+            echo "::error::Expected 13 schema JSON files in wheel, found $SCHEMA_COUNT"
+            unzip -l dist/*.whl | grep -E '(schemas/|\.json$)'
+            exit 1
+          fi
+          echo "✅ Wheel contains exactly 13 schema files"
 
   check-typescript:
     runs-on: ubuntu-latest
@@ -110,6 +120,42 @@ jobs:
       - name: Scan Python source for forbidden APIs
         run: python3 scripts/check-no-network.py packages/python/src
 
+      - name: Check runtime dependency allowlist
+        run: |
+          ALLOWED=$(jq -r '.allowed[]' scripts/allowed-deps.json)
+          DEPS=$(jq -r '.dependencies // {} | keys[]' packages/ts/package.json 2>/dev/null || true)
+          VIOLATIONS=""
+          for dep in $DEPS; do
+            if ! echo "$ALLOWED" | grep -qx "$dep"; then
+              VIOLATIONS="$VIOLATIONS $dep"
+            fi
+          done
+          if [ -n "$VIOLATIONS" ]; then
+            echo "::error::Unlisted runtime dependencies:$VIOLATIONS"
+            echo "Add them to scripts/allowed-deps.json or remove them from package.json"
+            exit 1
+          fi
+          echo "✅ All runtime dependencies are in the allowlist ($(echo "$DEPS" | wc -w | tr -d ' ') deps, $(jq '.allowed | length' scripts/allowed-deps.json) allowed)"
+
+  schema-drift-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Verify Python package schemas match root schemas
+        run: |
+          diff -r schemas packages/python/src/synapt_extract/schemas
+          echo "✅ Python package schemas match root schemas"
+
+  schema-url-check:
+    runs-on: ubuntu-latest
+    if: startsWith(github.head_ref || github.ref_name, 'release/')
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Verify hosted schema URLs match local schemas
+        run: bash scripts/check-schema-urls.sh schemas
+
   reproducibility:
     runs-on: ubuntu-latest
     steps:
@@ -149,9 +195,7 @@ jobs:
           SOURCE_DATE_EPOCH: "1704067200"
         run: |
           pip install build
-          rm -rf src/synapt_extract/prompts src/synapt_extract/schemas
-          test -d ../../prompts && cp -r ../../prompts src/synapt_extract/prompts || true
-          test -d ../../schemas && cp -r ../../schemas src/synapt_extract/schemas || true
+          test -d ../../prompts && rm -rf src/synapt_extract/prompts && cp -r ../../prompts src/synapt_extract/prompts || true
           python -m build --outdir /tmp/py-dist-1
           rm -rf src/synapt_extract.egg-info build
           python -m build --outdir /tmp/py-dist-2

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://synapt.dev/schemas/action/v1.json",
+  "title": "SynaptAction",
+  "description": "A concrete next-step or action item identified in the source text.",
+  "type": "object",
+  "properties": {
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Description of the action."
+    },
+    "origin": {
+      "type": "string",
+      "enum": ["extracted", "proposed_from_goals"],
+      "description": "How this action was derived. \"extracted\" if explicitly stated in the source; \"proposed_from_goals\" if inferred from stated goals."
+    },
+    "entity_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Extraction-local IDs of entities responsible for or involved in this action."
+    },
+    "due": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}(:\\d{2})?(\\.\\d+)?(Z|[+\\-]\\d{2}:?\\d{2})?)?$",
+      "description": "When the action is due (ISO 8601 date or datetime), if stated."
+    },
+    "source": { "$ref": "https://synapt.dev/schemas/source-ref/v1.json" },
+    "signals": { "$ref": "https://synapt.dev/schemas/assertion-signals/v1.json" }
+  },
+  "required": ["text", "origin"],
+  "additionalProperties": false
+}

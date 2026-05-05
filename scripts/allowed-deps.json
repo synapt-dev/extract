@@ -1,0 +1,4 @@
+{
+  "$comment": "Runtime dependency allowlist. CI fails if package.json 'dependencies' contains entries not listed here. extract is a pure computation library with zero runtime deps.",
+  "allowed": []
+}

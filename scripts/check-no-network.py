@@ -21,6 +21,8 @@ FORBIDDEN_PATTERNS = [
     (re.compile(r"\bsubprocess\b"), "subprocess reference"),
     (re.compile(r"\bos\.system\s*\("), "os.system() call"),
     (re.compile(r"\bos\.popen\s*\("), "os.popen() call"),
+    (re.compile(r"\bimportlib\.import_module\s*\("), "importlib.import_module() call"),
+    (re.compile(r"\bimportlib\b"), "importlib reference"),
 ]
 
 
