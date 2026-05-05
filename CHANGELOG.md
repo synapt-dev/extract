@@ -2,7 +2,23 @@
 
 ## v0.3.1
 
-Two rounds of Atlas adversarial review. Schema/runtime parity, artifact bundling, no-network CI guard hardening, Python schema self-containment, doc corrections.
+Three rounds of Atlas adversarial review. Schema/runtime parity, artifact bundling, no-network CI guard hardening, Python schema self-containment, behavioral-shift documentation, doc corrections.
+
+### Behavioral shifts
+
+v0.3.1 tightens JSON Schema constraints to match what the TypeScript and Python runtime validators already enforced in v0.3.0. **If your documents pass the v0.3.0 runtime validators, they will pass v0.3.1 schemas.** The only break case is third-party validators using URL-based schemas (`$id` URLs) without the package's runtime; those will now reject documents that previously passed schema-only validation.
+
+| Field | Schema change | Runtime was already this strict in v0.3.0? |
+|-------|--------------|-------------------------------------------|
+| `sentiment.version` | Now **required** (was optional) | Yes. TS and Python validators required `version: "1"` since v0.3.0. |
+| `source_metadata.version` | Now **required** (was optional) | Yes. TS type made it required; Python validator checked `obj.get("version") != "1"`. |
+| `action.due` | Now requires ISO 8601 date/datetime pattern | Yes. Both runtimes validated `due` as ISO 8601 since v0.3.0. |
+| `decision.decided_at` | Now requires ISO 8601 date/datetime pattern | Yes. Both runtimes validated `decided_at` as ISO 8601 since v0.3.0. |
+| `goal.stated_at` | Now requires ISO 8601 date/datetime pattern | Yes. Both runtimes validated `stated_at` as ISO 8601 since v0.3.0. |
+| `goal.resolved_at` | Now requires ISO 8601 date/datetime pattern | Yes. Both runtimes validated `resolved_at` as ISO 8601 since v0.3.0. |
+| `temporal_ref.resolved` | Now requires ISO 8601 date/datetime pattern | Yes. Both runtimes validated `resolved` as ISO 8601 since v0.3.0. |
+| `temporal_ref.resolved_end` | Now requires ISO 8601 date/datetime pattern | Yes. Both runtimes validated `resolved_end` as ISO 8601 since v0.3.0. |
+| `temporal_ref` (type=unresolved) | `resolved` and `resolved_end` now **forbidden** via if/then/not | Yes. Both runtimes rejected these fields when `type` was `"unresolved"` since v0.3.0. |
 
 ### Schema bundling (critical)
 
@@ -34,8 +50,7 @@ Two rounds of Atlas adversarial review. Schema/runtime parity, artifact bundling
 - Scans source, compiled dist, and packed artifact on every CI run
 - Detects: direct forbidden globals, computed property access on global objects, string concatenation that assembles forbidden names, array `.join("")` assembling forbidden names, `Reflect.get` on global objects, `Function()` constructor (with or without `new`), base64 decode, dynamic imports, forbidden module imports, `importlib.import_module`
 - Runtime dependency allowlist (`scripts/allowed-deps.json`) with CI enforcement
-- Negative test fixtures (`tests/security-probes/`) for all 4 Atlas bypass probes
-- Catches Atlas's PoC patterns: `globalThis["fe"+"tch"]`, `["fe","tch"].join("")`, `Reflect.get(globalThis, "fetch")`, `Function("return 1")`
+- Negative test fixtures (`tests/security-probes/`) for all 4 Atlas bypass probes: `Reflect.get(globalThis, "fetch")`, `Function("return 1")`, `["fe","tch"].join("")`, `importlib.import_module("http.client")`
 
 ### Doc corrections (moderate)
 
@@ -47,7 +62,7 @@ Two rounds of Atlas adversarial review. Schema/runtime parity, artifact bundling
 
 ### Conformance
 
-- 22 cross-language conformance test cases (was 14 in v0.3.0)
+- 22 validation conformance cases, 2 prompt cases, 2 finalize cases (26 total; was 14 validation + 4 other = 18 total in v0.3.0)
 
 ## v0.3.0
 
