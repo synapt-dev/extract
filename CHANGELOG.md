@@ -6,19 +6,26 @@ Three rounds of Atlas adversarial review. Schema/runtime parity, artifact bundli
 
 ### Behavioral shifts
 
-v0.3.1 tightens JSON Schema constraints to match what the TypeScript and Python runtime validators already enforced in v0.3.0. **If your documents pass the v0.3.0 runtime validators, they will pass v0.3.1 schemas.** The only break case is third-party validators using URL-based schemas (`$id` URLs) without the package's runtime; those will now reject documents that previously passed schema-only validation.
+v0.3.1 tightens both JSON Schema constraints and runtime validators. **7 of 9 changes** are schema-only parity: the runtime was already this strict in v0.3.0, and the schema now matches. Documents passing v0.3.0 runtime continue passing v0.3.1 for these 7 fields.
 
-| Field | Schema change | Runtime was already this strict in v0.3.0? |
-|-------|--------------|-------------------------------------------|
-| `sentiment.version` | Now **required** (was optional) | Yes. TS and Python validators required `version: "1"` since v0.3.0. |
-| `source_metadata.version` | Now **required** (was optional) | Yes. TS type made it required; Python validator checked `obj.get("version") != "1"`. |
-| `action.due` | Now requires ISO 8601 date/datetime pattern | Yes. Both runtimes validated `due` as ISO 8601 since v0.3.0. |
-| `decision.decided_at` | Now requires ISO 8601 date/datetime pattern | Yes. Both runtimes validated `decided_at` as ISO 8601 since v0.3.0. |
-| `goal.stated_at` | Now requires ISO 8601 date/datetime pattern | Yes. Both runtimes validated `stated_at` as ISO 8601 since v0.3.0. |
-| `goal.resolved_at` | Now requires ISO 8601 date/datetime pattern | Yes. Both runtimes validated `resolved_at` as ISO 8601 since v0.3.0. |
-| `temporal_ref.resolved` | Now requires ISO 8601 date/datetime pattern | Yes. Both runtimes validated `resolved` as ISO 8601 since v0.3.0. |
-| `temporal_ref.resolved_end` | Now requires ISO 8601 date/datetime pattern | Yes. Both runtimes validated `resolved_end` as ISO 8601 since v0.3.0. |
-| `temporal_ref` (type=unresolved) | `resolved` and `resolved_end` now **forbidden** via if/then/not | Yes. Both runtimes rejected these fields when `type` was `"unresolved"` since v0.3.0. |
+**2 fields are runtime tightenings** that may reject documents previously accepted by v0.3.0:
+
+- **`action.due`**: v0.3.0 runtime accepted any string; v0.3.1 requires ISO 8601 date/datetime. Documents with free-form `due` values (e.g. `"tomorrow"`, `"next week"`) will now fail both schema and runtime validation.
+- **`source_metadata.version`**: v0.3.0 runtime did not require `version` on `source_metadata`; v0.3.1 requires `version: "1"`. Documents with `source_metadata: {}` or `source_metadata` missing the `version` field will now fail.
+
+**Upgrade advice:** consumers on v0.3.0 should audit stored extractions for non-ISO `action.due` values and missing `source_metadata.version` before upgrading to v0.3.1.
+
+| Field | Change | v0.3.0 runtime was already this strict? |
+|-------|--------|----------------------------------------|
+| `sentiment.version` | Schema now **requires** `version` (was optional) | **Yes.** Both runtimes required `version: "1"` since v0.3.0. |
+| `source_metadata.version` | Schema + runtime now **require** `version` | **No. Runtime tightening.** v0.3.0 runtime accepted `source_metadata` without `version`. |
+| `action.due` | Schema + runtime now require **ISO 8601** pattern | **No. Runtime tightening.** v0.3.0 runtime only checked optional string, not ISO format. |
+| `decision.decided_at` | Schema now requires ISO 8601 pattern | **Yes.** Both runtimes validated ISO 8601 since v0.3.0. |
+| `goal.stated_at` | Schema now requires ISO 8601 pattern | **Yes.** Both runtimes validated ISO 8601 since v0.3.0. |
+| `goal.resolved_at` | Schema now requires ISO 8601 pattern | **Yes.** Both runtimes validated ISO 8601 since v0.3.0. |
+| `temporal_ref.resolved` | Schema now requires ISO 8601 pattern | **Yes.** Both runtimes validated ISO 8601 since v0.3.0. |
+| `temporal_ref.resolved_end` | Schema now requires ISO 8601 pattern | **Yes.** Both runtimes validated ISO 8601 since v0.3.0. |
+| `temporal_ref` (type=unresolved) | `resolved`/`resolved_end` now **forbidden** via if/then/not | **Yes.** Both runtimes rejected these since v0.3.0. |
 
 ### Schema bundling (critical)
 
@@ -59,6 +66,7 @@ v0.3.1 tightens JSON Schema constraints to match what the TypeScript and Python 
 - SECURITY.md: forbidden API enforcement described as best-effort regex (not AST-aware)
 - docs/callback-signature.md: status changed to PROPOSED, target v0.4.0
 - README.md: install strings updated to 0.3.1
+- Schema URL smoke gate (`scripts/check-schema-urls.sh`) verifies against GitHub Pages source (`raw.githubusercontent.com`) rather than live CDN; Cloudflare blocks GitHub Actions datacenter IPs. Live CDN verification deferred to v0.3.2 (requires Cloudflare allowlist).
 
 ### Conformance
 
