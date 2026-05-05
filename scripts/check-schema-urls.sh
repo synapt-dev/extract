@@ -14,7 +14,8 @@ for f in "$SCHEMA_DIR"/*/v1.json; do
   fi
 
   echo -n "Checking $id ... "
-  if ! remote=$(curl -fsSL "$id" 2>/dev/null); then
+  UA="synapt-extract-schema-check/1.0 (+https://github.com/synapt-dev/extract)"
+  if ! remote=$(curl -fsSL -H "User-Agent: $UA" "$id" 2>/dev/null); then
     echo "FAIL: 404 or unreachable"
     FAILURES=$((FAILURES + 1))
     continue
