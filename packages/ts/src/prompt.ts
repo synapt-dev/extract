@@ -20,7 +20,7 @@ const VALID_CAPABILITIES: Set<string> = new Set([
   "language", "source_metadata", "confidence",
 ]);
 
-const BASE_CAPABILITIES: Set<string> = new Set(["entities", "goals", "facts"]);
+const BASE_CAPABILITIES: Set<string> = new Set(["entities", "goals", "facts", "questions", "actions", "decisions"]);
 const MODIFIER_ONLY: Set<string> = new Set(["assertion_signals", "evidence_anchoring"]);
 
 export interface PromptOptions {
@@ -31,6 +31,9 @@ export interface PromptOptions {
   categories?: string[];
   source_type?: string;
   date?: string;
+  stage?: "stage1";
+  extracted_at?: string;
+  compact?: boolean;
 }
 
 const CAPABILITY_DEPS: Partial<Record<ExtractionCapability, ExtractionCapability[]>> = {
@@ -39,6 +42,7 @@ const CAPABILITY_DEPS: Partial<Record<ExtractionCapability, ExtractionCapability
   entity_ids: ["entities"],
   goal_timing: ["goals"],
   goal_entity_refs: ["goals", "entity_ids"],
+  structured_sentiment: ["sentiment"],
   temporal_classes: ["temporal_refs"],
   relations: ["entities", "entity_ids"],
   relation_origin: ["relations"],
@@ -64,6 +68,46 @@ const CAPABILITY_RULES: Partial<Record<ExtractionCapability, string>> = {
   actions: 'Set origin to "extracted" for actions stated in the text, "proposed_from_goals" for actions inferred from goals.',
   keywords: "Extract specific terms from the source, not topical categories (those go in themes).",
 };
+
+function buildRunConstraintRules(resolved: ExtractionCapability[], options: PromptOptions): string[] {
+  const rules: string[] = [];
+  const capabilities = new Set(resolved);
+
+  if (options.compact) {
+    rules.push("Keep this extraction compact and high signal.");
+  }
+  if (options.extracted_at) {
+    rules.push(`Use exactly this extracted_at value: ${options.extracted_at}.`);
+  }
+  if (options.stage === "stage1") {
+    rules.push(
+      "Produce Stage 1 content only. Do not include version, produced_by, source_id, source_type, kind, capabilities, extensions, or embeddings.",
+    );
+    rules.push("Only include fields represented in the requested capability set and response schema.");
+  }
+  if (capabilities.has("entity_ids")) {
+    rules.push('Entity IDs are extraction-local only. Use short IDs like "e1", "e2", "e3".');
+  }
+  if (capabilities.has("goal_entity_refs")) {
+    rules.push("Every goal.entity_refs entry must refer to one of the entity IDs you emit.");
+  }
+  if (!capabilities.has("temporal_refs")) {
+    rules.push("Omit temporal_refs for this run.");
+  }
+  if (!capabilities.has("relations")) {
+    rules.push("Omit relations for this run.");
+  }
+  if (!capabilities.has("assertion_signals")) {
+    rules.push("Omit signals fields for this run.");
+  }
+  for (const capability of ["keywords", "questions", "actions", "decisions", "language", "source_metadata", "confidence"] as const) {
+    if (!capabilities.has(capability)) {
+      rules.push(`Omit ${capability} for this run.`);
+    }
+  }
+
+  return rules;
+}
 
 function loadProfile(name: string): ExtractionCapability[] {
   const path = resolve(PROMPTS_DIR, "profiles", `${name}.json`);
@@ -191,10 +235,18 @@ export function buildExtractionPrompt(text: string, options: PromptOptions): str
     const rule = CAPABILITY_RULES[cap];
     if (rule) rulesSection.push(rule);
   }
+  const runConstraintRules = buildRunConstraintRules(resolved, options);
 
   let postamble = renderTemplate(loadFragment("postamble"), ctx).trimEnd();
-  if (rulesSection.length > 0) {
-    const extraRules = rulesSection.map((r) => `- ${r}`).join("\n");
+  if (rulesSection.length > 0 || runConstraintRules.length > 0) {
+    const extraBlocks: string[] = [];
+    if (rulesSection.length > 0) {
+      extraBlocks.push(rulesSection.map((r) => `- ${r}`).join("\n"));
+    }
+    if (runConstraintRules.length > 0) {
+      extraBlocks.push(`Additional run constraints:\n${runConstraintRules.map((r) => `- ${r}`).join("\n")}`);
+    }
+    const extraRules = extraBlocks.join("\n");
     const idx = postamble.indexOf("\nText:");
     if (idx >= 0) {
       postamble = postamble.slice(0, idx) + "\n" + extraRules + postamble.slice(idx);

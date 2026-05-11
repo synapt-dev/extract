@@ -48,6 +48,22 @@ function hasPayloadBeyondVersion(obj: Record<string, unknown>): boolean {
   return Object.keys(obj).some((k) => k !== "version");
 }
 
+function pruneNullObjectFields(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(pruneNullObjectFields);
+  }
+  if (value && typeof value === "object") {
+    const pruned: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+      if (child !== null) {
+        pruned[key] = pruneNullObjectFields(child);
+      }
+    }
+    return pruned;
+  }
+  return value;
+}
+
 function detectCapabilities(doc: Record<string, unknown>): ExtractionCapability[] {
   const caps: ExtractionCapability[] = [];
   const entities = doc.entities as Record<string, unknown>[] | undefined;
@@ -153,7 +169,7 @@ export function finalizeExtraction(
   context: FinalizeContext,
 ): FinalizeResult {
   const warnings: string[] = [];
-  const doc = { ...llmOutput };
+  const doc = pruneNullObjectFields(llmOutput) as Record<string, unknown>;
 
   // Stage 2: inject client context
   doc.version = "1";

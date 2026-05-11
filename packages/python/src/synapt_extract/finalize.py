@@ -31,6 +31,18 @@ def _has_payload_beyond_version(obj: dict[str, Any]) -> bool:
     return any(k != "version" for k in obj)
 
 
+def _prune_null_object_fields(value: Any) -> Any:
+    if isinstance(value, list):
+        return [_prune_null_object_fields(item) for item in value]
+    if isinstance(value, dict):
+        return {
+            key: _prune_null_object_fields(child)
+            for key, child in value.items()
+            if child is not None
+        }
+    return value
+
+
 def _detect_capabilities(doc: dict[str, Any]) -> list[str]:
     caps: list[str] = []
     entities = doc.get("entities", [])
@@ -143,7 +155,7 @@ def finalize_extraction(
     Stage 3: injects sub-schema versions, computes capabilities, validates.
     """
     warnings: list[str] = []
-    doc = dict(llm_output)
+    doc = _prune_null_object_fields(llm_output)
 
     # Stage 2: inject client context
     doc["version"] = "1"

@@ -19,6 +19,7 @@ CAPABILITY_DEPS: dict[str, list[str]] = {
     "entity_ids": ["entities"],
     "goal_timing": ["goals"],
     "goal_entity_refs": ["goals", "entity_ids"],
+    "structured_sentiment": ["sentiment"],
     "temporal_classes": ["temporal_refs"],
     "relations": ["entities", "entity_ids"],
     "relation_origin": ["relations"],
@@ -44,6 +45,43 @@ CAPABILITY_RULES: dict[str, str] = {
     "actions": 'Set origin to "extracted" for actions stated in the text, "proposed_from_goals" for actions inferred from goals.',
     "keywords": "Extract specific terms from the source, not topical categories (those go in themes).",
 }
+
+
+def _build_run_constraint_rules(
+    resolved: list[str],
+    *,
+    stage: str | None = None,
+    extracted_at: str | None = None,
+    compact: bool | None = None,
+) -> list[str]:
+    rules: list[str] = []
+    capabilities = set(resolved)
+
+    if compact:
+        rules.append("Keep this extraction compact and high signal.")
+    if extracted_at:
+        rules.append(f"Use exactly this extracted_at value: {extracted_at}.")
+    if stage == "stage1":
+        rules.append(
+            "Produce Stage 1 content only. Do not include version, produced_by, source_id, "
+            "source_type, kind, capabilities, extensions, or embeddings."
+        )
+        rules.append("Only include fields represented in the requested capability set and response schema.")
+    if "entity_ids" in capabilities:
+        rules.append('Entity IDs are extraction-local only. Use short IDs like "e1", "e2", "e3".')
+    if "goal_entity_refs" in capabilities:
+        rules.append("Every goal.entity_refs entry must refer to one of the entity IDs you emit.")
+    if "temporal_refs" not in capabilities:
+        rules.append("Omit temporal_refs for this run.")
+    if "relations" not in capabilities:
+        rules.append("Omit relations for this run.")
+    if "assertion_signals" not in capabilities:
+        rules.append("Omit signals fields for this run.")
+    for capability in ("keywords", "questions", "actions", "decisions", "language", "source_metadata", "confidence"):
+        if capability not in capabilities:
+            rules.append(f"Omit {capability} for this run.")
+
+    return rules
 
 
 def _load_profile(name: str) -> list[str]:
@@ -82,7 +120,7 @@ def _render_vars(template: str, context: dict[str, Any]) -> str:
     return re.sub(r"\{\{(\w+)\}\}", replace_var, template)
 
 
-BASE_CAPABILITIES = frozenset(["entities", "goals", "facts"])
+BASE_CAPABILITIES = frozenset(["entities", "goals", "facts", "questions", "actions", "decisions"])
 MODIFIER_ONLY_CAPABILITIES = frozenset(["assertion_signals", "evidence_anchoring"])
 
 
@@ -146,6 +184,9 @@ def build_extraction_prompt(
     categories: list[str] | None = None,
     source_type: str | None = None,
     date: str | None = None,
+    stage: str | None = None,
+    extracted_at: str | None = None,
+    compact: bool | None = None,
 ) -> str:
     if capabilities is not None and profile is not None:
         raise ValueError("Cannot specify both capabilities and profile")
@@ -178,10 +219,24 @@ def build_extraction_prompt(
         rule = CAPABILITY_RULES.get(cap)
         if rule:
             rules_section.append(rule)
+    run_constraint_rules = _build_run_constraint_rules(
+        resolved,
+        stage=stage,
+        extracted_at=extracted_at,
+        compact=compact,
+    )
 
     postamble_template = _load_fragment("postamble")
-    if rules_section:
-        extra_rules = "\n".join(f"- {r}" for r in rules_section)
+    if rules_section or run_constraint_rules:
+        extra_blocks: list[str] = []
+        if rules_section:
+            extra_blocks.append("\n".join(f"- {r}" for r in rules_section))
+        if run_constraint_rules:
+            extra_blocks.append(
+                "Additional run constraints:\n"
+                + "\n".join(f"- {r}" for r in run_constraint_rules)
+            )
+        extra_rules = "\n".join(extra_blocks)
         postamble_rendered = _render_template(postamble_template, template_ctx).rstrip()
         idx = postamble_rendered.find("\nText:")
         if idx >= 0:

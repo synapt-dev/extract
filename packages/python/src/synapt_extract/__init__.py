@@ -19,6 +19,13 @@ from synapt_extract.schema import (
 from synapt_extract.validate import validate_extraction, ValidationResult, ValidationError
 from synapt_extract.finalize import finalize_extraction, FinalizeContext, FinalizeResult
 from synapt_extract.prompt import build_extraction_prompt, resolve_capabilities
+from synapt_extract.builder import (
+    ExtractionBuilder,
+    build_finalized_extraction_schema,
+    build_extraction_schema,
+    build_extraction_response_format,
+    create_extraction_builder,
+)
 
 __all__ = [
     "SynaptExtraction",
@@ -43,4 +50,9 @@ __all__ = [
     "FinalizeResult",
     "build_extraction_prompt",
     "resolve_capabilities",
+    "ExtractionBuilder",
+    "build_finalized_extraction_schema",
+    "build_extraction_schema",
+    "build_extraction_response_format",
+    "create_extraction_builder",
 ]

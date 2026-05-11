@@ -10,7 +10,15 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "packages" / "python" / "src"))
 
-from synapt_extract.prompt import build_extraction_prompt, resolve_capabilities
+from synapt_extract import (
+    ExtractionBuilder,
+    build_finalized_extraction_schema,
+    build_extraction_response_format,
+    build_extraction_schema,
+    build_extraction_prompt,
+    create_extraction_builder,
+    resolve_capabilities,
+)
 
 
 SAMPLE_TEXT = "Please pray for my mom. She had surgery on April 20 and is recovering well."
@@ -493,3 +501,242 @@ class TestRegistryConsistency:
         full = set(json.loads((profiles_dir / "full.json").read_text())["capabilities"])
         assert minimal.issubset(full), "minimal is not a subset of full"
         assert standard.issubset(full), "standard is not a subset of full"
+
+
+class TestBuildExtractionSchema:
+
+    def test_includes_only_fields_for_resolved_capabilities(self):
+        schema = build_extraction_schema(capabilities=["entities"])
+        properties = schema["properties"]
+        assert "extracted_at" in properties
+        assert "entities" in properties
+        assert "goals" not in properties
+        assert "temporal_refs" not in properties
+        assert schema["required"] == ["extracted_at", "entities"]
+
+    def test_applies_dependency_closure_to_schema(self):
+        schema = build_extraction_schema(capabilities=["goal_entity_refs"])
+        properties = schema["properties"]
+        entities = properties["entities"]["items"]
+        goals = properties["goals"]["items"]
+
+        assert "entities" in properties
+        assert "goals" in properties
+        assert "id" in entities["properties"]
+        assert "id" in entities["required"]
+        assert "entity_refs" in goals["properties"]
+        assert "entity_refs" in goals["required"]
+
+    def test_adds_modifier_fields_only_when_requested(self):
+        base = build_extraction_schema(capabilities=["entities"])
+        enriched = build_extraction_schema(
+            capabilities=["entities", "entity_context", "evidence_anchoring"]
+        )
+        base_entity = base["properties"]["entities"]["items"]["properties"]
+        enriched_entity = enriched["properties"]["entities"]["items"]["properties"]
+
+        assert "context" not in base_entity
+        assert "source" not in base_entity
+        assert "context" in enriched_entity
+        assert "date_hint" in enriched_entity
+        assert "source" in enriched_entity
+
+    def test_includes_full_source_ref_fields_when_evidence_anchoring_requested(self):
+        schema = build_extraction_schema(capabilities=["entities", "evidence_anchoring"])
+        source = schema["properties"]["entities"]["items"]["properties"]["source"]
+
+        assert source["required"] == ["snippet"]
+        assert "snippet" in source["properties"]
+        assert "offset_start" in source["properties"]
+        assert "offset_end" in source["properties"]
+        assert "sentence_index" in source["properties"]
+        assert "version" not in source["properties"]
+
+    def test_builds_finalized_schema_with_full_packet_fields(self):
+        schema = build_finalized_extraction_schema(
+            capabilities=["entities", "evidence_anchoring", "assertion_signals", "temporal_refs"]
+        )
+        properties = schema["properties"]
+        entity = properties["entities"]["items"]
+        source = entity["properties"]["source"]
+        signals = entity["properties"]["signals"]
+        temporal_ref = properties["temporal_refs"]["items"]
+
+        assert schema["required"] == [
+            "version",
+            "extracted_at",
+            "produced_by",
+            "entities",
+            "goals",
+            "themes",
+            "capabilities",
+        ]
+        assert "source_id" in properties
+        assert "source_type" in properties
+        assert "user_id" in properties
+        assert "kind" in properties
+        assert "embeddings" in properties
+        assert "extensions" in properties
+        assert "keywords" in properties
+        assert "questions" in properties
+        assert "actions" in properties
+        assert "decisions" in properties
+        assert "language" in properties
+        assert "source_metadata" in properties
+        assert "confidence" in properties
+        assert source["required"] == ["version"]
+        assert source["properties"]["version"] == {"const": "1"}
+        assert "offset_start" in source["properties"]
+        assert signals["required"] == ["version"]
+        assert "confidence" in signals["properties"]
+        assert temporal_ref["required"] == ["version", "raw"]
+
+    def test_schema_covers_all_v12_capability_fields(self):
+        schema = build_extraction_schema(profile="full")
+        properties = schema["properties"]
+        entity = properties["entities"]["items"]["properties"]
+        question = properties["questions"]["items"]["properties"]
+        action = properties["actions"]["items"]
+        decision = properties["decisions"]["items"]["properties"]
+        sentiment = properties["sentiment"]
+        source_metadata = properties["source_metadata"]
+
+        for field in ["keywords", "questions", "actions", "decisions", "language", "source_metadata", "confidence"]:
+            assert field in properties
+        assert "aliases" in entity
+        assert "directed_to" in question
+        assert action["required"] == ["text", "origin"]
+        assert "entity_refs" in action["properties"]
+        assert "due" in action["properties"]
+        assert "entity_refs" in decision
+        assert "decided_at" in decision
+        assert sentiment["required"] == ["valence"]
+        assert "version" not in sentiment["properties"]
+        assert source_metadata["required"] == []
+        assert "version" not in source_metadata["properties"]
+
+    def test_wraps_schema_in_response_format(self):
+        response_format = build_extraction_response_format(
+            capabilities=["entities"],
+            name="custom_stage1",
+        )
+        assert response_format["type"] == "json_schema"
+        assert response_format["name"] == "custom_stage1"
+        assert response_format["strict"] is True
+        assert response_format["schema"] != build_extraction_schema(capabilities=["entities"])
+
+    def test_strict_response_format_requires_every_object_property_for_openai(self):
+        response_format = build_extraction_response_format(
+            capabilities=["entities", "entity_context"],
+        )
+        entity = response_format["schema"]["properties"]["entities"]["items"]
+        assert entity["required"] == ["name", "type", "aliases", "context", "date_hint"]
+
+    def test_strict_response_format_makes_semantic_optional_fields_nullable(self):
+        response_format = build_extraction_response_format(
+            capabilities=["entities", "evidence_anchoring"],
+        )
+        entity = response_format["schema"]["properties"]["entities"]["items"]
+        source = entity["properties"]["source"]
+
+        assert source["type"] == ["object", "null"]
+        assert source["required"] == ["snippet", "offset_start", "offset_end", "sentence_index"]
+        assert source["properties"]["offset_start"]["type"] == ["integer", "null"]
+
+    def test_non_strict_response_format_preserves_semantic_required_fields(self):
+        response_format = build_extraction_response_format(
+            capabilities=["entities", "entity_context"],
+            strict=False,
+        )
+        assert response_format["schema"] == build_extraction_schema(
+            capabilities=["entities", "entity_context"]
+        )
+
+
+class TestExtractionBuilder:
+
+    def test_builds_prompt_and_schema_from_same_capabilities(self):
+        builder = (
+            create_extraction_builder(SAMPLE_TEXT, profile="minimal")
+            .add_capabilities(["goal_entity_refs"])
+            .with_extracted_at("2026-05-11T12:00:00Z")
+        )
+        result = builder.build(name="synapt_test")
+        properties = result["schema"]["properties"]
+
+        assert "goal_entity_refs" in result["capabilities"]
+        assert "Additional run constraints" in result["prompt"]
+        assert "Use exactly this extracted_at value: 2026-05-11T12:00:00Z." in result["prompt"]
+        assert "Produce Stage 1 content only." in result["prompt"]
+        assert "Every goal.entity_refs entry must refer to one of the entity IDs you emit." in result["prompt"]
+        assert "Omit temporal_refs for this run." in result["prompt"]
+        assert "entities" in properties
+        assert "goals" in properties
+        assert result["response_format"]["name"] == "synapt_test"
+
+    def test_supports_fluent_construction(self):
+        builder = (
+            ExtractionBuilder()
+            .with_text(SAMPLE_TEXT)
+            .with_capabilities(["entities"])
+            .with_source_type("prayer")
+            .with_date("2026-05-11")
+        )
+
+        assert builder.resolved_capabilities() == ["entities"]
+        assert "prayer" in builder.prompt()
+        assert builder.schema()["required"] == ["extracted_at", "entities"]
+
+    def test_carries_finalization_context_and_can_finalize_without_live_model_call(self):
+        builder = (
+            ExtractionBuilder(
+                SAMPLE_TEXT,
+                capabilities=["entities", "goals", "themes", "evidence_anchoring"],
+            )
+            .with_extracted_at("2026-05-11T12:00:00Z")
+            .with_produced_by(
+                {
+                    "model": "openai://gpt-5.5",
+                    "model_version": "gpt-5.5-2026-04-23",
+                    "configuration": {"reasoning_effort": "medium"},
+                    "operator": "synapt-dev",
+                }
+            )
+            .with_source(source_id="fixture-1", source_type="note")
+            .with_user_id("user-1")
+            .with_kind("synapt/test")
+            .with_extensions({"synapt/source_binding": {"source_sha256": "abc"}})
+            .with_embeddings(
+                [
+                    {
+                        "vector": [0.1, 0.2],
+                        "model": "openai://text-embedding-3-small",
+                        "input": "source",
+                        "dimensions": 2,
+                        "computed_at": "2026-05-11T12:00:01Z",
+                    }
+                ]
+            )
+        )
+
+        built = builder.build()
+        assert built["finalize_context"]["source_id"] == "fixture-1"
+        assert "evidence_anchoring" in built["finalize_context"]["capabilities_hint"]
+        assert "produced_by" in built["finalized_schema"]["properties"]
+
+        result = builder.finalize(
+            {
+                "extracted_at": "2026-05-11T12:00:00Z",
+                "entities": [{"name": "Mom", "type": "person", "source": {"snippet": "mom", "offset_start": None}}],
+                "goals": [],
+                "themes": [],
+            }
+        )
+
+        assert result.validation.valid
+        assert result.extraction["source_id"] == "fixture-1"
+        assert result.extraction["produced_by"]["version"] == "1"
+        assert result.extraction["produced_by"]["model"] == "openai://gpt-5.5"
+        assert result.extraction["embeddings"][0]["version"] == "1"
+        assert result.extraction["embeddings"][0]["dimensions"] == 2
+        assert result.extraction["entities"][0]["source"] == {"version": "1", "snippet": "mom"}

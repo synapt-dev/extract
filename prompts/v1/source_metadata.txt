@@ -1,1 +1,1 @@
-- "source_metadata": object with "version" ("1"), optional "token_count", "character_count", "modality", "format"
+- "source_metadata": object with optional "token_count", "character_count", "modality", "format"
