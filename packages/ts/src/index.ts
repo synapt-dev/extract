@@ -26,3 +26,12 @@ export type { FinalizeContext, FinalizeResult } from "./finalize.js";
 
 export { buildExtractionPrompt, resolveCapabilities } from "./prompt.js";
 export type { PromptOptions } from "./prompt.js";
+
+export {
+  ExtractionBuilder,
+  buildFinalizedExtractionSchema,
+  buildExtractionSchema,
+  buildExtractionResponseFormat,
+  createExtractionBuilder,
+} from "./builder.js";
+export type { ExtractionBuilderOptions, ExtractionBuilderResult, JsonSchema, ResponseFormatOptions } from "./builder.js";

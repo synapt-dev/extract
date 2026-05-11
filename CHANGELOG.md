@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.3.2
+
+Builder release for coupled prompts, Stage 1 response schemas, and finalized packet shape.
+
+- Added `ExtractionBuilder` / `createExtractionBuilder` in TypeScript and `ExtractionBuilder` / `create_extraction_builder` in Python
+- Added `buildExtractionSchema` / `build_extraction_schema`
+- Added `buildFinalizedExtractionSchema` / `build_finalized_extraction_schema`
+- Added `buildExtractionResponseFormat` / `build_extraction_response_format` for OpenAI `json_schema` response formats
+- Builder can now carry finalization context (`produced_by`, source fields, user/kind, extensions, embeddings) and finalize Stage 1 output without a separate context assembly step
+- Builder schema coverage now includes the full v1.2 field set: keywords, questions, actions, decisions, language, source metadata, confidence, aliases, structured sentiment, evidence, and signals
+- Builder-generated prompts include Stage 1 run constraints: compact extraction, exact `extracted_at` when supplied, finalization-field exclusions, local entity ID rules, entity-ref validation guidance, and omitted-capability reminders
+- Strict response formats transform object schemas to require all properties, matching OpenAI structured-output requirements while representing semantic optional fields as nullable
+- Finalization prunes null object fields before validation so strict structured-output payloads can use null for omitted optional values
+- Python and TypeScript builder tests added, including prompt/schema parity, full field coverage, and strict response-format behavior
+
 ## v0.3.1
 
 Three rounds of Atlas adversarial review. Schema/runtime parity, artifact bundling, no-network CI guard hardening, Python schema self-containment, behavioral-shift documentation, doc corrections.
@@ -142,7 +157,6 @@ Three gaps discovered during v0.2.0 dogfooding are now fixed:
 1. `goals.txt` now always mentions `entity_refs` as a required field (was only prompted with `goal_entity_refs` capability)
 2. `temporal_refs.txt` now describes the full sub-schema shape (`type`, `resolved_end`, `context`) instead of just `raw` and `resolved`
 3. `goal_timing.txt` now explicitly scopes `stated_at`/`resolved_at` to goals only, preventing LLM from adding these to entities
-
 ## v0.2.0
 
 v1.1 spec: typed SynaptProducer schema, additive backwards-compat, in-place v1.x = additive only policy.

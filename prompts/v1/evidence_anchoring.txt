@@ -1,1 +1,1 @@
-  - on entities, goals, and facts, include "source": {"snippet": verbatim quote from text}
+  - on entities, goals, facts, questions, actions, and decisions, include "source": {"snippet": verbatim quote from text}

@@ -12,16 +12,16 @@ This repo contains the v1 schema, types, validators, finalization pipeline, and 
 
 | Package | Registry | Install |
 |---------|----------|---------|
-| `@synapt-dev/extract` | npm | `npm install @synapt-dev/extract@0.3.1` |
-| `synapt-extract` | PyPI | `pip install synapt-extract==0.3.1` |
+| `@synapt-dev/extract` | npm | `npm install @synapt-dev/extract@0.3.2` |
+| `synapt-extract` | PyPI | `pip install synapt-extract==0.3.2` |
 
 **Deno:**
 
 ```typescript
-import { buildExtractionPrompt } from "npm:@synapt-dev/extract@0.3.1";
+import { buildExtractionPrompt } from "npm:@synapt-dev/extract@0.3.2";
 ```
 
-**Version pinning:** Always pin to an exact version (`@0.3.1`, `==0.3.1`). Do not use ranges (`^0.3.1`, `~0.3.1`, `>=0.3.1`). The IL schema evolves across minor versions (v1.1 added `produced_by` object form, v1.2 added 8 new fields). Pinning prevents unexpected schema changes from affecting your extraction pipeline.
+**Version pinning:** Always pin to an exact version (`@0.3.2`, `==0.3.2`). Do not use ranges (`^0.3.2`, `~0.3.2`, `>=0.3.2`). The IL schema evolves across minor versions (v1.1 added `produced_by` object form, v1.2 added 8 new fields). Pinning prevents unexpected schema changes from affecting your extraction pipeline.
 
 ## Quick start
 
@@ -94,6 +94,58 @@ SynaptExtraction documents are assembled in three stages:
 | `minimal` | 3B-7B local | entities, entity_state, goals, themes, summary |
 | `standard` | GPT-4o-mini, Haiku | + entity_context, goal_timing, facts, temporal_refs, sentiment, evidence_anchoring |
 | `full` | GPT-4o, Sonnet, Opus | + entity_ids, goal_entity_refs, keywords, structured_sentiment, questions, actions, decisions, relations, relation_origin, assertion_signals, temporal_classes, language, source_metadata, confidence |
+
+## Prompt and schema builder
+
+Use the builder when the model API supports structured output. It resolves capabilities once, then builds the matching prompt, Stage 1 JSON schema, OpenAI response format, finalized packet schema, and optional finalization context.
+
+### TypeScript
+
+```typescript
+import { createExtractionBuilder } from "@synapt-dev/extract";
+
+const builder = createExtractionBuilder(text, { profile: "standard" })
+  .addCapabilities(["entity_ids", "goal_entity_refs"])
+  .withExtractedAt("2026-05-11T18:00:00Z")
+  .withProducedBy({
+    model: "openai://gpt-5.5",
+    model_version: "gpt-5.5-2026-04-23",
+    configuration: { reasoning_effort: "medium" },
+    operator: "synapt-dev",
+  })
+  .withSource({ source_id: "note-1", source_type: "note" });
+
+const built = builder.build({ name: "synapt_extract_stage1" });
+
+// Send built.prompt and built.responseFormat to the model.
+// Then call builder.finalize(stage1Json) or finalizeExtraction(stage1Json, built.finalizeContext).
+```
+
+### Python
+
+```python
+from synapt_extract import create_extraction_builder
+
+builder = (
+    create_extraction_builder(text, profile="standard")
+    .add_capabilities(["entity_ids", "goal_entity_refs"])
+    .with_extracted_at("2026-05-11T18:00:00Z")
+    .with_produced_by({
+        "model": "openai://gpt-5.5",
+        "model_version": "gpt-5.5-2026-04-23",
+        "configuration": {"reasoning_effort": "medium"},
+        "operator": "synapt-dev",
+    })
+    .with_source(source_id="note-1", source_type="note")
+)
+
+built = builder.build(name="synapt_extract_stage1")
+
+# Send built["prompt"] and built["response_format"] to the model.
+# Then call builder.finalize(stage1_json) or finalize_extraction(stage1_json, builder.finalize_context()).
+```
+
+`buildExtractionSchema()` / `build_extraction_schema()` return the semantic Stage 1 schema. `buildExtractionResponseFormat()` / `build_extraction_response_format()` return an OpenAI-compatible `json_schema` response format; strict mode requires every object property as OpenAI expects and represents semantic optional fields as nullable. `buildFinalizedExtractionSchema()` / `build_finalized_extraction_schema()` return the finalized packet shape, including `produced_by`, source context, capabilities, embeddings, and extensions.
 
 ## JSON Schema
 

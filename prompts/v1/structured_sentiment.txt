@@ -1,1 +1,1 @@
-- "sentiment": object with "version" ("1"), "valence" (one of "positive", "negative", "neutral", "mixed"), optional "intensity" (0.0-1.0), optional "confidence" (0.0-1.0)
+- "sentiment": object with "valence" (one of "positive", "negative", "neutral", "mixed"), optional "intensity" (0.0-1.0), optional "confidence" (0.0-1.0)
