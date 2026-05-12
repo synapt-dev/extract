@@ -10,6 +10,7 @@ Experimental full extraction runner.
 - Capability entries can now be plain strings or `{ name, embed: true }` specs so embedding intent can live with capability selection
 - Added fluent `minimal`/`standard`/`full`, `minus`, `unsupported`, `embed`, and `plan` builder helpers
 - Added dynamic extension resolvers with normalized LLM response envelopes so extensions can depend on response ids, model, status, usage, Stage 1 output, and embeddings without knowing provider-specific response shapes
+- Added OpenAI and Anthropic raw response translators plus custom response translator hooks for normalized extension inputs
 - Added tests covering full-profile extraction, structured producer metadata, embeddings, usage aggregation, and missing embedding-callback errors
 
 ## v0.3.2

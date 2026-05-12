@@ -108,7 +108,7 @@ result = await extract(
 
 Capability entries can be plain strings or `{"name": ..., "embed": True}` specs. The runner derives embeddings from embedded capability specs and merges them with explicit embedding inputs such as `"source"`. `embedding_inputs="all"` remains available for exhaustive tests and computes embeddings for source, summary, entities, goals, themes, keywords, facts, questions, actions, decisions, temporal refs, and sentiment when those fields exist. Embeddings are opt-in; no embedding API call is made unless requested.
 
-The `extend` resolver runs after the LLM response is parsed and embeddings are computed, but before finalization. It receives a normalized response envelope (`ctx["response"]["id"]`, `status`, `model`, `usage`, and `raw`), so extensions can depend on provider output without knowing the provider's raw response shape.
+The `extend` resolver runs after the LLM response is parsed and embeddings are computed, but before finalization. It receives a normalized response envelope (`provider`, `id`, `status`, `model`, `stop_reason`, `usage`, and `raw`), so extensions can depend on provider output without knowing the provider's raw response shape. Raw OpenAI Responses and Anthropic Messages objects are translated automatically when returned as `raw`; callers can pass `response_translator` for custom providers. If `produced_by` is omitted, the runner can derive `openai://...` or `anthropic://...` producer metadata from normalized provider/model fields.
 
 Builders also expose profile helpers and a preflight plan:
 

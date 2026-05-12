@@ -47,6 +47,8 @@ interface ExtractOptions {
   categories?: string[];
   extensions?: Record<string, unknown>;
   embeddingInputs?: "all" | Array<"source" | "summary" | "entities" | "goals" | "themes" | "keywords" | "facts" | "questions" | "actions" | "decisions" | "temporal_refs" | "sentiment" | { input: string; text: string }>;
+  responseTranslator?: (context: LlmResponseTranslatorContext) => Partial<NormalizedLlmResponse> | undefined;
+  responseTranslators?: Array<(context: LlmResponseTranslatorContext) => Partial<NormalizedLlmResponse> | undefined>;
   extend?: (context: ExtensionResolverContext) => Record<string, unknown> | Promise<Record<string, unknown>>;
   extensionErrors?: "throw" | "warn";
 }
@@ -96,7 +98,9 @@ interface LlmResponse {
   json?: Record<string, unknown>;
   output?: Record<string, unknown>;
   produced_by?: string | Omit<SynaptProducer, "version">;
+  provider?: "openai" | "anthropic" | string;
   response_id?: string;
+  id?: string;
   status?: string;
   model?: string;
   model_version?: string;
@@ -105,10 +109,12 @@ interface LlmResponse {
 }
 
 interface NormalizedLlmResponse {
+  provider?: "openai" | "anthropic" | string;
   id?: string;
   status?: string;
   model?: string;
   model_version?: string;
+  stop_reason?: string;
   produced_by?: string | Omit<SynaptProducer, "version">;
   content?: string;
   usage?: LlmUsage;
@@ -141,7 +147,8 @@ interface LlmUsage {
 - `messages` uses a system/user role pair. The user message contains the complete builder prompt. The caller forwards these to their LLM provider.
 - `responseFormat` carries the builder-generated strict `json_schema` response format. The caller should pass this to their provider's structured-output mechanism if available.
 - The response may provide parsed `output`/`json` or JSON string `content`. `produced_by` is preferred. If omitted, `model` must already be a provider URI for the runner to derive a producer.
-- The runner normalizes provider-specific LLM responses before passing them to extension resolvers. Extensions should use `context.response.id/status/model/usage/raw` instead of depending on a callback-specific response shape.
+- The runner normalizes provider-specific LLM responses before passing them to extension resolvers. Built-in translators handle raw OpenAI Responses and Anthropic Messages objects. Extensions should use `context.response.provider/id/status/model/stop_reason/usage/raw` instead of depending on a callback-specific response shape.
+- Custom providers can pass `responseTranslator` / `response_translator` to map raw provider output into the same `NormalizedLlmResponse` envelope.
 - `usage` is optional. If the caller's LLM provider returns token counts, pass them through. Synapt aggregates these into `UsageSummary` for metering. If omitted, metering is best-effort.
 - `temperature` defaults to `0` if not specified by the caller's provider. Synapt may set this based on the extraction profile.
 - `max_tokens` is advisory. Synapt sets it based on expected output size for the requested capabilities.

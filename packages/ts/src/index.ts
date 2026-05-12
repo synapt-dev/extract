@@ -37,7 +37,7 @@ export {
 export type { ExtractionBuilderOptions, ExtractionBuilderResult, JsonSchema, ResponseFormatOptions } from "./builder.js";
 export type { CapabilityPlan, CapabilityProfileOptions, EmbeddableInput } from "./builder.js";
 
-export { extract, runExtraction } from "./extract.js";
+export { extract, normalizeLlmResponse, runExtraction } from "./extract.js";
 export type {
   CustomEmbeddingInput,
   EmbeddingInputSelection,
@@ -52,6 +52,9 @@ export type {
   LlmMessage,
   LlmRequest,
   LlmResponse,
+  LlmResponseProvider,
+  LlmResponseTranslator,
+  LlmResponseTranslatorContext,
   LlmUsage,
   LogEntry,
   NamedEmbeddingInput,

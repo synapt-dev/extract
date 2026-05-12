@@ -16,6 +16,8 @@ export interface LlmUsage {
   [key: string]: unknown;
 }
 
+export type LlmResponseProvider = "openai" | "anthropic" | (string & {});
+
 export interface LlmRequest {
   prompt: string;
   messages: LlmMessage[];
@@ -31,6 +33,7 @@ export interface LlmResponse {
   json?: Record<string, unknown>;
   output?: Record<string, unknown>;
   produced_by?: FinalizeContext["produced_by"];
+  provider?: LlmResponseProvider;
   id?: string;
   response_id?: string;
   status?: string;
@@ -41,10 +44,12 @@ export interface LlmResponse {
 }
 
 export interface NormalizedLlmResponse {
+  provider?: LlmResponseProvider;
   id?: string;
   status?: string;
   model?: string;
   model_version?: string;
+  stop_reason?: string;
   produced_by?: FinalizeContext["produced_by"];
   content?: string;
   usage?: LlmUsage;
@@ -127,9 +132,21 @@ export type ExtensionResolver = (
   context: ExtensionResolverContext,
 ) => Record<string, unknown> | Promise<Record<string, unknown>>;
 
+export interface LlmResponseTranslatorContext {
+  response: LlmResponse;
+  raw?: Record<string, unknown>;
+  provider?: LlmResponseProvider;
+}
+
+export type LlmResponseTranslator = (
+  context: LlmResponseTranslatorContext,
+) => Partial<NormalizedLlmResponse> | undefined;
+
 export interface ExtractOptions extends ExtractionBuilderOptions {
   responseFormat?: ResponseFormatOptions;
   embeddingInputs?: EmbeddingInputSelection;
+  responseTranslator?: LlmResponseTranslator;
+  responseTranslators?: LlmResponseTranslator[];
   extend?: ExtensionResolver;
   extensionResolver?: ExtensionResolver;
   extensionErrors?: "throw" | "warn";
@@ -210,14 +227,29 @@ function parseLlmOutput(response: LlmResponse): Record<string, unknown> {
   }
 }
 
-function modelUriFromResponse(response: LlmResponse): FinalizeContext["produced_by"] | undefined {
+function modelUriFromResponse(response: LlmResponse, normalized?: NormalizedLlmResponse): FinalizeContext["produced_by"] | undefined {
   if (response.produced_by !== undefined) return response.produced_by;
-  if (typeof response.model === "string" && response.model.includes("://")) {
+  if (normalized?.produced_by !== undefined) return normalized.produced_by;
+
+  const model = response.model ?? normalized?.model;
+  if (typeof model !== "string" || model.length === 0) return undefined;
+  const modelVersion = response.model_version ?? normalized?.model_version ?? model;
+
+  if (model.includes("://")) {
     return {
-      model: response.model,
-      ...(response.model_version !== undefined ? { model_version: response.model_version } : {}),
+      model,
+      ...(modelVersion !== undefined ? { model_version: modelVersion } : {}),
     };
   }
+
+  const provider = response.provider ?? normalized?.provider;
+  if (typeof provider === "string" && provider.length > 0) {
+    return {
+      model: `${provider}://${model}`,
+      model_version: modelVersion,
+    };
+  }
+
   return undefined;
 }
 
@@ -225,19 +257,140 @@ function optionalString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-function normalizeLlmResponse(response: LlmResponse): NormalizedLlmResponse {
-  const raw = response.raw;
-  const rawObject = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, unknown> : undefined;
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
+}
+
+function normalizeUsage(value: unknown): LlmUsage | undefined {
+  const obj = asRecord(value);
+  if (!obj) return undefined;
+  const usage: LlmUsage = { ...obj };
+  const inputTokens = typeof obj.input_tokens === "number" ? obj.input_tokens : undefined;
+  const outputTokens = typeof obj.output_tokens === "number" ? obj.output_tokens : undefined;
+  if (inputTokens !== undefined) usage.input_tokens = inputTokens;
+  if (outputTokens !== undefined) usage.output_tokens = outputTokens;
+  if (typeof obj.total_tokens === "number") {
+    usage.total_tokens = obj.total_tokens;
+  } else if (inputTokens !== undefined && outputTokens !== undefined) {
+    usage.total_tokens = inputTokens + outputTokens;
+  }
+  return Object.keys(usage).length > 0 ? usage : undefined;
+}
+
+function textFromAnthropicContent(raw: Record<string, unknown>): string | undefined {
+  const content = raw.content;
+  if (!Array.isArray(content)) return undefined;
+  const text = content
+    .map((item) => asRecord(item))
+    .filter((item): item is Record<string, unknown> => item !== undefined)
+    .filter((item) => item.type === "text" && typeof item.text === "string")
+    .map((item) => item.text as string)
+    .join("");
+  return text.length > 0 ? text : undefined;
+}
+
+function translateOpenAiResponse({ raw, provider }: LlmResponseTranslatorContext): Partial<NormalizedLlmResponse> | undefined {
+  if (!raw) return undefined;
+  const object = optionalString(raw.object);
+  const id = optionalString(raw.id);
+  if (provider !== "openai" && object !== "response" && !id?.startsWith("resp_")) {
+    return undefined;
+  }
   return {
-    id: response.id ?? response.response_id ?? optionalString(rawObject?.id),
-    status: response.status ?? optionalString(rawObject?.status),
-    model: response.model ?? optionalString(rawObject?.model),
-    model_version: response.model_version,
-    produced_by: response.produced_by,
-    content: response.content,
-    usage: response.usage,
-    raw,
+    provider: "openai",
+    id,
+    status: optionalString(raw.status),
+    model: optionalString(raw.model),
+    model_version: optionalString(raw.model),
+    content: optionalString(raw.output_text),
+    usage: normalizeUsage(raw.usage),
   };
+}
+
+function translateAnthropicResponse({ raw, provider }: LlmResponseTranslatorContext): Partial<NormalizedLlmResponse> | undefined {
+  if (!raw) return undefined;
+  const type = optionalString(raw.type);
+  const id = optionalString(raw.id);
+  if (provider !== "anthropic" && type !== "message" && !id?.startsWith("msg_")) {
+    return undefined;
+  }
+  return {
+    provider: "anthropic",
+    id,
+    status: optionalString(raw.status) ?? "completed",
+    model: optionalString(raw.model),
+    model_version: optionalString(raw.model),
+    stop_reason: optionalString(raw.stop_reason),
+    content: textFromAnthropicContent(raw),
+    usage: normalizeUsage(raw.usage),
+  };
+}
+
+function commonRawResponseTranslation(raw: Record<string, unknown> | undefined): Partial<NormalizedLlmResponse> {
+  return {
+    id: optionalString(raw?.id),
+    status: optionalString(raw?.status),
+    model: optionalString(raw?.model),
+    usage: normalizeUsage(raw?.usage),
+  };
+}
+
+function mergeNormalized(...parts: (Partial<NormalizedLlmResponse> | undefined)[]): NormalizedLlmResponse {
+  const merged: NormalizedLlmResponse = {};
+  for (const part of parts) {
+    if (!part) continue;
+    for (const [key, value] of Object.entries(part) as [keyof NormalizedLlmResponse, unknown][]) {
+      if (value !== undefined) {
+        (merged as Record<string, unknown>)[key] = key === "usage" ? normalizeUsage(value) : value;
+      }
+    }
+  }
+  return merged;
+}
+
+function runResponseTranslator(
+  translator: LlmResponseTranslator,
+  context: LlmResponseTranslatorContext,
+): Partial<NormalizedLlmResponse> | undefined {
+  const translated = translator(context);
+  if (translated === undefined) return undefined;
+  if (!translated || typeof translated !== "object" || Array.isArray(translated)) {
+    throw new Error("response translator must return an object or undefined");
+  }
+  return translated;
+}
+
+export function normalizeLlmResponse(
+  response: LlmResponse,
+  translators: LlmResponseTranslator[] = [],
+): NormalizedLlmResponse {
+  const raw = response.raw;
+  const rawObject = asRecord(raw);
+  const provider = response.provider;
+  const translatorContext: LlmResponseTranslatorContext = { response, raw: rawObject, provider };
+  const translated = [
+    translateOpenAiResponse(translatorContext),
+    translateAnthropicResponse(translatorContext),
+    ...translators.map((translator) => runResponseTranslator(translator, translatorContext)),
+  ];
+
+  return mergeNormalized(
+    commonRawResponseTranslation(rawObject),
+    ...translated,
+    {
+      provider: response.provider,
+      id: response.id ?? response.response_id,
+      status: response.status,
+      model: response.model,
+      usage: response.usage,
+    },
+    {
+      model_version: response.model_version,
+      produced_by: response.produced_by,
+      content: response.content,
+      raw,
+    },
+  );
 }
 
 function asArray(value: unknown): Record<string, unknown>[] {
@@ -365,10 +518,11 @@ function buildFinalizeContext(
   options: ExtractOptions,
   capabilities: ExtractionCapability[],
   llmResponse: LlmResponse,
+  normalizedResponse: NormalizedLlmResponse,
   embeddings: Omit<SynaptEmbedding, "version">[],
   dynamicExtensions?: Record<string, unknown>,
 ): FinalizeContext {
-  const producedBy = options.produced_by ?? modelUriFromResponse(llmResponse);
+  const producedBy = options.produced_by ?? modelUriFromResponse(llmResponse, normalizedResponse);
   if (producedBy === undefined) {
     throw new Error("Cannot finalize without produced_by; pass options.produced_by or return produced_by/model URI from callLlm()");
   }
@@ -448,10 +602,14 @@ export async function extract(
   });
   usage.llm_calls += 1;
   const llmResponse = await callbacks.callLlm(llmRequest);
-  const normalizedResponse = normalizeLlmResponse(llmResponse);
-  if (llmResponse.usage?.input_tokens !== undefined) usage.input_tokens = llmResponse.usage.input_tokens;
-  if (llmResponse.usage?.output_tokens !== undefined) usage.output_tokens = llmResponse.usage.output_tokens;
-  if (llmResponse.usage?.total_tokens !== undefined) usage.total_tokens = llmResponse.usage.total_tokens;
+  const responseTranslators = [
+    ...(options.responseTranslator ? [options.responseTranslator] : []),
+    ...(options.responseTranslators ?? []),
+  ];
+  const normalizedResponse = normalizeLlmResponse(llmResponse, responseTranslators);
+  if (normalizedResponse.usage?.input_tokens !== undefined) usage.input_tokens = normalizedResponse.usage.input_tokens;
+  if (normalizedResponse.usage?.output_tokens !== undefined) usage.output_tokens = normalizedResponse.usage.output_tokens;
+  if (normalizedResponse.usage?.total_tokens !== undefined) usage.total_tokens = normalizedResponse.usage.total_tokens;
 
   const stage1 = parseLlmOutput(llmResponse);
   safeLog(callbacks, {
@@ -501,7 +659,7 @@ export async function extract(
     warnings,
   });
 
-  const context = buildFinalizeContext(options, built.capabilities, llmResponse, embeddings, dynamicExtensions);
+  const context = buildFinalizeContext(options, built.capabilities, llmResponse, normalizedResponse, embeddings, dynamicExtensions);
   const finalized = builder.withFinalizeContext(context).finalize(stage1);
   safeLog(callbacks, {
     level: finalized.validation.valid ? "info" : "warn",

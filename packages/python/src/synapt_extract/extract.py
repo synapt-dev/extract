@@ -43,6 +43,7 @@ class LlmResponse(TypedDict, total=False):
     json: JsonObject
     output: JsonObject
     produced_by: str | JsonObject
+    provider: str
     id: str
     response_id: str
     status: str
@@ -53,10 +54,12 @@ class LlmResponse(TypedDict, total=False):
 
 
 class NormalizedLlmResponse(TypedDict, total=False):
+    provider: str
     id: str
     status: str
     model: str
     model_version: str
+    stop_reason: str
     produced_by: str | JsonObject
     content: str
     usage: LlmUsage
@@ -135,6 +138,7 @@ class ExtractResult:
 
 
 ExtensionResolver = Callable[[dict[str, Any]], MaybeAwaitable]
+LlmResponseTranslator = Callable[[dict[str, Any]], dict[str, Any] | None]
 
 
 SYSTEM_MESSAGE = "You are a deterministic information extraction engine. Return only JSON matching the supplied schema."
@@ -245,49 +249,198 @@ def _parse_llm_output(response: LlmResponse | dict[str, Any]) -> dict[str, Any]:
     return parsed
 
 
-def _model_uri_from_response(response: LlmResponse | dict[str, Any]) -> str | dict[str, Any] | None:
+def _model_uri_from_response(
+    response: LlmResponse | dict[str, Any],
+    normalized: NormalizedLlmResponse | dict[str, Any] | None = None,
+) -> str | dict[str, Any] | None:
     if "produced_by" in response:
         produced_by = response["produced_by"]
         if isinstance(produced_by, (str, dict)):
             return produced_by
-    model = response.get("model")
-    if isinstance(model, str) and "://" in model:
+    if normalized and "produced_by" in normalized:
+        produced_by = normalized["produced_by"]
+        if isinstance(produced_by, (str, dict)):
+            return produced_by
+
+    model = response.get("model") or (normalized or {}).get("model")
+    if not isinstance(model, str) or model == "":
+        return None
+    model_version = response.get("model_version") or (normalized or {}).get("model_version") or model
+
+    if "://" in model:
         producer: dict[str, Any] = {"model": model}
-        model_version = response.get("model_version")
         if isinstance(model_version, str):
             producer["model_version"] = model_version
         return producer
+
+    provider = response.get("provider") or (normalized or {}).get("provider")
+    if isinstance(provider, str) and provider:
+        return {
+            "model": f"{provider}://{model}",
+            "model_version": model_version,
+        }
+
     return None
 
 
-def _normalize_llm_response(response: LlmResponse | dict[str, Any]) -> NormalizedLlmResponse:
+def _optional_str(value: Any) -> str | None:
+    return value if isinstance(value, str) else None
+
+
+def _normalize_usage(value: Any) -> LlmUsage | None:
+    if not isinstance(value, dict):
+        return None
+    usage: LlmUsage = dict(value)
+    input_tokens = value.get("input_tokens")
+    output_tokens = value.get("output_tokens")
+    if isinstance(input_tokens, int):
+        usage["input_tokens"] = input_tokens
+    if isinstance(output_tokens, int):
+        usage["output_tokens"] = output_tokens
+    total_tokens = value.get("total_tokens")
+    if isinstance(total_tokens, int):
+        usage["total_tokens"] = total_tokens
+    elif isinstance(input_tokens, int) and isinstance(output_tokens, int):
+        usage["total_tokens"] = input_tokens + output_tokens
+    return usage if usage else None
+
+
+def _text_from_anthropic_content(raw: dict[str, Any]) -> str | None:
+    content = raw.get("content")
+    if not isinstance(content, list):
+        return None
+    parts = [
+        item["text"]
+        for item in content
+        if isinstance(item, dict)
+        and item.get("type") == "text"
+        and isinstance(item.get("text"), str)
+    ]
+    text = "".join(parts)
+    return text or None
+
+
+def _translate_openai_response(context: dict[str, Any]) -> dict[str, Any] | None:
+    raw = context.get("raw")
+    provider = context.get("provider")
+    if not isinstance(raw, dict):
+        return None
+    response_id = _optional_str(raw.get("id"))
+    if provider != "openai" and raw.get("object") != "response" and not (response_id or "").startswith("resp_"):
+        return None
+    return {
+        "provider": "openai",
+        "id": response_id,
+        "status": _optional_str(raw.get("status")),
+        "model": _optional_str(raw.get("model")),
+        "model_version": _optional_str(raw.get("model")),
+        "content": _optional_str(raw.get("output_text")),
+        "usage": _normalize_usage(raw.get("usage")),
+    }
+
+
+def _translate_anthropic_response(context: dict[str, Any]) -> dict[str, Any] | None:
+    raw = context.get("raw")
+    provider = context.get("provider")
+    if not isinstance(raw, dict):
+        return None
+    response_id = _optional_str(raw.get("id"))
+    if provider != "anthropic" and raw.get("type") != "message" and not (response_id or "").startswith("msg_"):
+        return None
+    return {
+        "provider": "anthropic",
+        "id": response_id,
+        "status": _optional_str(raw.get("status")) or "completed",
+        "model": _optional_str(raw.get("model")),
+        "model_version": _optional_str(raw.get("model")),
+        "stop_reason": _optional_str(raw.get("stop_reason")),
+        "content": _text_from_anthropic_content(raw),
+        "usage": _normalize_usage(raw.get("usage")),
+    }
+
+
+def _common_raw_response_translation(raw: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": _optional_str(raw.get("id")),
+        "status": _optional_str(raw.get("status")),
+        "model": _optional_str(raw.get("model")),
+        "usage": _normalize_usage(raw.get("usage")),
+    }
+
+
+def _merge_normalized(*parts: dict[str, Any] | None) -> NormalizedLlmResponse:
+    normalized: NormalizedLlmResponse = {}
+    for part in parts:
+        if not part:
+            continue
+        for key, value in part.items():
+            if value is not None:
+                normalized[key] = _normalize_usage(value) if key == "usage" else value
+    return normalized
+
+
+def _response_translators_from_options(options: dict[str, Any]) -> list[LlmResponseTranslator]:
+    translators: list[LlmResponseTranslator] = []
+    for key in ("response_translator", "responseTranslator"):
+        translator = options.get(key)
+        if translator is not None:
+            if not callable(translator):
+                raise ValueError(f"{key} must be callable")
+            translators.append(translator)
+    for key in ("response_translators", "responseTranslators"):
+        values = options.get(key)
+        if values is None:
+            continue
+        if not isinstance(values, list):
+            raise ValueError(f"{key} must be a list of callables")
+        for translator in values:
+            if not callable(translator):
+                raise ValueError(f"{key} must contain only callables")
+            translators.append(translator)
+    return translators
+
+
+def _run_response_translator(
+    translator: LlmResponseTranslator,
+    context: dict[str, Any],
+) -> dict[str, Any] | None:
+    translated = translator(context)
+    if translated is None:
+        return None
+    if not isinstance(translated, dict):
+        raise ValueError("response translator must return a dictionary or None")
+    return translated
+
+
+def normalize_llm_response(
+    response: LlmResponse | dict[str, Any],
+    translators: list[LlmResponseTranslator] | None = None,
+) -> NormalizedLlmResponse:
     raw = response.get("raw")
     raw_obj = raw if isinstance(raw, dict) else {}
-    normalized: NormalizedLlmResponse = {}
-    response_id = response.get("id") or response.get("response_id") or raw_obj.get("id")
-    if isinstance(response_id, str):
-        normalized["id"] = response_id
-    status = response.get("status") or raw_obj.get("status")
-    if isinstance(status, str):
-        normalized["status"] = status
-    model = response.get("model") or raw_obj.get("model")
-    if isinstance(model, str):
-        normalized["model"] = model
-    model_version = response.get("model_version")
-    if isinstance(model_version, str):
-        normalized["model_version"] = model_version
-    produced_by = response.get("produced_by")
-    if isinstance(produced_by, (str, dict)):
-        normalized["produced_by"] = produced_by
-    content = response.get("content")
-    if isinstance(content, str):
-        normalized["content"] = content
-    usage = response.get("usage")
-    if isinstance(usage, dict):
-        normalized["usage"] = usage
-    if raw is not None:
-        normalized["raw"] = raw
-    return normalized
+    provider = response.get("provider")
+    context = {
+        "response": response,
+        "raw": raw_obj,
+        "provider": provider,
+    }
+    translated = [
+        _translate_openai_response(context),
+        _translate_anthropic_response(context),
+        *[_run_response_translator(translator, context) for translator in (translators or [])],
+    ]
+    explicit = {
+        "provider": response.get("provider"),
+        "id": response.get("id") or response.get("response_id"),
+        "status": response.get("status"),
+        "model": response.get("model"),
+        "model_version": response.get("model_version"),
+        "produced_by": response.get("produced_by"),
+        "content": response.get("content"),
+        "usage": response.get("usage"),
+        "raw": raw,
+    }
+    return _merge_normalized(_common_raw_response_translation(raw_obj), *translated, explicit)
 
 
 def _object_items(value: Any) -> list[dict[str, Any]]:
@@ -411,10 +564,11 @@ def _build_finalize_context(
     options: dict[str, Any],
     capabilities: list[str],
     llm_response: LlmResponse | dict[str, Any],
+    normalized_response: NormalizedLlmResponse | dict[str, Any],
     embeddings: list[dict[str, Any]],
     dynamic_extensions: dict[str, Any] | None = None,
 ) -> FinalizeContext:
-    produced_by = options.get("produced_by") or _model_uri_from_response(llm_response)
+    produced_by = options.get("produced_by") or _model_uri_from_response(llm_response, normalized_response)
     if produced_by is None:
         raise ValueError("Cannot finalize without produced_by; pass produced_by or return produced_by/model URI from call_llm()")
 
@@ -514,9 +668,9 @@ async def extract(
     llm_response = await _maybe_await(call_llm(llm_request))
     if not isinstance(llm_response, dict):
         raise ValueError("call_llm must return a dictionary response")
-    normalized_response = _normalize_llm_response(llm_response)
+    normalized_response = normalize_llm_response(llm_response, _response_translators_from_options(options))
 
-    llm_usage = llm_response.get("usage")
+    llm_usage = normalized_response.get("usage")
     if isinstance(llm_usage, dict):
         usage.input_tokens = llm_usage.get("input_tokens")
         usage.output_tokens = llm_usage.get("output_tokens")
@@ -585,7 +739,7 @@ async def extract(
         "warnings": warnings,
     })
 
-    context = _build_finalize_context(options, built["capabilities"], llm_response, embeddings, dynamic_extensions)
+    context = _build_finalize_context(options, built["capabilities"], llm_response, normalized_response, embeddings, dynamic_extensions)
     finalized = builder.with_finalize_context(context).finalize(stage1)
     _safe_log(callbacks, {
         "level": "info" if finalized.validation.valid else "warn",

@@ -287,3 +287,144 @@ def test_extract_dynamic_extensions_use_normalized_response_context():
     assert result.extraction["extensions"]["synapt/response_binding"]["response_status"] == "completed"
     assert result.extraction["extensions"]["synapt/response_binding"]["response_model"] == "gpt-5.5-2026-04-23"
     assert result.extraction["extensions"]["synapt/response_binding"]["embedding_count"] == 0
+
+
+def test_extract_translates_openai_raw_response_context():
+    def extend(context):
+        response = context["response"]
+        return {
+            "synapt/response_binding": {
+                "provider": response["provider"],
+                "response_id": response["id"],
+                "response_status": response["status"],
+                "response_model": response["model"],
+            }
+        }
+
+    result = asyncio.run(extract(
+        SAMPLE_TEXT,
+        {
+            "call_llm": lambda _request: {
+                "output": dict(STAGE1_FULL),
+                "raw": {
+                    "object": "response",
+                    "id": "resp_raw_123",
+                    "status": "completed",
+                    "model": "gpt-5.5-2026-04-23",
+                    "usage": {"input_tokens": 42, "output_tokens": 18},
+                },
+            },
+        },
+        profile="full",
+        extend=extend,
+    ))
+
+    assert result.validation.valid
+    assert result.extraction["produced_by"]["version"] == "1"
+    assert result.extraction["produced_by"]["model"] == "openai://gpt-5.5-2026-04-23"
+    assert result.extraction["produced_by"]["model_version"] == "gpt-5.5-2026-04-23"
+    assert result.usage.input_tokens == 42
+    assert result.usage.output_tokens == 18
+    assert result.usage.total_tokens == 60
+    assert result.extraction["extensions"]["synapt/response_binding"]["provider"] == "openai"
+    assert result.extraction["extensions"]["synapt/response_binding"]["response_id"] == "resp_raw_123"
+    assert result.extraction["extensions"]["synapt/response_binding"]["response_status"] == "completed"
+    assert result.extraction["extensions"]["synapt/response_binding"]["response_model"] == "gpt-5.5-2026-04-23"
+
+
+def test_extract_translates_anthropic_raw_response_context():
+    def extend(context):
+        response = context["response"]
+        return {
+            "synapt/response_binding": {
+                "provider": response["provider"],
+                "response_id": response["id"],
+                "response_status": response["status"],
+                "response_model": response["model"],
+                "stop_reason": response["stop_reason"],
+            }
+        }
+
+    result = asyncio.run(extract(
+        SAMPLE_TEXT,
+        {
+            "call_llm": lambda _request: {
+                "output": dict(STAGE1_FULL),
+                "raw": {
+                    "type": "message",
+                    "id": "msg_raw_123",
+                    "model": "claude-sonnet-4-20250514",
+                    "stop_reason": "end_turn",
+                    "usage": {"input_tokens": 25, "output_tokens": 15},
+                    "content": [{"type": "text", "text": "{}"}],
+                },
+            },
+        },
+        profile="full",
+        extend=extend,
+    ))
+
+    assert result.validation.valid
+    assert result.extraction["produced_by"]["version"] == "1"
+    assert result.extraction["produced_by"]["model"] == "anthropic://claude-sonnet-4-20250514"
+    assert result.extraction["produced_by"]["model_version"] == "claude-sonnet-4-20250514"
+    assert result.usage.input_tokens == 25
+    assert result.usage.output_tokens == 15
+    assert result.usage.total_tokens == 40
+    assert result.extraction["extensions"]["synapt/response_binding"]["provider"] == "anthropic"
+    assert result.extraction["extensions"]["synapt/response_binding"]["response_id"] == "msg_raw_123"
+    assert result.extraction["extensions"]["synapt/response_binding"]["response_status"] == "completed"
+    assert result.extraction["extensions"]["synapt/response_binding"]["response_model"] == "claude-sonnet-4-20250514"
+    assert result.extraction["extensions"]["synapt/response_binding"]["stop_reason"] == "end_turn"
+
+
+def test_extract_uses_custom_response_translator():
+    def response_translator(context):
+        raw = context["raw"]
+        return {
+            "provider": "local",
+            "id": raw["request_id"],
+            "status": "ok",
+            "model": raw["engine"],
+            "usage": raw["tokens"],
+        }
+
+    def extend(context):
+        response = context["response"]
+        return {
+            "synapt/response_binding": {
+                "provider": response["provider"],
+                "response_id": response["id"],
+                "response_status": response["status"],
+                "response_model": response["model"],
+            }
+        }
+
+    result = asyncio.run(extract(
+        SAMPLE_TEXT,
+        {
+            "call_llm": lambda _request: {
+                "output": dict(STAGE1_FULL),
+                "raw": {
+                    "request_id": "local_raw_123",
+                    "engine": "fixture-engine",
+                    "tokens": {"input_tokens": 7, "output_tokens": 5},
+                },
+            },
+        },
+        profile="full",
+        response_translator=response_translator,
+        extend=extend,
+    ))
+
+    assert result.validation.valid
+    assert result.extraction["produced_by"]["version"] == "1"
+    assert result.extraction["produced_by"]["model"] == "local://fixture-engine"
+    assert result.extraction["produced_by"]["model_version"] == "fixture-engine"
+    assert result.usage.input_tokens == 7
+    assert result.usage.output_tokens == 5
+    assert result.usage.total_tokens == 12
+    assert result.extraction["extensions"]["synapt/response_binding"]["provider"] == "local"
+    assert result.extraction["extensions"]["synapt/response_binding"]["response_id"] == "local_raw_123"
+    assert result.extraction["extensions"]["synapt/response_binding"]["response_status"] == "ok"
+    assert result.extraction["extensions"]["synapt/response_binding"]["response_model"] == "fixture-engine"
