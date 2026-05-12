@@ -19,18 +19,18 @@ extract is a **pure computation library**. It builds prompts from text, validate
 
 ### What extract does NOT do
 
-The proposed `extract()` callback architecture (target: v0.4.0, see `docs/callback-signature.md`) will delegate all network operations to the caller. The design ensures synapt never sees API keys, auth tokens, or user credentials. The caller will own:
+The `extract()` callback architecture delegates all network operations to the caller. The design ensures synapt never sees API keys, auth tokens, or user credentials. The caller owns:
 
 - LLM API calls (via `callLlm` callback)
 - Embedding API calls (via `getEmbedding` callback)
 - Retry logic, rate limiting, and fallback providers
 - Credential management and rotation
 
-> **Note:** The callback API is not exported in v0.3.x. The types and `extract()` function described in `docs/callback-signature.md` are proposed; implementation ships in v0.4.0.
+The callback API is exported in v0.4.0 and documented in `docs/callback-signature.md`. Its plain-object request/response shapes are intended to remain symmetric with the future WASM host-import contract.
 
 ### Forbidden APIs
 
-The following APIs MUST NOT appear in extract's source code. CI enforces this via best-effort regex scanning of source, compiled dist, and packed artifacts. The scanner catches direct usage, common obfuscation patterns (computed property access, string concatenation, array `.join()`, base64 decode, `Reflect.get`, `Function()` calls, `importlib`), and blocks unlisted runtime dependencies. Full AST-aware scanning (TypeScript compiler API + Python `ast` module) is planned for v0.4.0.
+The following APIs MUST NOT appear in extract's source code. CI enforces this via best-effort regex scanning of source, compiled dist, and packed artifacts. The scanner catches direct usage, common obfuscation patterns (computed property access, string concatenation, array `.join()`, base64 decode, `Reflect.get`, `Function()` calls, `importlib`), and blocks unlisted runtime dependencies. Full AST-aware scanning (TypeScript compiler API + Python `ast` module) remains a planned hardening step.
 
 - `fetch`, `XMLHttpRequest`, `WebSocket`
 - `node:net`, `node:http`, `node:https`, `node:http2`
@@ -97,6 +97,7 @@ If a compromised release is confirmed:
 
 | Version | Supported |
 |---------|-----------|
-| 0.3.x   | Yes       |
+| 0.4.x   | Yes       |
+| 0.3.x   | Security fixes only |
 | 0.2.x   | Security fixes only |
 | < 0.2   | No        |

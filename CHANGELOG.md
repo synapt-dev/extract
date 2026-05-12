@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## v0.4.0
 
-Experimental full extraction runner.
+Full extraction runner and callback-hosted provider pipeline.
 
 - Added `extract` / `runExtraction` in TypeScript and `extract` / `run_extraction` in Python
 - Runner builds the prompt/schema with `ExtractionBuilder`, calls a caller-supplied LLM callback, parses Stage 1 JSON, optionally calls a caller-supplied embedding callback, finalizes, and validates

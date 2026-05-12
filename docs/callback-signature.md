@@ -1,6 +1,6 @@
 # Extract Callback Signature Design
 
-**Status:** EXPERIMENTAL -- implemented as provider callbacks in TypeScript and Python for the next release. WASM symmetry remains a v0.4.0 target pending Anchor review.
+**Status:** SHIPPED in v0.4.0 as provider callbacks in TypeScript and Python. WASM symmetry remains the forward compatibility constraint for the future host-import ABI.
 **Author:** Apollo
 **Anchored to:**
 - `config/research/conversa/2026-05-04-wasm-conditions-acceptance.md` (Condition 6: API symmetry)
