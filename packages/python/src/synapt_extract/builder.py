@@ -6,7 +6,15 @@ from dataclasses import dataclass
 from typing import Any
 
 from synapt_extract.finalize import FinalizeContext, FinalizeResult, finalize_extraction
-from synapt_extract.prompt import build_extraction_prompt, resolve_capabilities
+from synapt_extract.prompt import (
+    build_extraction_prompt,
+    capability_embedding_preference,
+    capability_name,
+    expand_capability_exclusions,
+    normalize_capability_inputs,
+    profile_capabilities,
+    resolve_capabilities,
+)
 
 
 JsonSchema = dict[str, Any]
@@ -22,6 +30,65 @@ ALL_CAPABILITIES = [
     "assertion_signals", "evidence_anchoring",
     "language", "source_metadata", "confidence",
 ]
+CAPABILITY_EMBEDDING_INPUTS = {
+    "entities": "entities",
+    "entity_state": "entities",
+    "entity_context": "entities",
+    "entity_ids": "entities",
+    "relations": "entities",
+    "relation_origin": "entities",
+    "goals": "goals",
+    "goal_timing": "goals",
+    "goal_entity_refs": "goals",
+    "themes": "themes",
+    "keywords": "keywords",
+    "summary": "summary",
+    "sentiment": "sentiment",
+    "structured_sentiment": "sentiment",
+    "facts": "facts",
+    "questions": "questions",
+    "actions": "actions",
+    "decisions": "decisions",
+    "temporal_refs": "temporal_refs",
+    "temporal_classes": "temporal_refs",
+}
+
+
+def _capability_specs(capabilities: list[str], embed: bool | None = None) -> list[Any]:
+    if embed is None:
+        return list(capabilities)
+    return [{"name": capability, "embed": embed} for capability in capabilities]
+
+
+def _embedding_inputs_from_capabilities(capabilities: list[Any] | None, resolved: set[str]) -> list[str]:
+    if not capabilities:
+        return []
+    selected: list[str] = []
+    for capability in capabilities:
+        if capability_embedding_preference(capability) is not True:
+            continue
+        name = capability_name(capability)
+        if name not in resolved:
+            continue
+        input_name = CAPABILITY_EMBEDDING_INPUTS.get(name)
+        if input_name is not None and input_name not in selected:
+            selected.append(input_name)
+    return selected
+
+
+def _apply_embedding_overrides(inputs: list[str], overrides: dict[str, bool] | None) -> list[str]:
+    if not overrides:
+        return inputs
+    selected = list(inputs)
+    for capability, enabled in overrides.items():
+        input_name = CAPABILITY_EMBEDDING_INPUTS.get(capability)
+        if input_name is None:
+            continue
+        if enabled and input_name not in selected:
+            selected.append(input_name)
+        if not enabled and input_name in selected:
+            selected.remove(input_name)
+    return selected
 
 
 def _source_ref_schema(finalized: bool = False) -> JsonSchema:
@@ -508,10 +575,10 @@ def _nullable_schema(schema: Any) -> Any:
 @dataclass
 class ExtractionBuilder:
     text: str = ""
-    capabilities: list[str] | None = None
+    capabilities: list[Any] | None = None
     profile: str | None = None
-    add: list[str] | None = None
-    remove: list[str] | None = None
+    add: list[Any] | None = None
+    remove: list[Any] | None = None
     categories: list[str] | None = None
     source_type: str | None = None
     date: str | None = None
@@ -525,6 +592,7 @@ class ExtractionBuilder:
     extensions: dict[str, Any] | None = None
     embeddings: list[dict[str, Any]] | None = None
     capabilities_hint: list[str] | None = None
+    embedding_overrides: dict[str, bool] | None = None
 
     def with_text(self, text: str) -> "ExtractionBuilder":
         self.text = text
@@ -535,18 +603,50 @@ class ExtractionBuilder:
         self.capabilities = None
         return self
 
-    def with_capabilities(self, capabilities: list[str]) -> "ExtractionBuilder":
+    def minimal(self, *, embed: bool | None = None) -> "ExtractionBuilder":
+        return self._with_profile_capabilities("minimal", embed=embed)
+
+    def standard(self, *, embed: bool | None = None) -> "ExtractionBuilder":
+        return self._with_profile_capabilities("standard", embed=embed)
+
+    def full(self, *, embed: bool | None = None) -> "ExtractionBuilder":
+        return self._with_profile_capabilities("full", embed=embed)
+
+    def _with_profile_capabilities(self, profile: str, *, embed: bool | None = None) -> "ExtractionBuilder":
+        if embed is None:
+            return self.with_profile(profile)
+        self.capabilities = _capability_specs(profile_capabilities(profile), embed)
+        self.profile = None
+        return self
+
+    def with_capabilities(self, capabilities: list[Any]) -> "ExtractionBuilder":
         self.capabilities = capabilities
         self.profile = None
         return self
 
-    def add_capabilities(self, capabilities: list[str]) -> "ExtractionBuilder":
+    def add_capabilities(self, capabilities: list[Any]) -> "ExtractionBuilder":
         self.add = [*(self.add or []), *capabilities]
         return self
 
-    def remove_capabilities(self, capabilities: list[str]) -> "ExtractionBuilder":
+    def remove_capabilities(self, capabilities: list[Any]) -> "ExtractionBuilder":
         self.remove = [*(self.remove or []), *capabilities]
         return self
+
+    def minus(self, *capabilities: Any) -> "ExtractionBuilder":
+        return self.remove_capabilities(list(capabilities))
+
+    def unsupported(self, *capabilities: Any) -> "ExtractionBuilder":
+        return self.remove_capabilities(list(capabilities))
+
+    def embed(self, capability: str, enabled: bool = True) -> "ExtractionBuilder":
+        self.embedding_overrides = {**(self.embedding_overrides or {}), capability: enabled}
+        return self
+
+    def embed_capability(self, capability: str, enabled: bool = True) -> "ExtractionBuilder":
+        return self.embed(capability, enabled)
+
+    def embed_field(self, capability: str, enabled: bool = True) -> "ExtractionBuilder":
+        return self.embed(capability, enabled)
 
     def with_categories(self, categories: list[str]) -> "ExtractionBuilder":
         self.categories = categories
@@ -614,6 +714,36 @@ class ExtractionBuilder:
             add=self.add,
             remove=self.remove,
         )
+
+    def capability_plan(self) -> dict[str, Any]:
+        capabilities = self.resolved_capabilities()
+        resolved = set(capabilities)
+        excluded = expand_capability_exclusions(normalize_capability_inputs(self.remove or []))
+        embedded_inputs = _apply_embedding_overrides([
+            *(_embedding_inputs_from_capabilities(self.capabilities, resolved)),
+            *(_embedding_inputs_from_capabilities(self.add, resolved)),
+        ], self.embedding_overrides)
+        embedded_inputs = [input_name for index, input_name in enumerate(embedded_inputs) if input_name not in embedded_inputs[:index]]
+        not_embedded = [
+            capability
+            for capability in capabilities
+            if CAPABILITY_EMBEDDING_INPUTS.get(capability) is not None
+            and CAPABILITY_EMBEDDING_INPUTS[capability] not in embedded_inputs
+        ]
+        return {
+            "capabilities": capabilities,
+            "excluded": excluded,
+            "embedded_inputs": embedded_inputs,
+            "not_embedded": not_embedded,
+            "required_callbacks": {
+                "call_llm": True,
+                "get_embedding": len(embedded_inputs) > 0,
+            },
+            "prompt_characters": len(self.prompt()),
+        }
+
+    def plan(self) -> dict[str, Any]:
+        return self.capability_plan()
 
     def prompt(self) -> str:
         return build_extraction_prompt(

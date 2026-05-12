@@ -24,17 +24,27 @@ const BASE_CAPABILITIES: Set<string> = new Set(["entities", "goals", "facts", "q
 const MODIFIER_ONLY: Set<string> = new Set(["assertion_signals", "evidence_anchoring"]);
 
 export interface PromptOptions {
-  capabilities?: ExtractionCapability[];
+  capabilities?: CapabilityInput[];
   profile?: "minimal" | "standard" | "full";
-  add?: ExtractionCapability[];
-  remove?: ExtractionCapability[];
+  add?: CapabilityInput[];
+  remove?: CapabilityInput[];
   categories?: string[];
   source_type?: string;
   date?: string;
   stage?: "stage1";
   extracted_at?: string;
   compact?: boolean;
+  embed?: Partial<Record<ExtractionCapability, boolean>>;
 }
+
+export interface CapabilitySpec {
+  name?: ExtractionCapability;
+  capability?: ExtractionCapability;
+  embed?: boolean;
+  embedding?: boolean;
+}
+
+export type CapabilityInput = ExtractionCapability | CapabilitySpec;
 
 const CAPABILITY_DEPS: Partial<Record<ExtractionCapability, ExtractionCapability[]>> = {
   entity_state: ["entities"],
@@ -118,6 +128,10 @@ function loadProfile(name: string): ExtractionCapability[] {
   return data.capabilities;
 }
 
+export function profileCapabilities(profile: NonNullable<PromptOptions["profile"]>): ExtractionCapability[] {
+  return [...loadProfile(profile)];
+}
+
 function loadFragment(name: string): string {
   const path = resolve(PROMPTS_DIR, "v1", `${name}.txt`);
   return readFileSync(path, "utf-8");
@@ -141,10 +155,35 @@ function renderVars(template: string, ctx: Record<string, unknown>): string {
   });
 }
 
-function validateCapabilityNames(caps: Iterable<string>, source: string): void {
+export function capabilityName(capability: CapabilityInput): ExtractionCapability {
+  if (typeof capability === "string") return capability;
+  const name = capability.name ?? capability.capability;
+  if (typeof name !== "string") {
+    throw new Error("Capability object must include name or capability");
+  }
+  return name;
+}
+
+export function normalizeCapabilityInputs(capabilities: Iterable<CapabilityInput>): ExtractionCapability[] {
+  return [...capabilities].map(capabilityName);
+}
+
+export function capabilityRequestsEmbedding(capability: CapabilityInput): boolean {
+  return typeof capability === "object" && capability !== null && (capability.embed === true || capability.embedding === true);
+}
+
+export function capabilityEmbeddingPreference(capability: CapabilityInput): boolean | undefined {
+  if (typeof capability !== "object" || capability === null) return undefined;
+  if (typeof capability.embed === "boolean") return capability.embed;
+  if (typeof capability.embedding === "boolean") return capability.embedding;
+  return undefined;
+}
+
+function validateCapabilityNames(caps: Iterable<CapabilityInput>, source: string): void {
   const unknown: string[] = [];
   for (const c of caps) {
-    if (!VALID_CAPABILITIES.has(c)) unknown.push(c);
+    const name = capabilityName(c);
+    if (!VALID_CAPABILITIES.has(name)) unknown.push(name);
   }
   if (unknown.length > 0) {
     throw new Error(`Unknown ${source}: ${unknown.sort().join(", ")}`);
@@ -156,7 +195,7 @@ export function resolveCapabilities(options: Pick<PromptOptions, "capabilities" 
 
   if (options.capabilities != null) {
     validateCapabilityNames(options.capabilities, "capabilities");
-    caps = new Set(options.capabilities);
+    caps = new Set(normalizeCapabilityInputs(options.capabilities));
   } else if (options.profile != null) {
     caps = new Set(loadProfile(options.profile));
   } else {
@@ -165,11 +204,9 @@ export function resolveCapabilities(options: Pick<PromptOptions, "capabilities" 
 
   if (options.add) {
     validateCapabilityNames(options.add, "capabilities in add");
-    for (const c of options.add) caps.add(c);
+    for (const c of normalizeCapabilityInputs(options.add)) caps.add(c);
   }
-  if (options.remove) {
-    for (const c of options.remove) caps.delete(c);
-  }
+  const removed = new Set(options.remove ? expandCapabilityExclusions(normalizeCapabilityInputs(options.remove)) : []);
 
   let changed = true;
   while (changed) {
@@ -186,6 +223,8 @@ export function resolveCapabilities(options: Pick<PromptOptions, "capabilities" 
       }
     }
   }
+
+  for (const c of removed) caps.delete(c);
 
   if (caps.size === 0) {
     throw new Error("Resolved capability set is empty");
@@ -204,6 +243,23 @@ export function resolveCapabilities(options: Pick<PromptOptions, "capabilities" 
     const bi = CANONICAL_ORDER.indexOf(b);
     return (ai === -1 ? CANONICAL_ORDER.length : ai) - (bi === -1 ? CANONICAL_ORDER.length : bi);
   });
+}
+
+export function expandCapabilityExclusions(capabilities: Iterable<ExtractionCapability>): ExtractionCapability[] {
+  const excluded = new Set(capabilities);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const capability of VALID_CAPABILITIES as Set<ExtractionCapability>) {
+      if (excluded.has(capability)) continue;
+      const deps = CAPABILITY_DEPS[capability] ?? [];
+      if (deps.some((dep) => excluded.has(dep))) {
+        excluded.add(capability);
+        changed = true;
+      }
+    }
+  }
+  return [...excluded].sort((a, b) => CANONICAL_ORDER.indexOf(a) - CANONICAL_ORDER.indexOf(b));
 }
 
 export function buildExtractionPrompt(text: string, options: PromptOptions): string {

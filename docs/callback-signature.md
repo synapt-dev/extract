@@ -1,6 +1,6 @@
 # Extract Callback Signature Design
 
-**Status:** PROPOSED -- not shipped in v0.3.x. Target: v0.4.0. Pending Anchor review at prompt-alignment session.
+**Status:** EXPERIMENTAL -- implemented as provider callbacks in TypeScript and Python for the next release. WASM symmetry remains a v0.4.0 target pending Anchor review.
 **Author:** Apollo
 **Anchored to:**
 - `config/research/conversa/2026-05-04-wasm-conditions-acceptance.md` (Condition 6: API symmetry)
@@ -8,7 +8,7 @@
 
 ## Summary
 
-The `extract()` function accepts raw text and a callbacks object. The four callback names are publicly committed: `callLlm`, `getEmbedding`, `log`, `randomUuid`. This document defines their input/output type signatures, async patterns, error handling, and the v1.2-to-v2 symmetry guarantee.
+The `extract()` function accepts raw text and a callbacks object. The implemented callback names are `callLlm`, optional `getEmbedding`, and optional `log` in TypeScript; Python also accepts `call_llm` and `get_embedding`. `randomUuid` remains a deferred v2/WASM host-import candidate.
 
 ## Design principle: binding substitution
 
@@ -24,9 +24,8 @@ The v1.2 TypeScript callback interface and the v2 WASM host-import interface MUS
 ```typescript
 interface ExtractCallbacks {
   callLlm: (request: LlmRequest) => Promise<LlmResponse>;
-  getEmbedding: (request: EmbeddingRequest) => Promise<EmbeddingResponse>;
-  log: (entry: LogEntry) => void;
-  randomUuid: () => string;
+  getEmbedding?: (request: EmbeddingRequest) => Promise<EmbeddingResponse>;
+  log?: (entry: LogEntry) => void;
 }
 
 function extract(
@@ -38,7 +37,7 @@ function extract(
 
 ```typescript
 interface ExtractOptions {
-  capabilities?: ExtractionCapability[];
+  capabilities?: Array<ExtractionCapability | { name: ExtractionCapability; embed?: boolean }>;
   profile?: "minimal" | "standard" | "full";
   source_type?: string;
   source_id?: string;
@@ -47,6 +46,9 @@ interface ExtractOptions {
   date?: string;
   categories?: string[];
   extensions?: Record<string, unknown>;
+  embeddingInputs?: "all" | Array<"source" | "summary" | "entities" | "goals" | "themes" | "keywords" | "facts" | "questions" | "actions" | "decisions" | "temporal_refs" | "sentiment" | { input: string; text: string }>;
+  extend?: (context: ExtensionResolverContext) => Record<string, unknown> | Promise<Record<string, unknown>>;
+  extensionErrors?: "throw" | "warn";
 }
 
 interface ExtractResult {
@@ -54,13 +56,16 @@ interface ExtractResult {
   validation: ValidationResult;
   warnings: string[];
   usage: UsageSummary;
+  stage1: Record<string, unknown>;
+  embeddings: Array<Omit<SynaptEmbedding, "version">>;
 }
 
 interface UsageSummary {
   llm_calls: number;
   embedding_calls: number;
-  total_input_tokens: number;
-  total_output_tokens: number;
+  input_tokens?: number;
+  output_tokens?: number;
+  total_tokens?: number;
 }
 ```
 
@@ -72,8 +77,11 @@ Sends a prompt to an LLM and returns the text response. The caller (Conversa) ow
 
 ```typescript
 interface LlmRequest {
+  prompt: string;
   messages: LlmMessage[];
-  response_format: "json";
+  capabilities: ExtractionCapability[];
+  schema: Record<string, unknown>;
+  responseFormat: Record<string, unknown>;
   temperature?: number;
   max_tokens?: number;
 }
@@ -84,8 +92,42 @@ interface LlmMessage {
 }
 
 interface LlmResponse {
-  content: string;
+  content?: string;
+  json?: Record<string, unknown>;
+  output?: Record<string, unknown>;
+  produced_by?: string | Omit<SynaptProducer, "version">;
+  response_id?: string;
+  status?: string;
+  model?: string;
+  model_version?: string;
   usage?: LlmUsage;
+  raw?: unknown;
+}
+
+interface NormalizedLlmResponse {
+  id?: string;
+  status?: string;
+  model?: string;
+  model_version?: string;
+  produced_by?: string | Omit<SynaptProducer, "version">;
+  content?: string;
+  usage?: LlmUsage;
+  raw?: unknown;
+}
+
+interface ExtensionResolverContext {
+  sourceText: string;
+  capabilities: ExtractionCapability[];
+  prompt: string;
+  schema: Record<string, unknown>;
+  responseFormat: Record<string, unknown>;
+  llmRequest: LlmRequest;
+  response: NormalizedLlmResponse;
+  llmResponse: NormalizedLlmResponse;
+  stage1: Record<string, unknown>;
+  embeddings: Array<Omit<SynaptEmbedding, "version">>;
+  usage: UsageSummary;
+  warnings: string[];
 }
 
 interface LlmUsage {
@@ -96,15 +138,17 @@ interface LlmUsage {
 
 **Design notes:**
 
-- `messages` uses the standard system/user role pair. Synapt builds both the system prompt (from capability fragments) and the user prompt (the source text). The caller forwards these to their LLM provider.
-- `response_format: "json"` is always set. Synapt expects structured JSON output from the LLM. The caller should pass this to their provider's JSON mode if available.
+- `messages` uses a system/user role pair. The user message contains the complete builder prompt. The caller forwards these to their LLM provider.
+- `responseFormat` carries the builder-generated strict `json_schema` response format. The caller should pass this to their provider's structured-output mechanism if available.
+- The response may provide parsed `output`/`json` or JSON string `content`. `produced_by` is preferred. If omitted, `model` must already be a provider URI for the runner to derive a producer.
+- The runner normalizes provider-specific LLM responses before passing them to extension resolvers. Extensions should use `context.response.id/status/model/usage/raw` instead of depending on a callback-specific response shape.
 - `usage` is optional. If the caller's LLM provider returns token counts, pass them through. Synapt aggregates these into `UsageSummary` for metering. If omitted, metering is best-effort.
 - `temperature` defaults to `0` if not specified by the caller's provider. Synapt may set this based on the extraction profile.
 - `max_tokens` is advisory. Synapt sets it based on expected output size for the requested capabilities.
 
 **Retry semantics:** Synapt does NOT retry. If `callLlm` throws, extraction fails with the error propagated. The caller owns retry logic, rate limiting, and fallback providers. This keeps synapt's behavior deterministic and avoids surprising the caller with retries against their API quota.
 
-**Error contract:** Throw a standard `Error` on failure. Synapt catches it, attaches context (which extraction step failed), and returns it in the `ExtractResult` as a validation error. The extraction is marked invalid but the partial result is still returned for diagnostics.
+**Error contract:** Throw a standard `Error` on failure. The experimental runner does not retry and propagates callback, parse, and missing-context errors to the caller.
 
 ### `getEmbedding`
 
@@ -113,7 +157,7 @@ Computes a vector embedding for a text input. Used for pre-computed embeddings o
 ```typescript
 interface EmbeddingRequest {
   text: string;
-  input_type: "source" | "summary" | "entities" | string;
+  input: "source" | "summary" | "entities" | "goals" | "themes" | "keywords" | "facts" | "questions" | "actions" | "decisions" | "temporal_refs" | "sentiment" | string;
 }
 
 interface EmbeddingResponse {
@@ -125,13 +169,30 @@ interface EmbeddingResponse {
 
 **Design notes:**
 
-- `input_type` tells the caller what is being embedded. This is informational; some providers optimize for different input types (e.g., passage vs query).
+- `input` tells the caller what is being embedded. This is informational; some providers optimize for different input types (e.g., passage vs query).
 - `model` in the response is the model identifier the caller used. Synapt records this in the extraction's `embeddings[]` array. The caller decides which embedding model to use; synapt just records what was used.
 - `dimensions` must equal `vector.length`. Synapt validates this.
 
 **Retry semantics:** Same as `callLlm`. No retries from synapt. Caller owns retry and fallback.
 
-**When called:** Only when the caller requests embeddings via `ExtractOptions` (not yet specified; likely a `compute_embeddings?: boolean` or `embedding_inputs?: string[]` option). Not called by default. This keeps the common extraction path free of embedding API calls.
+**When called:** Only when the caller requests embeddings via `ExtractOptions.embeddingInputs` (`embedding_inputs` in Python). Not called by default. This keeps the common extraction path free of embedding API calls.
+
+Capability entries may also request embeddings inline: `{ name: "entities", embed: true }`. Inline capability embeddings are merged with explicit embedding inputs, so callers can request `{ name: "summary", embed: true }` plus `embeddingInputs: ["source"]`.
+
+### `extend`
+
+Builds dynamic extensions from the normalized response, parsed Stage 1 output, embeddings, and usage. It runs after embeddings and before finalization, so returned extension objects receive `version: "1"` like static extensions.
+
+```typescript
+extend: ({ response, stage1, embeddings }) => ({
+  "synapt/response_binding": {
+    response_id: response.id,
+    response_model: response.model,
+    stage1_fields: Object.keys(stage1).length,
+    embedding_count: embeddings.length,
+  },
+})
+```
 
 ### `log`
 
@@ -154,21 +215,6 @@ interface LogEntry {
 
 **Error handling:** If `log` throws, synapt silently ignores the error. Logging must never break extraction.
 
-### `randomUuid`
-
-Generates a UUID string. Used for entity ID assignment when the LLM doesn't produce IDs and `entity_ids` capability is requested.
-
-```typescript
-randomUuid: () => string;
-```
-
-**Design notes:**
-
-- Must return a valid UUID string (any version). Synapt does not validate the format beyond checking it's a non-empty string.
-- In v1.2 TypeScript, this is typically `() => crypto.randomUUID()`.
-- In v2 WASM, this becomes a host import because WASM modules don't have access to `crypto.randomUUID()`. The host provides the randomness source.
-- The caller MAY return deterministic UUIDs for reproducibility (e.g., seeded UUID v5 from a namespace + counter). This supports the reproducibility contract from Condition 4.
-
 ## v2 WASM symmetry
 
 The table below shows how each v1.2 TypeScript callback maps to v2 WASM:
@@ -178,9 +224,9 @@ The table below shows how each v1.2 TypeScript callback maps to v2 WASM:
 | `callLlm(req) => Promise<LlmResponse>` | `(extern "synapt") call_llm(req: LlmRequest) -> LlmResponse` | WASI Preview 2 async |
 | `getEmbedding(req) => Promise<EmbeddingResponse>` | `(extern "synapt") get_embedding(req: EmbeddingRequest) -> EmbeddingResponse` | WASI Preview 2 async |
 | `log(entry) => void` | `(extern "synapt") log(entry: LogEntry)` | Sync (fire and forget) |
-| `randomUuid() => string` | `(extern "synapt") random_uuid() -> String` | Sync |
+| deferred `randomUuid() => string` | `(extern "synapt") random_uuid() -> String` | Sync |
 
-**Name mapping:** TypeScript uses camelCase (`callLlm`); WASM imports use snake_case (`call_llm`). This is the only difference. The mapping is mechanical and documented here.
+**Name mapping:** TypeScript uses camelCase (`callLlm`); Python and future WASM imports use snake_case (`call_llm`). The mapping is mechanical and documented here.
 
 **Serialization:** In v1.2, arguments are TypeScript objects passed by reference. In v2, arguments cross the WASM ABI as JSON-serialized buffers (Component Model canonical ABI for records). The shapes are identical; only the transport changes.
 
@@ -189,20 +235,20 @@ The table below shows how each v1.2 TypeScript callback maps to v2 WASM:
 ## For Anchor's review
 
 **Settled (non-negotiable):**
-- Four callback names: `callLlm`, `getEmbedding`, `log`, `randomUuid`
+- Implemented callback names: `callLlm`, optional `getEmbedding`, optional `log`
 - No-retry policy: synapt never retries; caller owns retry logic
-- `response_format: "json"` always set on LLM calls
+- `responseFormat` carries the builder-generated JSON schema on LLM calls
 - `log` is fire-and-forget; errors silently ignored
-- v1.2/v2 structural symmetry (Condition 6)
+- v1.2/v2 structural symmetry remains the design constraint for callback records
 
 **Negotiable (want Anchor's eyes on):**
 - `LlmRequest.messages` shape: is system+user sufficient, or does Conversa need assistant/tool roles for multi-turn extraction? Current design is single-turn (one system + one user message).
 - `LlmUsage` granularity: is input/output tokens sufficient, or does Conversa need cache-read/cache-write breakdowns for cost tracking?
 - `LogEntry.stage` enum values: are these the right pipeline stages for Conversa's observability needs? Missing any?
-- `getEmbedding` trigger: should embeddings be opt-in per call, or should the callback simply not be called if the caller doesn't want embeddings? (Current design: opt-in via ExtractOptions.)
+- Whether `"all"` is the right default convenience selector for embedding coverage, or whether callers should always name embedding inputs explicitly.
 - `ExtractResult.usage`: is a flat summary sufficient, or does Conversa need per-call usage breakdown?
 
 **Questions for Anchor:**
-1. Does Conversa's edge function environment support `crypto.randomUUID()`? If not, we need to document the fallback.
+1. Does Conversa's edge function environment need host-supplied UUID generation, or can entity IDs remain model-emitted local IDs?
 2. What is Conversa's preferred error shape? Plain `Error` with message, or structured error with code/details?
 3. Does Conversa want streaming LLM responses in v1.2, or is single-response sufficient for launch? (We recommend deferring streaming to v2.)

@@ -25,7 +25,7 @@ export { finalizeExtraction } from "./finalize.js";
 export type { FinalizeContext, FinalizeResult } from "./finalize.js";
 
 export { buildExtractionPrompt, resolveCapabilities } from "./prompt.js";
-export type { PromptOptions } from "./prompt.js";
+export type { CapabilityInput, CapabilitySpec, PromptOptions } from "./prompt.js";
 
 export {
   ExtractionBuilder,
@@ -35,3 +35,26 @@ export {
   createExtractionBuilder,
 } from "./builder.js";
 export type { ExtractionBuilderOptions, ExtractionBuilderResult, JsonSchema, ResponseFormatOptions } from "./builder.js";
+export type { CapabilityPlan, CapabilityProfileOptions, EmbeddableInput } from "./builder.js";
+
+export { extract, runExtraction } from "./extract.js";
+export type {
+  CustomEmbeddingInput,
+  EmbeddingInputSelection,
+  EmbeddingInputSelector,
+  EmbeddingRequest,
+  EmbeddingResponse,
+  ExtractCallbacks,
+  ExtractOptions,
+  ExtractResult,
+  ExtensionResolver,
+  ExtensionResolverContext,
+  LlmMessage,
+  LlmRequest,
+  LlmResponse,
+  LlmUsage,
+  LogEntry,
+  NamedEmbeddingInput,
+  NormalizedLlmResponse,
+  UsageSummary,
+} from "./extract.js";
