@@ -12,16 +12,16 @@ This repo contains the v1 schema, types, validators, finalization pipeline, and 
 
 | Package | Registry | Install |
 |---------|----------|---------|
-| `@synapt-dev/extract` | npm | `npm install @synapt-dev/extract@0.4.0` |
-| `synapt-extract` | PyPI | `pip install synapt-extract==0.4.0` |
+| `@synapt-dev/extract` | npm | `npm install @synapt-dev/extract@0.4.1` |
+| `synapt-extract` | PyPI | `pip install synapt-extract==0.4.1` |
 
 **Deno:**
 
 ```typescript
-import { buildExtractionPrompt } from "npm:@synapt-dev/extract@0.4.0";
+import { buildExtractionPrompt } from "npm:@synapt-dev/extract@0.4.1";
 ```
 
-**Version pinning:** Always pin to an exact version (`@0.4.0`, `==0.4.0`). Do not use ranges (`^0.4.0`, `~0.4.0`, `>=0.4.0`). The IL schema evolves across minor versions (v1.1 added `produced_by` object form, v1.2 added 8 new fields). Pinning prevents unexpected schema changes from affecting your extraction pipeline.
+**Version pinning:** Always pin to an exact version (`@0.4.1`, `==0.4.1`). Do not use ranges (`^0.4.1`, `~0.4.1`, `>=0.4.1`). The IL schema evolves across minor versions (v1.1 added `produced_by` object form, v1.2 added 8 new fields). Pinning prevents unexpected schema changes from affecting your extraction pipeline.
 
 ## Quick start
 
@@ -150,6 +150,40 @@ built = builder.build(name="synapt_extract_stage1")
 ## Full extraction runner
 
 Use `extract()` when you want the library to execute the full pipeline while your application owns the model and embedding API calls. The callbacks receive typed JSON requests, so callers can route to OpenAI, another provider, a local model, or a test fixture. Both packages export callback contracts such as `LlmCallback`, `LlmRequest`, `LlmResponse`, `EmbeddingCallback`, `EmbeddingRequest`, and `EmbeddingResponse`.
+
+For OpenAI-compatible clients, use the thin adapter instead of writing callbacks by hand. The library still does not own credentials or provider setup; pass a caller-owned client and optional artifact directory.
+
+```typescript
+import OpenAI from "openai";
+import { extractOpenAI } from "@synapt-dev/extract/openai";
+
+const result = await extractOpenAI(text, new OpenAI(), {
+  profile: "full",
+  model: "gpt-5.5",
+  reasoningEffort: "medium",
+  embeddingModel: "text-embedding-3-small",
+  embeddingInputs: ["source"],
+  artifactDirectory: "./artifacts",
+});
+```
+
+```python
+from openai import OpenAI
+from synapt_extract import extract_openai
+
+result = await extract_openai(
+    text,
+    OpenAI(),
+    profile="full",
+    model="gpt-5.5",
+    reasoning_effort="medium",
+    embedding_model="text-embedding-3-small",
+    embedding_inputs=["source"],
+    artifact_dir="./artifacts",
+)
+```
+
+The returned result includes `artifactBundle` / `artifact_bundle`. TypeScript exports the Node artifact writer at `@synapt-dev/extract/artifacts`; Python exports `write_artifact_bundle()` from `synapt_extract`.
 
 ```typescript
 import { extract } from "@synapt-dev/extract";

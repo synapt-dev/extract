@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.4.1
+
+OpenAI-compatible convenience adapters and fixture bundles.
+
+- Added `extractOpenAI` at `@synapt-dev/extract/openai` and `extract_openai` in Python for caller-owned OpenAI-compatible clients
+- Added artifact bundle helpers that capture source text, prompt, provider request/response envelopes, embedding runs, Stage 1 output, finalized extraction, validation, warnings, and usage
+- Adapter-generated `produced_by` now includes model URI, model version, optional deployment/operator, prompt hash, reasoning effort, temperature/top_p, and max token configuration
+- Added tests for the adapter path, embedding calls, artifact file output, and no-network guard compatibility
+
 ## v0.4.0
 
 Full extraction runner and callback-hosted provider pipeline.

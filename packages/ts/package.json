@@ -1,6 +1,6 @@
 {
   "name": "@synapt-dev/extract",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "SynaptExtraction IL v1 -- schema, validation, and finalization",
   "type": "module",
   "main": "dist/index.js",
@@ -9,6 +9,14 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./artifacts": {
+      "import": "./dist/artifacts.js",
+      "types": "./dist/artifacts.d.ts"
+    },
+    "./openai": {
+      "import": "./dist/openai.js",
+      "types": "./dist/openai.d.ts"
     }
   },
   "publishConfig": {

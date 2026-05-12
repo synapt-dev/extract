@@ -52,6 +52,15 @@ from synapt_extract.extract import (
     NormalizedLlmResponse,
     UsageSummary,
 )
+from synapt_extract.artifacts import (
+    create_artifact_bundle,
+    sha256_text,
+    write_artifact_bundle,
+)
+from synapt_extract.openai import (
+    extract_openai,
+    OpenAIExtractResult,
+)
 
 __all__ = [
     "SynaptExtraction",
@@ -102,4 +111,9 @@ __all__ = [
     "LogEntry",
     "NormalizedLlmResponse",
     "UsageSummary",
+    "create_artifact_bundle",
+    "sha256_text",
+    "write_artifact_bundle",
+    "extract_openai",
+    "OpenAIExtractResult",
 ]
