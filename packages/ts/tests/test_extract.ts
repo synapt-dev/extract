@@ -289,4 +289,158 @@ describe("extract", () => {
       embedding_count: 0,
     });
   });
+
+  test("translates OpenAI raw responses into normalized context", async () => {
+    const result = await extract(
+      SAMPLE_TEXT,
+      {
+        callLlm: () => ({
+          output: STAGE1_FULL,
+          raw: {
+            object: "response",
+            id: "resp_raw_123",
+            status: "completed",
+            model: "gpt-5.5-2026-04-23",
+            usage: { input_tokens: 42, output_tokens: 18 },
+          },
+        }),
+      },
+      {
+        profile: "full",
+        extend: ({ response }) => ({
+          "synapt/response_binding": {
+            provider: response.provider,
+            response_id: response.id,
+            response_status: response.status,
+            response_model: response.model,
+          },
+        }),
+      },
+    );
+
+    expect(result.validation.valid).toBe(true);
+    expect(result.extraction.produced_by).toMatchObject({
+      version: "1",
+      model: "openai://gpt-5.5-2026-04-23",
+      model_version: "gpt-5.5-2026-04-23",
+    });
+    expect(result.usage).toMatchObject({
+      llm_calls: 1,
+      input_tokens: 42,
+      output_tokens: 18,
+      total_tokens: 60,
+    });
+    expect(result.extraction.extensions?.["synapt/response_binding"]).toMatchObject({
+      version: "1",
+      provider: "openai",
+      response_id: "resp_raw_123",
+      response_status: "completed",
+      response_model: "gpt-5.5-2026-04-23",
+    });
+  });
+
+  test("translates Anthropic raw responses into normalized context", async () => {
+    const result = await extract(
+      SAMPLE_TEXT,
+      {
+        callLlm: () => ({
+          output: STAGE1_FULL,
+          raw: {
+            type: "message",
+            id: "msg_raw_123",
+            model: "claude-sonnet-4-20250514",
+            stop_reason: "end_turn",
+            usage: { input_tokens: 25, output_tokens: 15 },
+            content: [{ type: "text", text: "{}" }],
+          },
+        }),
+      },
+      {
+        profile: "full",
+        extend: ({ response }) => ({
+          "synapt/response_binding": {
+            provider: response.provider,
+            response_id: response.id,
+            response_status: response.status,
+            response_model: response.model,
+            stop_reason: response.stop_reason,
+          },
+        }),
+      },
+    );
+
+    expect(result.validation.valid).toBe(true);
+    expect(result.extraction.produced_by).toMatchObject({
+      version: "1",
+      model: "anthropic://claude-sonnet-4-20250514",
+      model_version: "claude-sonnet-4-20250514",
+    });
+    expect(result.usage).toMatchObject({
+      llm_calls: 1,
+      input_tokens: 25,
+      output_tokens: 15,
+      total_tokens: 40,
+    });
+    expect(result.extraction.extensions?.["synapt/response_binding"]).toMatchObject({
+      version: "1",
+      provider: "anthropic",
+      response_id: "msg_raw_123",
+      response_status: "completed",
+      response_model: "claude-sonnet-4-20250514",
+      stop_reason: "end_turn",
+    });
+  });
+
+  test("uses custom response translators for provider-specific raw shapes", async () => {
+    const result = await extract(
+      SAMPLE_TEXT,
+      {
+        callLlm: () => ({
+          output: STAGE1_FULL,
+          raw: {
+            request_id: "local_raw_123",
+            engine: "fixture-engine",
+            tokens: { input_tokens: 7, output_tokens: 5 },
+          },
+        }),
+      },
+      {
+        profile: "full",
+        responseTranslator: ({ raw }) => ({
+          provider: "local",
+          id: String(raw?.request_id),
+          status: "ok",
+          model: String(raw?.engine),
+          usage: raw?.tokens as { input_tokens: number; output_tokens: number },
+        }),
+        extend: ({ response }) => ({
+          "synapt/response_binding": {
+            provider: response.provider,
+            response_id: response.id,
+            response_status: response.status,
+            response_model: response.model,
+          },
+        }),
+      },
+    );
+
+    expect(result.validation.valid).toBe(true);
+    expect(result.extraction.produced_by).toMatchObject({
+      version: "1",
+      model: "local://fixture-engine",
+      model_version: "fixture-engine",
+    });
+    expect(result.usage).toMatchObject({
+      input_tokens: 7,
+      output_tokens: 5,
+      total_tokens: 12,
+    });
+    expect(result.extraction.extensions?.["synapt/response_binding"]).toMatchObject({
+      version: "1",
+      provider: "local",
+      response_id: "local_raw_123",
+      response_status: "ok",
+      response_model: "fixture-engine",
+    });
+  });
 });

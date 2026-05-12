@@ -26,7 +26,7 @@ from synapt_extract.builder import (
     build_extraction_response_format,
     create_extraction_builder,
 )
-from synapt_extract.extract import extract, run_extraction, ExtractResult, UsageSummary
+from synapt_extract.extract import extract, normalize_llm_response, run_extraction, ExtractResult, UsageSummary
 
 __all__ = [
     "SynaptExtraction",
@@ -57,6 +57,7 @@ __all__ = [
     "build_extraction_response_format",
     "create_extraction_builder",
     "extract",
+    "normalize_llm_response",
     "run_extraction",
     "ExtractResult",
     "UsageSummary",
