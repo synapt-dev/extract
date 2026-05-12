@@ -1,6 +1,6 @@
 {
   "name": "@synapt-dev/extract",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "SynaptExtraction IL v1 -- schema, validation, and finalization",
   "type": "module",
   "main": "dist/index.js",
@@ -35,7 +35,7 @@
     "check:universal": "npm run build && node ../../scripts/check-ts-universal-entry.mjs dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepack": "rm -rf ./prompts ./schemas && test -d ../../prompts && cp -r ../../prompts ./prompts || true && test -d ../../schemas && cp -r ../../schemas ./schemas || true"
+    "prepack": "rm -r ./prompts ./schemas 2>/dev/null || true; test -d ../../prompts && cp -r ../../prompts ./prompts || true; test -d ../../schemas && cp -r ../../schemas ./schemas || true"
   },
   "keywords": [
     "synapt",

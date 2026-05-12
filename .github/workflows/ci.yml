@@ -37,7 +37,8 @@ jobs:
       - run: pip install build
 
       - run: |
-          test -d ../../prompts && rm -rf src/synapt_extract/prompts && cp -r ../../prompts src/synapt_extract/prompts || true
+          rm -r src/synapt_extract/prompts 2>/dev/null || true
+          test -d ../../prompts && cp -r ../../prompts src/synapt_extract/prompts || true
 
       - run: python -m build
 
@@ -204,9 +205,10 @@ jobs:
           SOURCE_DATE_EPOCH: "1704067200"
         run: |
           pip install build
-          test -d ../../prompts && rm -rf src/synapt_extract/prompts && cp -r ../../prompts src/synapt_extract/prompts || true
+          rm -r src/synapt_extract/prompts 2>/dev/null || true
+          test -d ../../prompts && cp -r ../../prompts src/synapt_extract/prompts || true
           python -m build --outdir /tmp/py-dist-1
-          rm -rf src/synapt_extract.egg-info build
+          rm -r src/synapt_extract.egg-info build 2>/dev/null || true
           python -m build --outdir /tmp/py-dist-2
           # Verify wheel determinism (the installable artifact).
           # sdist (.tar.gz) is excluded: setuptools embeds wall-clock
