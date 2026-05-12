@@ -1,4 +1,4 @@
-import type { SynaptExtraction, ExtractionCapability } from "./schema.js";
+import { EXTRACTION_CAPABILITIES, type SynaptExtraction, type ExtractionCapability } from "./schema.js";
 
 export interface ValidationError {
   path: string;
@@ -10,16 +10,7 @@ export interface ValidationResult {
   errors: ValidationError[];
 }
 
-const VALID_CAPABILITIES: Set<string> = new Set([
-  "entities", "entity_state", "entity_context", "entity_ids",
-  "goals", "goal_timing", "goal_entity_refs",
-  "themes", "keywords", "summary", "sentiment", "structured_sentiment",
-  "facts", "questions", "actions", "decisions",
-  "temporal_refs", "temporal_classes",
-  "relations", "relation_origin",
-  "assertion_signals", "evidence_anchoring",
-  "language", "source_metadata", "confidence",
-]);
+const VALID_CAPABILITIES: Set<string> = new Set(EXTRACTION_CAPABILITIES);
 
 const VALID_GOAL_STATUSES: Set<string> = new Set([
   "open", "resolved", "abandoned", "in_progress",

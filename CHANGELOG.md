@@ -11,6 +11,8 @@ Experimental full extraction runner.
 - Added fluent `minimal`/`standard`/`full`, `minus`, `unsupported`, `embed`, and `plan` builder helpers
 - Added dynamic extension resolvers with normalized LLM response envelopes so extensions can depend on response ids, model, status, usage, Stage 1 output, and embeddings without knowing provider-specific response shapes
 - Added OpenAI and Anthropic raw response translators plus custom response translator hooks for normalized extension inputs
+- Added a shared `prompts/capabilities.json` registry for capability order, dependencies, profile membership, prompt rules, omitted fields, and embedding inputs
+- Exported typed LLM and embedding callback contracts in both TypeScript and Python
 - Added tests covering full-profile extraction, structured producer metadata, embeddings, usage aggregation, and missing embedding-callback errors
 
 ## v0.3.2

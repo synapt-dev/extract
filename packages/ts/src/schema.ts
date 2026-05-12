@@ -128,32 +128,18 @@ export interface SynaptSourceMetadata {
   format?: string;
 }
 
-export type ExtractionCapability =
-  | "entities"
-  | "entity_state"
-  | "entity_context"
-  | "entity_ids"
-  | "goals"
-  | "goal_timing"
-  | "goal_entity_refs"
-  | "themes"
-  | "keywords"
-  | "summary"
-  | "sentiment"
-  | "structured_sentiment"
-  | "facts"
-  | "questions"
-  | "actions"
-  | "decisions"
-  | "temporal_refs"
-  | "temporal_classes"
-  | "relations"
-  | "relation_origin"
-  | "assertion_signals"
-  | "evidence_anchoring"
-  | "language"
-  | "source_metadata"
-  | "confidence";
+export const EXTRACTION_CAPABILITIES = [
+  "entities", "entity_state", "entity_context", "entity_ids",
+  "goals", "goal_timing", "goal_entity_refs",
+  "themes", "keywords", "summary", "sentiment", "structured_sentiment",
+  "facts", "questions", "actions", "decisions",
+  "temporal_refs", "temporal_classes",
+  "relations", "relation_origin",
+  "assertion_signals", "evidence_anchoring",
+  "language", "source_metadata", "confidence",
+] as const;
+
+export type ExtractionCapability = typeof EXTRACTION_CAPABILITIES[number];
 
 export interface SynaptExtraction {
   version: "1";

@@ -1,0 +1,216 @@
+{
+  "version": "1",
+  "profiles": {
+    "minimal": [
+      "entities",
+      "entity_state",
+      "goals",
+      "themes",
+      "summary"
+    ],
+    "standard": [
+      "entities",
+      "entity_state",
+      "entity_context",
+      "goals",
+      "goal_timing",
+      "themes",
+      "summary",
+      "sentiment",
+      "facts",
+      "temporal_refs",
+      "evidence_anchoring"
+    ],
+    "full": [
+      "entities",
+      "entity_state",
+      "entity_context",
+      "entity_ids",
+      "goals",
+      "goal_timing",
+      "goal_entity_refs",
+      "themes",
+      "keywords",
+      "summary",
+      "sentiment",
+      "structured_sentiment",
+      "facts",
+      "questions",
+      "actions",
+      "decisions",
+      "temporal_refs",
+      "temporal_classes",
+      "relations",
+      "relation_origin",
+      "assertion_signals",
+      "evidence_anchoring",
+      "language",
+      "source_metadata",
+      "confidence"
+    ]
+  },
+  "omit_when_absent": [
+    "keywords",
+    "questions",
+    "actions",
+    "decisions",
+    "language",
+    "source_metadata",
+    "confidence"
+  ],
+  "standard_embedding_inputs": [
+    "source",
+    "summary",
+    "entities",
+    "goals",
+    "themes",
+    "keywords",
+    "facts",
+    "questions",
+    "actions",
+    "decisions",
+    "temporal_refs",
+    "sentiment"
+  ],
+  "capabilities": [
+    {
+      "name": "entities",
+      "base": true,
+      "embedding_input": "entities"
+    },
+    {
+      "name": "goals",
+      "base": true,
+      "embedding_input": "goals"
+    },
+    {
+      "name": "themes",
+      "embedding_input": "themes"
+    },
+    {
+      "name": "keywords",
+      "embedding_input": "keywords",
+      "rule": "Extract specific terms from the source, not topical categories (those go in themes)."
+    },
+    {
+      "name": "summary",
+      "embedding_input": "summary"
+    },
+    {
+      "name": "sentiment",
+      "embedding_input": "sentiment"
+    },
+    {
+      "name": "structured_sentiment",
+      "depends_on": [
+        "sentiment"
+      ],
+      "embedding_input": "sentiment",
+      "rule": "Return sentiment as an object with \"valence\" (positive/negative/neutral/mixed), optional \"intensity\" (0.0-1.0), and optional \"confidence\" (0.0-1.0)."
+    },
+    {
+      "name": "facts",
+      "base": true,
+      "embedding_input": "facts"
+    },
+    {
+      "name": "questions",
+      "base": true,
+      "embedding_input": "questions"
+    },
+    {
+      "name": "actions",
+      "base": true,
+      "embedding_input": "actions",
+      "rule": "Set origin to \"extracted\" for actions stated in the text, \"proposed_from_goals\" for actions inferred from goals."
+    },
+    {
+      "name": "decisions",
+      "base": true,
+      "embedding_input": "decisions"
+    },
+    {
+      "name": "temporal_refs",
+      "embedding_input": "temporal_refs",
+      "rule": "Resolve all relative dates to absolute dates."
+    },
+    {
+      "name": "entity_state",
+      "depends_on": [
+        "entities"
+      ],
+      "embedding_input": "entities"
+    },
+    {
+      "name": "entity_context",
+      "depends_on": [
+        "entities"
+      ],
+      "embedding_input": "entities"
+    },
+    {
+      "name": "entity_ids",
+      "depends_on": [
+        "entities"
+      ],
+      "embedding_input": "entities",
+      "rule": "Assign each entity a short local ID (\"e1\", \"e2\", etc.). Goals and relations reference entities by ID."
+    },
+    {
+      "name": "goal_timing",
+      "depends_on": [
+        "goals"
+      ],
+      "embedding_input": "goals"
+    },
+    {
+      "name": "goal_entity_refs",
+      "depends_on": [
+        "goals",
+        "entity_ids"
+      ],
+      "embedding_input": "goals"
+    },
+    {
+      "name": "temporal_classes",
+      "depends_on": [
+        "temporal_refs"
+      ],
+      "embedding_input": "temporal_refs"
+    },
+    {
+      "name": "relations",
+      "depends_on": [
+        "entities",
+        "entity_ids"
+      ],
+      "embedding_input": "entities"
+    },
+    {
+      "name": "relation_origin",
+      "depends_on": [
+        "relations"
+      ],
+      "embedding_input": "entities",
+      "rule": "Mark relation origin: \"explicit\" if stated in text, \"inferred\" if deduced from context, \"dependent\" if derived from another relation."
+    },
+    {
+      "name": "assertion_signals",
+      "modifier_only": true,
+      "rule": "Preserve negation, hedging, and conditions in signals. \"I might move\" \u2192 hedged=true. \"No longer using Redis\" \u2192 negated=true. \"If we get funding\" \u2192 condition=\"we get funding\"."
+    },
+    {
+      "name": "evidence_anchoring",
+      "modifier_only": true
+    },
+    {
+      "name": "language"
+    },
+    {
+      "name": "source_metadata"
+    },
+    {
+      "name": "confidence"
+    }
+  ]
+}

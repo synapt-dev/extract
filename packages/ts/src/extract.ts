@@ -1,6 +1,12 @@
 import { ExtractionBuilder, type ExtractionBuilderOptions, type JsonSchema, type ResponseFormatOptions } from "./builder.js";
 import type { FinalizeContext, FinalizeResult } from "./finalize.js";
-import { capabilityEmbeddingPreference, capabilityName, type CapabilityInput } from "./prompt.js";
+import {
+  STANDARD_EMBEDDING_INPUTS as STANDARD_EMBEDDING_INPUT_NAMES,
+  capabilityEmbeddingInput,
+  capabilityEmbeddingPreference,
+  capabilityName,
+  type CapabilityInput,
+} from "./prompt.js";
 import type { ExtractionCapability, SynaptEmbedding } from "./schema.js";
 import type { ValidationResult } from "./validate.js";
 
@@ -99,10 +105,14 @@ export interface LogEntry {
   data?: Record<string, unknown>;
 }
 
+export type LlmCallback = (request: LlmRequest) => Promise<LlmResponse> | LlmResponse;
+export type EmbeddingCallback = (request: EmbeddingRequest) => Promise<EmbeddingResponse> | EmbeddingResponse;
+export type LogCallback = (entry: LogEntry) => void;
+
 export interface ExtractCallbacks {
-  callLlm: (request: LlmRequest) => Promise<LlmResponse> | LlmResponse;
-  getEmbedding?: (request: EmbeddingRequest) => Promise<EmbeddingResponse> | EmbeddingResponse;
-  log?: (entry: LogEntry) => void;
+  callLlm: LlmCallback;
+  getEmbedding?: EmbeddingCallback;
+  log?: LogCallback;
 }
 
 export interface UsageSummary {
@@ -164,42 +174,11 @@ export interface ExtractResult {
 }
 
 const SYSTEM_MESSAGE = "You are a deterministic information extraction engine. Return only JSON matching the supplied schema.";
-const STANDARD_EMBEDDING_INPUTS: NamedEmbeddingInput[] = [
-  "source",
-  "summary",
-  "entities",
-  "goals",
-  "themes",
-  "keywords",
-  "facts",
-  "questions",
-  "actions",
-  "decisions",
-  "temporal_refs",
-  "sentiment",
-];
-const CAPABILITY_EMBEDDING_INPUTS: Partial<Record<ExtractionCapability, NamedEmbeddingInput>> = {
-  entities: "entities",
-  entity_state: "entities",
-  entity_context: "entities",
-  entity_ids: "entities",
-  relations: "entities",
-  relation_origin: "entities",
-  goals: "goals",
-  goal_timing: "goals",
-  goal_entity_refs: "goals",
-  themes: "themes",
-  keywords: "keywords",
-  summary: "summary",
-  sentiment: "sentiment",
-  structured_sentiment: "sentiment",
-  facts: "facts",
-  questions: "questions",
-  actions: "actions",
-  decisions: "decisions",
-  temporal_refs: "temporal_refs",
-  temporal_classes: "temporal_refs",
-};
+function namedEmbeddingInputForCapability(capability: ExtractionCapability): NamedEmbeddingInput | undefined {
+  return capabilityEmbeddingInput(capability) as NamedEmbeddingInput | undefined;
+}
+
+const STANDARD_EMBEDDING_INPUTS = STANDARD_EMBEDDING_INPUT_NAMES as NamedEmbeddingInput[];
 
 function safeLog(callbacks: ExtractCallbacks, entry: LogEntry): void {
   try {
@@ -477,7 +456,7 @@ function deriveEmbeddingSelectionFromCapabilityInputs(capabilities: CapabilityIn
     if (capabilityEmbeddingPreference(capability) !== true) continue;
     const name = capabilityName(capability);
     if (!resolved.has(name)) continue;
-    const input = CAPABILITY_EMBEDDING_INPUTS[name];
+    const input = namedEmbeddingInputForCapability(name);
     if (input !== undefined && !selected.includes(input)) {
       selected.push(input);
     }
@@ -489,7 +468,7 @@ function applyEmbeddingOverrides(inputs: EmbeddingInputSelector[], overrides: Pa
   if (!overrides) return inputs;
   const selected = [...inputs];
   for (const [capability, enabled] of Object.entries(overrides) as [ExtractionCapability, boolean][]) {
-    const input = CAPABILITY_EMBEDDING_INPUTS[capability];
+    const input = namedEmbeddingInputForCapability(capability);
     if (input === undefined) continue;
     const index = selected.indexOf(input);
     if (enabled && index === -1) selected.push(input);

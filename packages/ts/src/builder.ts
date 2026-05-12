@@ -2,6 +2,8 @@ import { finalizeExtraction, type FinalizeContext, type FinalizeResult } from ".
 import type { ExtractionCapability } from "./schema.js";
 import {
   buildExtractionPrompt,
+  CANONICAL_ORDER,
+  capabilityEmbeddingInput,
   capabilityEmbeddingPreference,
   capabilityName,
   expandCapabilityExclusions,
@@ -61,38 +63,11 @@ export interface CapabilityPlan {
 }
 
 const DEFAULT_RESPONSE_FORMAT_NAME = "synapt_extraction_stage1";
-const ALL_CAPABILITIES: ExtractionCapability[] = [
-  "entities", "entity_state", "entity_context", "entity_ids",
-  "goals", "goal_timing", "goal_entity_refs",
-  "themes", "keywords", "summary", "sentiment", "structured_sentiment",
-  "facts", "questions", "actions", "decisions",
-  "temporal_refs", "temporal_classes",
-  "relations", "relation_origin",
-  "assertion_signals", "evidence_anchoring",
-  "language", "source_metadata", "confidence",
-];
-const CAPABILITY_EMBEDDING_INPUTS: Partial<Record<ExtractionCapability, EmbeddableInput>> = {
-  entities: "entities",
-  entity_state: "entities",
-  entity_context: "entities",
-  entity_ids: "entities",
-  relations: "entities",
-  relation_origin: "entities",
-  goals: "goals",
-  goal_timing: "goals",
-  goal_entity_refs: "goals",
-  themes: "themes",
-  keywords: "keywords",
-  summary: "summary",
-  sentiment: "sentiment",
-  structured_sentiment: "sentiment",
-  facts: "facts",
-  questions: "questions",
-  actions: "actions",
-  decisions: "decisions",
-  temporal_refs: "temporal_refs",
-  temporal_classes: "temporal_refs",
-};
+const ALL_CAPABILITIES: ExtractionCapability[] = [...CANONICAL_ORDER];
+
+function embeddableInputForCapability(capability: ExtractionCapability): EmbeddableInput | undefined {
+  return capabilityEmbeddingInput(capability) as EmbeddableInput | undefined;
+}
 
 function capabilitySpecs(capabilities: ExtractionCapability[], embed?: boolean): CapabilityInput[] {
   if (embed === undefined) return capabilities;
@@ -106,7 +81,7 @@ function embeddingInputsFromCapabilities(capabilities: CapabilityInput[] | undef
     if (capabilityEmbeddingPreference(capability) !== true) continue;
     const name = capabilityName(capability);
     if (!resolved.has(name)) continue;
-    const input = CAPABILITY_EMBEDDING_INPUTS[name];
+    const input = embeddableInputForCapability(name);
     if (input !== undefined && !selected.includes(input)) selected.push(input);
   }
   return selected;
@@ -116,7 +91,7 @@ function applyEmbeddingOverrides(inputs: EmbeddableInput[], overrides: Partial<R
   if (!overrides) return inputs;
   const selected = [...inputs];
   for (const [capability, enabled] of Object.entries(overrides) as [ExtractionCapability, boolean][]) {
-    const input = CAPABILITY_EMBEDDING_INPUTS[capability];
+    const input = embeddableInputForCapability(capability);
     if (input === undefined) continue;
     const index = selected.indexOf(input);
     if (enabled && index === -1) selected.push(input);
@@ -856,7 +831,7 @@ export class ExtractionBuilder {
       ...embeddingInputsFromCapabilities(this.options.add, resolved),
     ].filter((input, index, arr) => arr.indexOf(input) === index), this.options.embed);
     const notEmbedded = capabilities.filter((capability) => {
-      const input = CAPABILITY_EMBEDDING_INPUTS[capability];
+      const input = embeddableInputForCapability(capability);
       return input !== undefined && !embeddedInputs.includes(input);
     });
 

@@ -2,30 +2,141 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { ExtractionCapability } from "./schema.js";
+import { EXTRACTION_CAPABILITIES, type ExtractionCapability } from "./schema.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const _installedPrompts = resolve(__dirname, "..", "prompts");
 const _repoPrompts = resolve(__dirname, "..", "..", "..", "prompts");
 const PROMPTS_DIR = existsSync(_installedPrompts) ? _installedPrompts : _repoPrompts;
 
-const VALID_CAPABILITIES: Set<string> = new Set([
-  "entities", "entity_state", "entity_context", "entity_ids",
-  "goals", "goal_timing", "goal_entity_refs",
-  "themes", "keywords", "summary", "sentiment", "structured_sentiment",
-  "facts", "questions", "actions", "decisions",
-  "temporal_refs", "temporal_classes",
-  "relations", "relation_origin",
-  "assertion_signals", "evidence_anchoring",
-  "language", "source_metadata", "confidence",
-]);
+export type PromptProfile = "minimal" | "standard" | "full";
 
-const BASE_CAPABILITIES: Set<string> = new Set(["entities", "goals", "facts", "questions", "actions", "decisions"]);
-const MODIFIER_ONLY: Set<string> = new Set(["assertion_signals", "evidence_anchoring"]);
+export interface CapabilityDefinition {
+  name: ExtractionCapability;
+  depends_on?: ExtractionCapability[];
+  embedding_input?: string;
+  base?: boolean;
+  modifier_only?: boolean;
+  rule?: string;
+}
+
+export interface CapabilityRegistry {
+  version: "1";
+  profiles: Record<PromptProfile, ExtractionCapability[]>;
+  omit_when_absent: ExtractionCapability[];
+  standard_embedding_inputs: string[];
+  capabilities: CapabilityDefinition[];
+}
+
+function duplicateValues(values: string[]): string[] {
+  return values.filter((value, index) => values.indexOf(value) !== index);
+}
+
+function validateCapabilityRegistry(registry: CapabilityRegistry, sourcePath: string): void {
+  const schemaCapabilities = new Set<string>(EXTRACTION_CAPABILITIES);
+  const names = registry.capabilities.map((definition) => definition.name);
+  const registryCapabilities = new Set<string>(names);
+  const duplicateCapabilities = duplicateValues(names);
+  if (duplicateCapabilities.length > 0) {
+    throw new Error(`Capability registry has duplicate capabilities: ${[...new Set(duplicateCapabilities)].sort().join(", ")}`);
+  }
+
+  const unknown = names.filter((name) => !schemaCapabilities.has(name));
+  if (unknown.length > 0) {
+    throw new Error(`Capability registry contains unknown capabilities: ${unknown.sort().join(", ")}`);
+  }
+
+  const missing = EXTRACTION_CAPABILITIES.filter((name) => !registryCapabilities.has(name));
+  if (missing.length > 0) {
+    throw new Error(`Capability registry is missing schema capabilities: ${missing.sort().join(", ")}`);
+  }
+
+  for (const definition of registry.capabilities) {
+    for (const dep of definition.depends_on ?? []) {
+      if (!registryCapabilities.has(dep)) {
+        throw new Error(`Capability registry dependency ${definition.name}.${dep} is not a valid capability`);
+      }
+    }
+  }
+
+  for (const [profile, capabilities] of Object.entries(registry.profiles) as [PromptProfile, ExtractionCapability[]][]) {
+    for (const capability of capabilities) {
+      if (!registryCapabilities.has(capability)) {
+        throw new Error(`Profile ${profile} references unknown capability ${capability}`);
+      }
+    }
+  }
+
+  for (const capability of registry.omit_when_absent) {
+    if (!registryCapabilities.has(capability)) {
+      throw new Error(`omit_when_absent references unknown capability ${capability}`);
+    }
+  }
+
+  if (!Array.isArray(registry.standard_embedding_inputs)) {
+    throw new Error("Capability registry standard_embedding_inputs must be a list");
+  }
+  const embeddingInputs = new Set<string>([
+    "source",
+    ...registry.capabilities
+      .map((definition) => definition.embedding_input)
+      .filter((input): input is string => typeof input === "string"),
+  ]);
+  for (const input of registry.standard_embedding_inputs) {
+    if (!embeddingInputs.has(input)) {
+      throw new Error(`standard_embedding_inputs references unknown input ${input}`);
+    }
+  }
+
+  if (registry.version !== "1") {
+    throw new Error(`Unsupported capability registry version in ${sourcePath}: ${registry.version}`);
+  }
+}
+
+function loadCapabilityRegistry(): CapabilityRegistry {
+  const path = resolve(PROMPTS_DIR, "capabilities.json");
+  if (!existsSync(path)) {
+    throw new Error(`Missing capability registry: ${path}`);
+  }
+  const registry = JSON.parse(readFileSync(path, "utf-8")) as CapabilityRegistry;
+  validateCapabilityRegistry(registry, path);
+  return registry;
+}
+
+export const CAPABILITY_REGISTRY = loadCapabilityRegistry();
+export const CANONICAL_ORDER: ExtractionCapability[] = CAPABILITY_REGISTRY.capabilities.map((definition) => definition.name);
+export const VALID_CAPABILITIES: Set<string> = new Set(CANONICAL_ORDER);
+export const BASE_CAPABILITIES: Set<string> = new Set(
+  CAPABILITY_REGISTRY.capabilities
+    .filter((definition) => definition.base === true)
+    .map((definition) => definition.name),
+);
+export const MODIFIER_ONLY: Set<string> = new Set(
+  CAPABILITY_REGISTRY.capabilities
+    .filter((definition) => definition.modifier_only === true)
+    .map((definition) => definition.name),
+);
+export const CAPABILITY_DEPS: Partial<Record<ExtractionCapability, ExtractionCapability[]>> = Object.fromEntries(
+  CAPABILITY_REGISTRY.capabilities
+    .filter((definition) => definition.depends_on !== undefined)
+    .map((definition) => [definition.name, definition.depends_on ?? []]),
+) as Partial<Record<ExtractionCapability, ExtractionCapability[]>>;
+export const CAPABILITY_RULES: Partial<Record<ExtractionCapability, string>> = Object.fromEntries(
+  CAPABILITY_REGISTRY.capabilities
+    .filter((definition) => definition.rule !== undefined)
+    .map((definition) => [definition.name, definition.rule ?? ""]),
+) as Partial<Record<ExtractionCapability, string>>;
+export const OMIT_WHEN_ABSENT: ExtractionCapability[] = CAPABILITY_REGISTRY.omit_when_absent;
+export const STANDARD_EMBEDDING_INPUTS: string[] = CAPABILITY_REGISTRY.standard_embedding_inputs;
+const CAPABILITY_EMBEDDING_INPUTS: Partial<Record<ExtractionCapability, string>> = Object.fromEntries(
+  CAPABILITY_REGISTRY.capabilities
+    .filter((definition) => definition.embedding_input !== undefined)
+    .map((definition) => [definition.name, definition.embedding_input ?? ""]),
+) as Partial<Record<ExtractionCapability, string>>;
 
 export interface PromptOptions {
   capabilities?: CapabilityInput[];
-  profile?: "minimal" | "standard" | "full";
+  profile?: PromptProfile;
   add?: CapabilityInput[];
   remove?: CapabilityInput[];
   categories?: string[];
@@ -45,39 +156,6 @@ export interface CapabilitySpec {
 }
 
 export type CapabilityInput = ExtractionCapability | CapabilitySpec;
-
-const CAPABILITY_DEPS: Partial<Record<ExtractionCapability, ExtractionCapability[]>> = {
-  entity_state: ["entities"],
-  entity_context: ["entities"],
-  entity_ids: ["entities"],
-  goal_timing: ["goals"],
-  goal_entity_refs: ["goals", "entity_ids"],
-  structured_sentiment: ["sentiment"],
-  temporal_classes: ["temporal_refs"],
-  relations: ["entities", "entity_ids"],
-  relation_origin: ["relations"],
-};
-
-const CANONICAL_ORDER: ExtractionCapability[] = [
-  "entities", "goals", "themes", "keywords", "summary", "sentiment", "structured_sentiment",
-  "facts", "questions", "actions", "decisions", "temporal_refs",
-  "entity_state", "entity_context", "entity_ids",
-  "goal_timing", "goal_entity_refs",
-  "temporal_classes",
-  "relations", "relation_origin",
-  "assertion_signals", "evidence_anchoring",
-  "language", "source_metadata", "confidence",
-];
-
-const CAPABILITY_RULES: Partial<Record<ExtractionCapability, string>> = {
-  entity_ids: 'Assign each entity a short local ID ("e1", "e2", etc.). Goals and relations reference entities by ID.',
-  temporal_refs: "Resolve all relative dates to absolute dates.",
-  relation_origin: 'Mark relation origin: "explicit" if stated in text, "inferred" if deduced from context, "dependent" if derived from another relation.',
-  assertion_signals: 'Preserve negation, hedging, and conditions in signals. "I might move" → hedged=true. "No longer using Redis" → negated=true. "If we get funding" → condition="we get funding".',
-  structured_sentiment: 'Return sentiment as an object with "valence" (positive/negative/neutral/mixed), optional "intensity" (0.0-1.0), and optional "confidence" (0.0-1.0).',
-  actions: 'Set origin to "extracted" for actions stated in the text, "proposed_from_goals" for actions inferred from goals.',
-  keywords: "Extract specific terms from the source, not topical categories (those go in themes).",
-};
 
 function buildRunConstraintRules(resolved: ExtractionCapability[], options: PromptOptions): string[] {
   const rules: string[] = [];
@@ -110,7 +188,7 @@ function buildRunConstraintRules(resolved: ExtractionCapability[], options: Prom
   if (!capabilities.has("assertion_signals")) {
     rules.push("Omit signals fields for this run.");
   }
-  for (const capability of ["keywords", "questions", "actions", "decisions", "language", "source_metadata", "confidence"] as const) {
+  for (const capability of OMIT_WHEN_ABSENT) {
     if (!capabilities.has(capability)) {
       rules.push(`Omit ${capability} for this run.`);
     }
@@ -120,16 +198,18 @@ function buildRunConstraintRules(resolved: ExtractionCapability[], options: Prom
 }
 
 function loadProfile(name: string): ExtractionCapability[] {
-  const path = resolve(PROMPTS_DIR, "profiles", `${name}.json`);
-  if (!existsSync(path)) {
+  if (!(name in CAPABILITY_REGISTRY.profiles)) {
     throw new Error(`Unknown profile: ${name}`);
   }
-  const data = JSON.parse(readFileSync(path, "utf-8")) as { capabilities: ExtractionCapability[] };
-  return data.capabilities;
+  return CAPABILITY_REGISTRY.profiles[name as PromptProfile];
 }
 
 export function profileCapabilities(profile: NonNullable<PromptOptions["profile"]>): ExtractionCapability[] {
   return [...loadProfile(profile)];
+}
+
+export function capabilityEmbeddingInput(capability: ExtractionCapability): string | undefined {
+  return CAPABILITY_EMBEDDING_INPUTS[capability];
 }
 
 function loadFragment(name: string): string {

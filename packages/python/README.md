@@ -43,7 +43,7 @@ assert result.validation.valid
 |---------|------------|--------------|
 | `minimal` | 3B-7B local | entities, entity_state, goals, themes, summary |
 | `standard` | GPT-4o-mini, Haiku | + entity_context, goal_timing, facts, temporal_refs, sentiment, evidence_anchoring |
-| `full` | GPT-4o, Sonnet, Opus | + entity_ids, goal_entity_refs, relations, relation_origin, assertion_signals, temporal_classes |
+| `full` | GPT-4o, Sonnet, Opus | + entity_ids, goal_entity_refs, keywords, structured_sentiment, questions, actions, decisions, relations, relation_origin, assertion_signals, temporal_classes, language, source_metadata, confidence |
 
 ## Prompt and schema builder
 
@@ -75,7 +75,7 @@ built = builder.build(name="synapt_extract_stage1")
 
 ## Full extraction runner
 
-Use `extract()` when you want synapt-extract to run prompt construction, the LLM callback, optional embedding callbacks, finalization, and validation while your application owns provider credentials and routing.
+Use `extract()` when you want synapt-extract to run prompt construction, the LLM callback, optional embedding callbacks, finalization, and validation while your application owns provider credentials and routing. The package exports typed callback contracts such as `LlmCallback`, `LlmRequest`, `LlmResponse`, `EmbeddingCallback`, `EmbeddingRequest`, and `EmbeddingResponse`.
 
 ```python
 from synapt_extract import extract

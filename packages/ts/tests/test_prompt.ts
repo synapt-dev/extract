@@ -4,11 +4,16 @@ import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
 
 import {
+  CAPABILITY_REGISTRY,
+  CANONICAL_ORDER,
+  EXTRACTION_CAPABILITIES,
   ExtractionBuilder,
+  STANDARD_EMBEDDING_INPUTS,
   buildFinalizedExtractionSchema,
   buildExtractionPrompt,
   buildExtractionResponseFormat,
   buildExtractionSchema,
+  capabilityEmbeddingInput,
   createExtractionBuilder,
   resolveCapabilities,
 } from "../src/index.js";
@@ -268,6 +273,39 @@ describe("registry consistency", () => {
   const capabilityFragments = fragmentFiles.filter((f) => f !== "preamble" && f !== "postamble");
 
   const fullProfile = loadJson<{ capabilities: string[] }>(PROMPTS_DIR, "profiles", "full.json").capabilities;
+
+  test("capability registry covers schema capabilities in canonical order", () => {
+    expect(CAPABILITY_REGISTRY.capabilities.map((definition) => definition.name)).toEqual(CANONICAL_ORDER);
+    expect(new Set(CANONICAL_ORDER)).toEqual(new Set(EXTRACTION_CAPABILITIES));
+  });
+
+  test("capability registry profiles match legacy profile files", () => {
+    for (const profile of ["minimal", "standard", "full"] as const) {
+      const fileProfile = loadJson<{ capabilities: string[] }>(PROMPTS_DIR, "profiles", `${profile}.json`).capabilities;
+      expect(CAPABILITY_REGISTRY.profiles[profile]).toEqual(fileProfile);
+    }
+  });
+
+  test("capability registry exposes embedding inputs", () => {
+    expect(capabilityEmbeddingInput("entities")).toBe("entities");
+    expect(capabilityEmbeddingInput("entity_state")).toBe("entities");
+    expect(capabilityEmbeddingInput("structured_sentiment")).toBe("sentiment");
+    expect(capabilityEmbeddingInput("confidence")).toBeUndefined();
+    expect(STANDARD_EMBEDDING_INPUTS).toEqual([
+      "source",
+      "summary",
+      "entities",
+      "goals",
+      "themes",
+      "keywords",
+      "facts",
+      "questions",
+      "actions",
+      "decisions",
+      "temporal_refs",
+      "sentiment",
+    ]);
+  });
 
   test("every capability in full profile has a fragment file", () => {
     for (const cap of fullProfile) {

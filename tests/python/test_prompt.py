@@ -442,6 +442,40 @@ class TestProfileFiles:
 
 class TestRegistryConsistency:
 
+    def test_capability_registry_covers_schema_capabilities_in_canonical_order(self):
+        from synapt_extract.schema import EXTRACTION_CAPABILITIES
+        from synapt_extract.prompt import CAPABILITY_REGISTRY, CANONICAL_ORDER
+        assert [definition["name"] for definition in CAPABILITY_REGISTRY["capabilities"]] == CANONICAL_ORDER
+        assert set(CANONICAL_ORDER) == EXTRACTION_CAPABILITIES
+
+    def test_capability_registry_profiles_match_legacy_profile_files(self):
+        from synapt_extract.prompt import CAPABILITY_REGISTRY
+        profiles_dir = Path(__file__).resolve().parents[2] / "prompts" / "profiles"
+        for profile in ("minimal", "standard", "full"):
+            file_profile = json.loads((profiles_dir / f"{profile}.json").read_text())["capabilities"]
+            assert CAPABILITY_REGISTRY["profiles"][profile] == file_profile
+
+    def test_capability_registry_exposes_embedding_inputs(self):
+        from synapt_extract.prompt import STANDARD_EMBEDDING_INPUTS, capability_embedding_input
+        assert capability_embedding_input("entities") == "entities"
+        assert capability_embedding_input("entity_state") == "entities"
+        assert capability_embedding_input("structured_sentiment") == "sentiment"
+        assert capability_embedding_input("confidence") is None
+        assert list(STANDARD_EMBEDDING_INPUTS) == [
+            "source",
+            "summary",
+            "entities",
+            "goals",
+            "themes",
+            "keywords",
+            "facts",
+            "questions",
+            "actions",
+            "decisions",
+            "temporal_refs",
+            "sentiment",
+        ]
+
     def test_every_capability_has_fragment_file(self):
         from synapt_extract.schema import EXTRACTION_CAPABILITIES
         prompts_dir = Path(__file__).resolve().parents[2] / "prompts" / "v1"

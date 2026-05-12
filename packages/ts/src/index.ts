@@ -17,6 +17,7 @@ export type {
   SynaptProducerConfiguration,
   ExtractionCapability,
 } from "./schema.js";
+export { EXTRACTION_CAPABILITIES } from "./schema.js";
 
 export { validateExtraction } from "./validate.js";
 export type { ValidationResult, ValidationError } from "./validate.js";
@@ -24,8 +25,23 @@ export type { ValidationResult, ValidationError } from "./validate.js";
 export { finalizeExtraction } from "./finalize.js";
 export type { FinalizeContext, FinalizeResult } from "./finalize.js";
 
-export { buildExtractionPrompt, resolveCapabilities } from "./prompt.js";
-export type { CapabilityInput, CapabilitySpec, PromptOptions } from "./prompt.js";
+export {
+  buildExtractionPrompt,
+  capabilityEmbeddingInput,
+  CAPABILITY_REGISTRY,
+  CANONICAL_ORDER,
+  profileCapabilities,
+  resolveCapabilities,
+  STANDARD_EMBEDDING_INPUTS,
+} from "./prompt.js";
+export type {
+  CapabilityDefinition,
+  CapabilityInput,
+  CapabilityRegistry,
+  CapabilitySpec,
+  PromptOptions,
+  PromptProfile,
+} from "./prompt.js";
 
 export {
   ExtractionBuilder,
@@ -47,8 +63,10 @@ export type {
   ExtractCallbacks,
   ExtractOptions,
   ExtractResult,
+  EmbeddingCallback,
   ExtensionResolver,
   ExtensionResolverContext,
+  LlmCallback,
   LlmMessage,
   LlmRequest,
   LlmResponse,
@@ -56,6 +74,7 @@ export type {
   LlmResponseTranslator,
   LlmResponseTranslatorContext,
   LlmUsage,
+  LogCallback,
   LogEntry,
   NamedEmbeddingInput,
   NormalizedLlmResponse,
