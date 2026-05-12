@@ -134,16 +134,38 @@ describe("extract", () => {
     expect(plan.capabilities).toContain("entities");
     expect(plan.capabilities).not.toContain("questions");
     expect(plan.excluded).toContain("questions");
+    expect(plan.embeddedInputs[0]).toBe("source");
     expect(plan.embeddedInputs).toContain("entities");
     expect(plan.embeddedInputs).not.toContain("questions");
     expect(plan.embeddedInputs).not.toContain("summary");
     expect(plan.requiredCallbacks).toEqual({ callLlm: true, getEmbedding: true });
     expect(plan.promptCharacters).toBeGreaterThan(0);
+
+    expect(createExtractionBuilder(SAMPLE_TEXT).full({ embed: true }).extractOptions().embeddingInputs).toEqual([
+      "source",
+      "summary",
+      "entities",
+      "goals",
+      "themes",
+      "keywords",
+      "facts",
+      "questions",
+      "actions",
+      "decisions",
+      "temporal_refs",
+      "sentiment",
+    ]);
   });
 
   test("runs full profile LLM extraction and embedding callbacks", async () => {
     const llmRequests: LlmRequest[] = [];
     const embeddingRequests: EmbeddingRequest[] = [];
+
+    const builder = createExtractionBuilder(SAMPLE_TEXT)
+      .full({ embed: true })
+      .withSource({ source_id: "fixture-full-1", source_type: "message" })
+      .withUserId("user-1")
+      .withKind("synapt/test");
 
     const result = await extract(
       SAMPLE_TEXT,
@@ -171,14 +193,7 @@ describe("extract", () => {
           };
         },
       },
-      {
-        profile: "full",
-        source_id: "fixture-full-1",
-        source_type: "message",
-        user_id: "user-1",
-        kind: "synapt/test",
-        embeddingInputs: "all",
-      },
+      builder.extractOptions(),
     );
 
     expect(llmRequests).toHaveLength(1);

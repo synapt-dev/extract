@@ -134,11 +134,27 @@ def test_plans_fluent_full_minus_embed_capability_ux():
     assert "entities" in plan["capabilities"]
     assert "questions" not in plan["capabilities"]
     assert "questions" in plan["excluded"]
+    assert plan["embedded_inputs"][0] == "source"
     assert "entities" in plan["embedded_inputs"]
     assert "questions" not in plan["embedded_inputs"]
     assert "summary" not in plan["embedded_inputs"]
     assert plan["required_callbacks"] == {"call_llm": True, "get_embedding": True}
     assert plan["prompt_characters"] > 0
+
+    assert create_extraction_builder(SAMPLE_TEXT).full(embed=True).extract_options()["embedding_inputs"] == [
+        "source",
+        "summary",
+        "entities",
+        "goals",
+        "themes",
+        "keywords",
+        "facts",
+        "questions",
+        "actions",
+        "decisions",
+        "temporal_refs",
+        "sentiment",
+    ]
 
 
 def test_extract_runs_full_profile_llm_and_embedding_callbacks():
@@ -167,15 +183,18 @@ def test_extract_runs_full_profile_llm_and_embedding_callbacks():
             "computed_at": "2026-05-12T14:00:01Z",
         }
 
+    builder = (
+        create_extraction_builder(SAMPLE_TEXT)
+        .full(embed=True)
+        .with_source(source_id="fixture-full-1", source_type="message")
+        .with_user_id("user-1")
+        .with_kind("synapt/test")
+    )
+
     result = asyncio.run(extract(
         SAMPLE_TEXT,
         {"call_llm": call_llm, "get_embedding": get_embedding},
-        profile="full",
-        source_id="fixture-full-1",
-        source_type="message",
-        user_id="user-1",
-        kind="synapt/test",
-        embedding_inputs="all",
+        **builder.extract_options(),
     ))
 
     assert len(llm_requests) == 1

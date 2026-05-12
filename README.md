@@ -155,30 +155,39 @@ For OpenAI-compatible clients, use the thin adapter instead of writing callbacks
 
 ```typescript
 import OpenAI from "openai";
+import { createExtractionBuilder } from "@synapt-dev/extract";
 import { extractOpenAI } from "@synapt-dev/extract/openai";
 
+const builder = createExtractionBuilder(text)
+  .full({ embed: true })
+  .withSource({ source_id: "note-1", source_type: "note" });
+
 const result = await extractOpenAI(text, new OpenAI(), {
-  profile: "full",
+  ...builder.extractOptions(),
   model: "gpt-5.5",
   reasoningEffort: "medium",
   embeddingModel: "text-embedding-3-small",
-  embeddingInputs: ["source"],
   artifactDirectory: "./artifacts",
 });
 ```
 
 ```python
 from openai import OpenAI
-from synapt_extract import extract_openai
+from synapt_extract import create_extraction_builder, extract_openai
+
+builder = (
+    create_extraction_builder(text)
+    .full(embed=True)
+    .with_source(source_id="note-1", source_type="note")
+)
 
 result = await extract_openai(
     text,
     OpenAI(),
-    profile="full",
+    **builder.extract_options(),
     model="gpt-5.5",
     reasoning_effort="medium",
     embedding_model="text-embedding-3-small",
-    embedding_inputs=["source"],
     artifact_dir="./artifacts",
 )
 ```
@@ -186,7 +195,11 @@ result = await extract_openai(
 The returned result includes `artifactBundle` / `artifact_bundle`. TypeScript exports the Node artifact writer at `@synapt-dev/extract/artifacts`; Python exports `write_artifact_bundle()` from `synapt_extract`.
 
 ```typescript
-import { extract } from "@synapt-dev/extract";
+import { createExtractionBuilder, extract } from "@synapt-dev/extract";
+
+const builder = createExtractionBuilder(text)
+  .full({ embed: true })
+  .withSource({ source_id: "note-1", source_type: "note" });
 
 const result = await extract(text, {
   callLlm: async (request) => {
@@ -201,15 +214,7 @@ const result = await extract(text, {
     return { vector, model: "openai://text-embedding-3-small" };
   },
 }, {
-  capabilities: [
-    { name: "entities", embed: true },
-    { name: "goals", embed: true },
-    { name: "summary", embed: true },
-    "themes",
-  ],
-  source_id: "note-1",
-  source_type: "note",
-  embeddingInputs: ["source"],
+  ...builder.extractOptions(),
   extend: ({ response, stage1, embeddings }) => ({
     "synapt/response_binding": {
       response_id: response.id,
@@ -222,7 +227,13 @@ const result = await extract(text, {
 ```
 
 ```python
-from synapt_extract import extract
+from synapt_extract import create_extraction_builder, extract
+
+builder = (
+    create_extraction_builder(text)
+    .full(embed=True)
+    .with_source(source_id="note-1", source_type="note")
+)
 
 result = await extract(
     text,
@@ -230,15 +241,7 @@ result = await extract(
         "call_llm": call_llm,
         "get_embedding": get_embedding,
     },
-    capabilities=[
-        {"name": "entities", "embed": True},
-        {"name": "goals", "embed": True},
-        {"name": "summary", "embed": True},
-        "themes",
-    ],
-    source_id="note-1",
-    source_type="note",
-    embedding_inputs=["source"],
+    **builder.extract_options(),
     extend=lambda ctx: {
         "synapt/response_binding": {
             "response_id": ctx["response"].get("id"),
@@ -250,7 +253,7 @@ result = await extract(
 )
 ```
 
-Capability entries can be plain strings or `{ name, embed: true }` specs. The runner derives embeddings from embedded capability specs and merges them with explicit embedding inputs such as `"source"`. `embeddingInputs: "all"` / `embedding_inputs="all"` remains available for exhaustive tests and computes embeddings for source, summary, entities, goals, themes, keywords, facts, questions, actions, decisions, temporal refs, and sentiment when those fields exist. Embeddings are opt-in; if no embedding inputs are requested and no capability has `embed: true`, no embedding API call is made.
+Profile helpers keep the public UX short: `.full({ embed: true })` resolves the full capability set and standard embedding inputs, including the source text. Capability entries can still be plain strings or `{ name, embed: true }` specs for lower-level control. `embeddingInputs: "all"` / `embedding_inputs="all"` remains available for exhaustive tests and computes embeddings for source, summary, entities, goals, themes, keywords, facts, questions, actions, decisions, temporal refs, and sentiment when those fields exist. Embeddings are opt-in; if no embedding inputs are requested and no capability has `embed: true`, no embedding API call is made.
 
 The `extend` resolver runs after the LLM response is parsed and embeddings are computed, but before finalization. It receives a normalized response envelope (`response.provider`, `response.id`, `response.status`, `response.model`, `response.stop_reason`, `response.usage`, and `response.raw`), so extensions can depend on provider output without knowing the provider's raw response shape. Raw OpenAI Responses and Anthropic Messages objects are translated automatically when returned as `raw`; callers can pass `responseTranslator` for custom providers. If `produced_by` is omitted, the runner can derive `openai://...` or `anthropic://...` producer metadata from normalized provider/model fields. Returned extension objects are merged over static `extensions` and receive `version: "1"` during finalization.
 
@@ -264,7 +267,7 @@ const plan = createExtractionBuilder(text)
   .plan();
 ```
 
-`plan()` reports resolved capabilities, excluded capabilities, embedding inputs, requested-but-not-embedded capabilities, required callbacks, and prompt character count.
+`plan()` reports resolved capabilities, excluded capabilities, embedding inputs, requested-but-not-embedded capabilities, required callbacks, and prompt character count. `extractOptions()` / `extract_options()` returns the same resolved run contract for `extract()` and the OpenAI adapters.
 
 ## JSON Schema
 
