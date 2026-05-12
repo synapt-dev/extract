@@ -1,6 +1,15 @@
 import { describe, expect, test } from "vitest";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import { createExtractionBuilder, extract, type EmbeddingRequest, type LlmRequest } from "../src/index.js";
+import {
+  createExtractionBuilder,
+  extract,
+  type EmbeddingRequest,
+  type LlmRequest,
+} from "../src/index.js";
+import { extractOpenAI, type OpenAICompatibleClient } from "../src/openai.js";
 
 const SAMPLE_TEXT = [
   "On May 10, 2026, Layne told Mark that Synapt should ship the extraction builder by Friday.",
@@ -441,6 +450,110 @@ describe("extract", () => {
       response_id: "local_raw_123",
       response_status: "ok",
       response_model: "fixture-engine",
+    });
+  });
+
+  test("runs through the OpenAI-compatible adapter and writes artifacts", async () => {
+    const responseBodies: Record<string, unknown>[] = [];
+    const embeddingBodies: Record<string, unknown>[] = [];
+    const artifactDirectory = mkdtempSync(join(tmpdir(), "synapt-extract-openai-"));
+
+    const client: OpenAICompatibleClient = {
+      responses: {
+        create: async (body) => {
+          responseBodies.push(body);
+          return {
+            object: "response",
+            id: "resp_adapter_123",
+            status: "completed",
+            model: "gpt-5.5-2026-04-23",
+            output_text: JSON.stringify(STAGE1_FULL),
+            usage: { input_tokens: 101, output_tokens: 55 },
+          };
+        },
+      },
+      embeddings: {
+        create: async (body) => {
+          embeddingBodies.push(body);
+          return {
+            object: "list",
+            model: "text-embedding-3-small",
+            data: [{ embedding: [0.1, 0.2, 0.3] }],
+          };
+        },
+      },
+    };
+
+    const result = await extractOpenAI(SAMPLE_TEXT, client, {
+      profile: "full",
+      source_id: "fixture-openai-adapter",
+      source_type: "message",
+      kind: "synapt/test",
+      model: "gpt-5.5",
+      reasoningEffort: "medium",
+      maxOutputTokens: 2048,
+      textVerbosity: "low",
+      embeddingModel: "text-embedding-3-small",
+      embeddingDimensions: 3,
+      embeddingInputs: ["source"],
+      deployment: "test-suite",
+      operator: "synapt-dev",
+      responseFormatName: "synapt_adapter_stage1",
+      artifactDirectory,
+    });
+
+    expect(responseBodies).toHaveLength(1);
+    expect(responseBodies[0]).toMatchObject({
+      model: "gpt-5.5",
+      reasoning: { effort: "medium" },
+      max_output_tokens: 2048,
+    });
+    expect(responseBodies[0].text).toMatchObject({
+      verbosity: "low",
+      format: { type: "json_schema", name: "synapt_adapter_stage1" },
+    });
+    expect(embeddingBodies).toEqual([
+      { model: "text-embedding-3-small", input: SAMPLE_TEXT, dimensions: 3 },
+    ]);
+    expect(result.validation.valid).toBe(true);
+    expect(result.extraction.produced_by).toMatchObject({
+      model: "openai://gpt-5.5",
+      model_version: "gpt-5.5-2026-04-23",
+      deployment: "test-suite",
+      operator: "synapt-dev",
+      configuration: {
+        reasoning_effort: "medium",
+        max_tokens: 2048,
+        response_format: "synapt_adapter_stage1",
+      },
+    });
+    expect(result.extraction.embeddings?.[0]).toMatchObject({
+      input: "source",
+      model: "openai://text-embedding-3-small",
+      dimensions: 3,
+      space: "cosine",
+    });
+    expect(result.usage).toMatchObject({
+      llm_calls: 1,
+      embedding_calls: 1,
+      input_tokens: 101,
+      output_tokens: 55,
+      total_tokens: 156,
+    });
+    expect(result.artifactBundle.source.text).toBe(SAMPLE_TEXT);
+    expect(result.artifactBundle.prompt?.sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(result.artifactBundle.llm?.request).toMatchObject({
+      model: "gpt-5.5",
+      max_output_tokens: 2048,
+    });
+    expect(result.artifactBundle.llm?.response).toMatchObject({
+      id: "resp_adapter_123",
+      model: "gpt-5.5-2026-04-23",
+    });
+    expect(existsSync(join(artifactDirectory, "source.txt"))).toBe(true);
+    expect(JSON.parse(readFileSync(join(artifactDirectory, "extraction.json"), "utf8"))).toMatchObject({
+      source_id: "fixture-openai-adapter",
+      produced_by: { model: "openai://gpt-5.5" },
     });
   });
 });

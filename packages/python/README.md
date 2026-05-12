@@ -77,6 +77,26 @@ built = builder.build(name="synapt_extract_stage1")
 
 Use `extract()` when you want synapt-extract to run prompt construction, the LLM callback, optional embedding callbacks, finalization, and validation while your application owns provider credentials and routing. The package exports typed callback contracts such as `LlmCallback`, `LlmRequest`, `LlmResponse`, `EmbeddingCallback`, `EmbeddingRequest`, and `EmbeddingResponse`.
 
+For OpenAI-compatible clients, use the thin adapter instead of writing callbacks by hand. The package still does not own credentials or provider setup; pass a caller-owned client and optional artifact directory.
+
+```python
+from openai import OpenAI
+from synapt_extract import extract_openai
+
+result = await extract_openai(
+    text,
+    OpenAI(),
+    profile="full",
+    model="gpt-5.5",
+    reasoning_effort="medium",
+    embedding_model="text-embedding-3-small",
+    embedding_inputs=["source"],
+    artifact_dir="./artifacts",
+)
+```
+
+The returned result includes `artifact_bundle`. `write_artifact_bundle()` can also write a bundle created from any `extract()` result.
+
 ```python
 from synapt_extract import extract
 

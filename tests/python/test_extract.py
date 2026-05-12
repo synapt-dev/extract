@@ -10,7 +10,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "packages" / "python" / "src"))
 
-from synapt_extract import create_extraction_builder, extract
+from synapt_extract import create_extraction_builder, extract, extract_openai
 
 
 SAMPLE_TEXT = (
@@ -428,3 +428,104 @@ def test_extract_uses_custom_response_translator():
     assert result.extraction["extensions"]["synapt/response_binding"]["response_id"] == "local_raw_123"
     assert result.extraction["extensions"]["synapt/response_binding"]["response_status"] == "ok"
     assert result.extraction["extensions"]["synapt/response_binding"]["response_model"] == "fixture-engine"
+
+
+def test_extract_openai_adapter_writes_artifacts(tmp_path):
+    class FakeResponse:
+        def __init__(self, payload):
+            self.payload = payload
+            self.output_text = payload.get("output_text")
+
+        def model_dump(self, mode="json"):
+            return self.payload
+
+    class FakeResponses:
+        def __init__(self):
+            self.requests = []
+
+        def create(self, **body):
+            self.requests.append(body)
+            return FakeResponse({
+                "object": "response",
+                "id": "resp_adapter_123",
+                "status": "completed",
+                "model": "gpt-5.5-2026-04-23",
+                "output_text": json_dumps(STAGE1_FULL),
+                "usage": {"input_tokens": 101, "output_tokens": 55},
+            })
+
+    class FakeEmbeddings:
+        def __init__(self):
+            self.requests = []
+
+        def create(self, **body):
+            self.requests.append(body)
+            return FakeResponse({
+                "object": "list",
+                "model": "text-embedding-3-small",
+                "data": [{"embedding": [0.1, 0.2, 0.3]}],
+            })
+
+    class FakeClient:
+        def __init__(self):
+            self.responses = FakeResponses()
+            self.embeddings = FakeEmbeddings()
+
+    client = FakeClient()
+    result = asyncio.run(extract_openai(
+        SAMPLE_TEXT,
+        client,
+        profile="full",
+        source_id="fixture-openai-adapter",
+        source_type="message",
+        kind="synapt/test",
+        model="gpt-5.5",
+        reasoning_effort="medium",
+        max_output_tokens=2048,
+        text_verbosity="low",
+        embedding_model="text-embedding-3-small",
+        embedding_dimensions=3,
+        embedding_inputs=["source"],
+        deployment="test-suite",
+        operator="synapt-dev",
+        response_format_name="synapt_adapter_stage1",
+        artifact_dir=tmp_path,
+    ))
+
+    assert len(client.responses.requests) == 1
+    assert client.responses.requests[0]["model"] == "gpt-5.5"
+    assert client.responses.requests[0]["reasoning"] == {"effort": "medium"}
+    assert client.responses.requests[0]["max_output_tokens"] == 2048
+    assert client.responses.requests[0]["text"]["verbosity"] == "low"
+    assert client.responses.requests[0]["text"]["format"]["name"] == "synapt_adapter_stage1"
+    assert client.embeddings.requests == [
+        {"model": "text-embedding-3-small", "input": SAMPLE_TEXT, "dimensions": 3}
+    ]
+    assert result.validation.valid
+    assert result.extraction["produced_by"]["model"] == "openai://gpt-5.5"
+    assert result.extraction["produced_by"]["model_version"] == "gpt-5.5-2026-04-23"
+    assert result.extraction["produced_by"]["deployment"] == "test-suite"
+    assert result.extraction["produced_by"]["operator"] == "synapt-dev"
+    assert result.extraction["produced_by"]["configuration"]["reasoning_effort"] == "medium"
+    assert result.extraction["produced_by"]["configuration"]["max_tokens"] == 2048
+    assert result.extraction["produced_by"]["configuration"]["response_format"] == "synapt_adapter_stage1"
+    assert result.extraction["embeddings"][0]["input"] == "source"
+    assert result.extraction["embeddings"][0]["model"] == "openai://text-embedding-3-small"
+    assert result.extraction["embeddings"][0]["dimensions"] == 3
+    assert result.usage.llm_calls == 1
+    assert result.usage.embedding_calls == 1
+    assert result.usage.total_tokens == 156
+    assert result.artifact_bundle["source"]["text"] == SAMPLE_TEXT
+    assert result.artifact_bundle["llm"]["request"]["model"] == "gpt-5.5"
+    assert result.artifact_bundle["llm"]["request"]["max_output_tokens"] == 2048
+    assert result.artifact_bundle["llm"]["response"]["id"] == "resp_adapter_123"
+    assert result.artifact_bundle["llm"]["response"]["model"] == "gpt-5.5-2026-04-23"
+    assert (tmp_path / "source.txt").exists()
+    assert (tmp_path / "prompt.md").exists()
+    assert (tmp_path / "extraction.json").exists()
+
+
+def json_dumps(value):
+    import json
+
+    return json.dumps(value, sort_keys=True)
