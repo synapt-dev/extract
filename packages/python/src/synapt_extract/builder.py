@@ -7,7 +7,9 @@ from typing import Any
 
 from synapt_extract.finalize import FinalizeContext, FinalizeResult, finalize_extraction
 from synapt_extract.prompt import (
+    CANONICAL_ORDER,
     build_extraction_prompt,
+    capability_embedding_input,
     capability_embedding_preference,
     capability_name,
     expand_capability_exclusions,
@@ -20,38 +22,7 @@ from synapt_extract.prompt import (
 JsonSchema = dict[str, Any]
 
 DEFAULT_RESPONSE_FORMAT_NAME = "synapt_extraction_stage1"
-ALL_CAPABILITIES = [
-    "entities", "entity_state", "entity_context", "entity_ids",
-    "goals", "goal_timing", "goal_entity_refs",
-    "themes", "keywords", "summary", "sentiment", "structured_sentiment",
-    "facts", "questions", "actions", "decisions",
-    "temporal_refs", "temporal_classes",
-    "relations", "relation_origin",
-    "assertion_signals", "evidence_anchoring",
-    "language", "source_metadata", "confidence",
-]
-CAPABILITY_EMBEDDING_INPUTS = {
-    "entities": "entities",
-    "entity_state": "entities",
-    "entity_context": "entities",
-    "entity_ids": "entities",
-    "relations": "entities",
-    "relation_origin": "entities",
-    "goals": "goals",
-    "goal_timing": "goals",
-    "goal_entity_refs": "goals",
-    "themes": "themes",
-    "keywords": "keywords",
-    "summary": "summary",
-    "sentiment": "sentiment",
-    "structured_sentiment": "sentiment",
-    "facts": "facts",
-    "questions": "questions",
-    "actions": "actions",
-    "decisions": "decisions",
-    "temporal_refs": "temporal_refs",
-    "temporal_classes": "temporal_refs",
-}
+ALL_CAPABILITIES = list(CANONICAL_ORDER)
 
 
 def _capability_specs(capabilities: list[str], embed: bool | None = None) -> list[Any]:
@@ -70,7 +41,7 @@ def _embedding_inputs_from_capabilities(capabilities: list[Any] | None, resolved
         name = capability_name(capability)
         if name not in resolved:
             continue
-        input_name = CAPABILITY_EMBEDDING_INPUTS.get(name)
+        input_name = capability_embedding_input(name)
         if input_name is not None and input_name not in selected:
             selected.append(input_name)
     return selected
@@ -81,7 +52,7 @@ def _apply_embedding_overrides(inputs: list[str], overrides: dict[str, bool] | N
         return inputs
     selected = list(inputs)
     for capability, enabled in overrides.items():
-        input_name = CAPABILITY_EMBEDDING_INPUTS.get(capability)
+        input_name = capability_embedding_input(capability)
         if input_name is None:
             continue
         if enabled and input_name not in selected:
@@ -724,12 +695,11 @@ class ExtractionBuilder:
             *(_embedding_inputs_from_capabilities(self.add, resolved)),
         ], self.embedding_overrides)
         embedded_inputs = [input_name for index, input_name in enumerate(embedded_inputs) if input_name not in embedded_inputs[:index]]
-        not_embedded = [
-            capability
-            for capability in capabilities
-            if CAPABILITY_EMBEDDING_INPUTS.get(capability) is not None
-            and CAPABILITY_EMBEDDING_INPUTS[capability] not in embedded_inputs
-        ]
+        not_embedded = []
+        for capability in capabilities:
+            input_name = capability_embedding_input(capability)
+            if input_name is not None and input_name not in embedded_inputs:
+                not_embedded.append(capability)
         return {
             "capabilities": capabilities,
             "excluded": excluded,

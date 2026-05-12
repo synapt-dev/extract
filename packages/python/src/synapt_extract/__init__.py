@@ -18,7 +18,15 @@ from synapt_extract.schema import (
 )
 from synapt_extract.validate import validate_extraction, ValidationResult, ValidationError
 from synapt_extract.finalize import finalize_extraction, FinalizeContext, FinalizeResult
-from synapt_extract.prompt import build_extraction_prompt, resolve_capabilities
+from synapt_extract.prompt import (
+    build_extraction_prompt,
+    capability_embedding_input,
+    profile_capabilities,
+    resolve_capabilities,
+    CANONICAL_ORDER,
+    CAPABILITY_REGISTRY,
+    STANDARD_EMBEDDING_INPUTS,
+)
 from synapt_extract.builder import (
     ExtractionBuilder,
     build_finalized_extraction_schema,
@@ -26,7 +34,24 @@ from synapt_extract.builder import (
     build_extraction_response_format,
     create_extraction_builder,
 )
-from synapt_extract.extract import extract, normalize_llm_response, run_extraction, ExtractResult, UsageSummary
+from synapt_extract.extract import (
+    extract,
+    normalize_llm_response,
+    run_extraction,
+    EmbeddingCallback,
+    EmbeddingRequest,
+    EmbeddingResponse,
+    ExtractCallbacks,
+    ExtractResult,
+    LlmCallback,
+    LlmMessage,
+    LlmRequest,
+    LlmResponse,
+    LogCallback,
+    LogEntry,
+    NormalizedLlmResponse,
+    UsageSummary,
+)
 
 __all__ = [
     "SynaptExtraction",
@@ -50,7 +75,12 @@ __all__ = [
     "FinalizeContext",
     "FinalizeResult",
     "build_extraction_prompt",
+    "capability_embedding_input",
+    "profile_capabilities",
     "resolve_capabilities",
+    "CANONICAL_ORDER",
+    "CAPABILITY_REGISTRY",
+    "STANDARD_EMBEDDING_INPUTS",
     "ExtractionBuilder",
     "build_finalized_extraction_schema",
     "build_extraction_schema",
@@ -59,6 +89,17 @@ __all__ = [
     "extract",
     "normalize_llm_response",
     "run_extraction",
+    "EmbeddingCallback",
+    "EmbeddingRequest",
+    "EmbeddingResponse",
+    "ExtractCallbacks",
     "ExtractResult",
+    "LlmCallback",
+    "LlmMessage",
+    "LlmRequest",
+    "LlmResponse",
+    "LogCallback",
+    "LogEntry",
+    "NormalizedLlmResponse",
     "UsageSummary",
 ]

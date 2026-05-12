@@ -5,11 +5,16 @@ from __future__ import annotations
 import inspect
 import json
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, Literal, Protocol, TypedDict
+from typing import Any, Awaitable, Callable, Literal, Protocol, TypeAlias, TypedDict
 
 from synapt_extract.builder import DEFAULT_RESPONSE_FORMAT_NAME, ExtractionBuilder
 from synapt_extract.finalize import FinalizeContext
-from synapt_extract.prompt import capability_embedding_preference, capability_name
+from synapt_extract.prompt import (
+    STANDARD_EMBEDDING_INPUTS as STANDARD_EMBEDDING_INPUT_NAMES,
+    capability_embedding_input,
+    capability_embedding_preference,
+    capability_name,
+)
 from synapt_extract.validate import ValidationResult
 
 
@@ -112,10 +117,15 @@ class LogEntry(TypedDict, total=False):
     data: dict[str, Any]
 
 
+LlmCallbackResult: TypeAlias = LlmResponse | Awaitable[LlmResponse]
+EmbeddingCallbackResult: TypeAlias = EmbeddingResponse | Awaitable[EmbeddingResponse]
+LlmCallback: TypeAlias = Callable[[LlmRequest], LlmCallbackResult]
+EmbeddingCallback: TypeAlias = Callable[[EmbeddingRequest], EmbeddingCallbackResult]
+LogCallback: TypeAlias = Callable[[LogEntry], None]
+
+
 class ExtractCallbacks(Protocol):
-    def call_llm(self, request: LlmRequest) -> MaybeAwaitable: ...
-    def get_embedding(self, request: EmbeddingRequest) -> MaybeAwaitable: ...
-    def log(self, entry: LogEntry) -> None: ...
+    def call_llm(self, request: LlmRequest) -> LlmCallbackResult: ...
 
 
 @dataclass
@@ -142,42 +152,7 @@ LlmResponseTranslator = Callable[[dict[str, Any]], dict[str, Any] | None]
 
 
 SYSTEM_MESSAGE = "You are a deterministic information extraction engine. Return only JSON matching the supplied schema."
-STANDARD_EMBEDDING_INPUTS: list[NamedEmbeddingInput] = [
-    "source",
-    "summary",
-    "entities",
-    "goals",
-    "themes",
-    "keywords",
-    "facts",
-    "questions",
-    "actions",
-    "decisions",
-    "temporal_refs",
-    "sentiment",
-]
-CAPABILITY_EMBEDDING_INPUTS: dict[str, str] = {
-    "entities": "entities",
-    "entity_state": "entities",
-    "entity_context": "entities",
-    "entity_ids": "entities",
-    "relations": "entities",
-    "relation_origin": "entities",
-    "goals": "goals",
-    "goal_timing": "goals",
-    "goal_entity_refs": "goals",
-    "themes": "themes",
-    "keywords": "keywords",
-    "summary": "summary",
-    "sentiment": "sentiment",
-    "structured_sentiment": "sentiment",
-    "facts": "facts",
-    "questions": "questions",
-    "actions": "actions",
-    "decisions": "decisions",
-    "temporal_refs": "temporal_refs",
-    "temporal_classes": "temporal_refs",
-}
+STANDARD_EMBEDDING_INPUTS: list[NamedEmbeddingInput] = list(STANDARD_EMBEDDING_INPUT_NAMES)
 
 _BUILDER_KEYS = {
     "capabilities",
@@ -525,7 +500,7 @@ def _derive_embedding_selection_from_capability_inputs(capabilities: list[Any] |
     for capability in capabilities:
         if capability_embedding_preference(capability) is not True:
             continue
-        input_name = CAPABILITY_EMBEDDING_INPUTS.get(capability_name(capability))
+        input_name = capability_embedding_input(capability_name(capability))
         if input_name is not None and input_name not in selected:
             selected.append(input_name)
     return selected
@@ -548,7 +523,7 @@ def _embedding_selection_for_options(
     overrides = options.get("embed")
     if isinstance(overrides, dict):
         for capability, enabled in overrides.items():
-            input_name = CAPABILITY_EMBEDDING_INPUTS.get(str(capability))
+            input_name = capability_embedding_input(str(capability))
             if input_name is None:
                 continue
             if enabled is True and input_name not in selected:

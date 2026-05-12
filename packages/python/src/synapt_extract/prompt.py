@@ -13,38 +13,117 @@ _INSTALLED_PROMPTS = Path(__file__).resolve().parent / "prompts"
 _REPO_PROMPTS = Path(__file__).resolve().parents[4] / "prompts"
 PROMPTS_DIR = _INSTALLED_PROMPTS if _INSTALLED_PROMPTS.is_dir() else _REPO_PROMPTS
 
+
+def _duplicates(values: list[str]) -> list[str]:
+    return [value for index, value in enumerate(values) if value in values[:index]]
+
+
+def _validate_capability_registry(registry: dict[str, Any], path: Path) -> None:
+    if registry.get("version") != "1":
+        raise ValueError(f"Unsupported capability registry version in {path}: {registry.get('version')}")
+
+    definitions = registry.get("capabilities")
+    if not isinstance(definitions, list):
+        raise ValueError(f"Capability registry {path} must define capabilities")
+
+    names = [definition.get("name") for definition in definitions if isinstance(definition, dict)]
+    if len(names) != len(definitions) or not all(isinstance(name, str) for name in names):
+        raise ValueError(f"Capability registry {path} contains malformed capability definitions")
+
+    duplicates = _duplicates(names)
+    if duplicates:
+        raise ValueError(f"Capability registry has duplicate capabilities: {', '.join(sorted(set(duplicates)))}")
+
+    registry_capabilities = set(names)
+    unknown = registry_capabilities - EXTRACTION_CAPABILITIES
+    if unknown:
+        raise ValueError(f"Capability registry contains unknown capabilities: {', '.join(sorted(unknown))}")
+
+    missing = EXTRACTION_CAPABILITIES - registry_capabilities
+    if missing:
+        raise ValueError(f"Capability registry is missing schema capabilities: {', '.join(sorted(missing))}")
+
+    for definition in definitions:
+        deps = definition.get("depends_on", [])
+        if not isinstance(deps, list):
+            raise ValueError(f"Capability registry dependency list for {definition.get('name')} must be a list")
+        for dep in deps:
+            if dep not in registry_capabilities:
+                raise ValueError(f"Capability registry dependency {definition.get('name')}.{dep} is not valid")
+
+    profiles = registry.get("profiles")
+    if not isinstance(profiles, dict):
+        raise ValueError(f"Capability registry {path} must define profiles")
+    for profile, capabilities in profiles.items():
+        if not isinstance(capabilities, list):
+            raise ValueError(f"Profile {profile} capabilities must be a list")
+        for capability in capabilities:
+            if capability not in registry_capabilities:
+                raise ValueError(f"Profile {profile} references unknown capability {capability}")
+
+    omit_when_absent = registry.get("omit_when_absent", [])
+    if not isinstance(omit_when_absent, list):
+        raise ValueError("Capability registry omit_when_absent must be a list")
+    for capability in omit_when_absent:
+        if capability not in registry_capabilities:
+            raise ValueError(f"omit_when_absent references unknown capability {capability}")
+
+    standard_embedding_inputs = registry.get("standard_embedding_inputs")
+    if not isinstance(standard_embedding_inputs, list):
+        raise ValueError("Capability registry standard_embedding_inputs must be a list")
+    embedding_inputs = {
+        "source",
+        *(
+            definition.get("embedding_input")
+            for definition in definitions
+            if isinstance(definition.get("embedding_input"), str)
+        ),
+    }
+    for input_name in standard_embedding_inputs:
+        if input_name not in embedding_inputs:
+            raise ValueError(f"standard_embedding_inputs references unknown input {input_name}")
+
+
+def _load_capability_registry() -> dict[str, Any]:
+    path = PROMPTS_DIR / "capabilities.json"
+    if not path.exists():
+        raise ValueError(f"Missing capability registry: {path}")
+    registry = json.loads(path.read_text())
+    _validate_capability_registry(registry, path)
+    return registry
+
+
+CAPABILITY_REGISTRY = _load_capability_registry()
+_CAPABILITY_DEFINITIONS: list[dict[str, Any]] = CAPABILITY_REGISTRY["capabilities"]
+CANONICAL_ORDER = [definition["name"] for definition in _CAPABILITY_DEFINITIONS]
+VALID_CAPABILITIES = frozenset(CANONICAL_ORDER)
 CAPABILITY_DEPS: dict[str, list[str]] = {
-    "entity_state": ["entities"],
-    "entity_context": ["entities"],
-    "entity_ids": ["entities"],
-    "goal_timing": ["goals"],
-    "goal_entity_refs": ["goals", "entity_ids"],
-    "structured_sentiment": ["sentiment"],
-    "temporal_classes": ["temporal_refs"],
-    "relations": ["entities", "entity_ids"],
-    "relation_origin": ["relations"],
+    definition["name"]: list(definition["depends_on"])
+    for definition in _CAPABILITY_DEFINITIONS
+    if definition.get("depends_on") is not None
 }
-
-CANONICAL_ORDER = [
-    "entities", "goals", "themes", "keywords", "summary", "sentiment", "structured_sentiment",
-    "facts", "questions", "actions", "decisions", "temporal_refs",
-    "entity_state", "entity_context", "entity_ids",
-    "goal_timing", "goal_entity_refs",
-    "temporal_classes",
-    "relations", "relation_origin",
-    "assertion_signals", "evidence_anchoring",
-    "language", "source_metadata", "confidence",
-]
-
 CAPABILITY_RULES: dict[str, str] = {
-    "entity_ids": 'Assign each entity a short local ID ("e1", "e2", etc.). Goals and relations reference entities by ID.',
-    "temporal_refs": "Resolve all relative dates to absolute dates.",
-    "relation_origin": 'Mark relation origin: "explicit" if stated in text, "inferred" if deduced from context, "dependent" if derived from another relation.',
-    "assertion_signals": 'Preserve negation, hedging, and conditions in signals. "I might move" → hedged=true. "No longer using Redis" → negated=true. "If we get funding" → condition="we get funding".',
-    "structured_sentiment": 'Return sentiment as an object with "valence" (positive/negative/neutral/mixed), optional "intensity" (0.0-1.0), and optional "confidence" (0.0-1.0).',
-    "actions": 'Set origin to "extracted" for actions stated in the text, "proposed_from_goals" for actions inferred from goals.',
-    "keywords": "Extract specific terms from the source, not topical categories (those go in themes).",
+    definition["name"]: definition["rule"]
+    for definition in _CAPABILITY_DEFINITIONS
+    if isinstance(definition.get("rule"), str)
 }
+BASE_CAPABILITIES = frozenset(
+    definition["name"]
+    for definition in _CAPABILITY_DEFINITIONS
+    if definition.get("base") is True
+)
+MODIFIER_ONLY_CAPABILITIES = frozenset(
+    definition["name"]
+    for definition in _CAPABILITY_DEFINITIONS
+    if definition.get("modifier_only") is True
+)
+CAPABILITY_EMBEDDING_INPUTS: dict[str, str] = {
+    definition["name"]: definition["embedding_input"]
+    for definition in _CAPABILITY_DEFINITIONS
+    if isinstance(definition.get("embedding_input"), str)
+}
+OMIT_WHEN_ABSENT = tuple(CAPABILITY_REGISTRY["omit_when_absent"])
+STANDARD_EMBEDDING_INPUTS = tuple(CAPABILITY_REGISTRY["standard_embedding_inputs"])
 
 
 def _build_run_constraint_rules(
@@ -77,7 +156,7 @@ def _build_run_constraint_rules(
         rules.append("Omit relations for this run.")
     if "assertion_signals" not in capabilities:
         rules.append("Omit signals fields for this run.")
-    for capability in ("keywords", "questions", "actions", "decisions", "language", "source_metadata", "confidence"):
+    for capability in OMIT_WHEN_ABSENT:
         if capability not in capabilities:
             rules.append(f"Omit {capability} for this run.")
 
@@ -85,11 +164,10 @@ def _build_run_constraint_rules(
 
 
 def _load_profile(name: str) -> list[str]:
-    path = PROMPTS_DIR / "profiles" / f"{name}.json"
-    if not path.exists():
+    profiles = CAPABILITY_REGISTRY["profiles"]
+    if name not in profiles:
         raise ValueError(f"Unknown profile: {name}")
-    data = json.loads(path.read_text())
-    return data["capabilities"]
+    return list(profiles[name])
 
 
 def profile_capabilities(profile: str) -> list[str]:
@@ -124,10 +202,6 @@ def _render_vars(template: str, context: dict[str, Any]) -> str:
     return re.sub(r"\{\{(\w+)\}\}", replace_var, template)
 
 
-BASE_CAPABILITIES = frozenset(["entities", "goals", "facts", "questions", "actions", "decisions"])
-MODIFIER_ONLY_CAPABILITIES = frozenset(["assertion_signals", "evidence_anchoring"])
-
-
 def capability_name(capability: Any) -> str:
     if isinstance(capability, str):
         return capability
@@ -156,9 +230,13 @@ def capability_embedding_preference(capability: Any) -> bool | None:
     return None
 
 
+def capability_embedding_input(capability: str) -> str | None:
+    return CAPABILITY_EMBEDDING_INPUTS.get(capability)
+
+
 def _validate_capability_names(caps: list[Any], source: str) -> None:
     names = set(normalize_capability_inputs(caps))
-    unknown = names - EXTRACTION_CAPABILITIES
+    unknown = names - VALID_CAPABILITIES
     if unknown:
         raise ValueError(f"Unknown {source}: {', '.join(sorted(unknown))}")
 

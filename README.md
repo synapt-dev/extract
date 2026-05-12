@@ -149,7 +149,7 @@ built = builder.build(name="synapt_extract_stage1")
 
 ## Full extraction runner
 
-Use `extract()` when you want the library to execute the full pipeline while your application owns the model and embedding API calls. The callbacks receive plain JSON requests, so callers can route to OpenAI, another provider, a local model, or a test fixture.
+Use `extract()` when you want the library to execute the full pipeline while your application owns the model and embedding API calls. The callbacks receive typed JSON requests, so callers can route to OpenAI, another provider, a local model, or a test fixture. Both packages export callback contracts such as `LlmCallback`, `LlmRequest`, `LlmResponse`, `EmbeddingCallback`, `EmbeddingRequest`, and `EmbeddingResponse`.
 
 ```typescript
 import { extract } from "@synapt-dev/extract";
@@ -264,6 +264,7 @@ extract/
     python/      # synapt-extract (Python, PyPI)
   schemas/       # JSON Schema files (language-agnostic)
   prompts/
+    capabilities.json # Capability registry: order, dependencies, profiles, embedding inputs
     v1/          # 25 capability prompt fragments + preamble/postamble
     profiles/    # Profile definitions (minimal, standard, full)
   tests/

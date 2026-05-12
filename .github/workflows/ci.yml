@@ -43,15 +43,22 @@ jobs:
 
       - name: Verify wheel contains schemas
         run: |
-          COUNT=$(unzip -l dist/*.whl | grep -c '\.json$' | tr -d ' ')
           SCHEMA_COUNT=$(unzip -l dist/*.whl | grep 'schemas/' | grep -c '\.json$' | tr -d ' ')
+          PROMPT_JSON_COUNT=$(unzip -l dist/*.whl | grep 'prompts/' | grep -c '\.json$' | tr -d ' ')
           echo "Schema JSON files in wheel: $SCHEMA_COUNT"
           if [ "$SCHEMA_COUNT" -ne 13 ]; then
             echo "::error::Expected 13 schema JSON files in wheel, found $SCHEMA_COUNT"
             unzip -l dist/*.whl | grep -E '(schemas/|\.json$)'
             exit 1
           fi
+          if [ "$PROMPT_JSON_COUNT" -ne 4 ]; then
+            echo "::error::Expected 4 prompt JSON files in wheel, found $PROMPT_JSON_COUNT"
+            unzip -l dist/*.whl | grep -E '(prompts/|\.json$)'
+            exit 1
+          fi
+          unzip -l dist/*.whl | grep -q 'prompts/capabilities.json'
           echo "✅ Wheel contains exactly 13 schema files"
+          echo "✅ Wheel contains capability registry and prompt profiles"
 
   check-typescript:
     runs-on: ubuntu-latest

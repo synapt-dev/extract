@@ -27,17 +27,6 @@ export interface FinalizeResult {
   warnings: string[];
 }
 
-const CAPABILITY_DEPS: Record<string, string[]> = {
-  entity_state: ["entities"],
-  entity_context: ["entities"],
-  entity_ids: ["entities"],
-  goal_timing: ["goals"],
-  goal_entity_refs: ["goals", "entity_ids"],
-  temporal_classes: ["temporal_refs"],
-  relations: ["entities", "entity_ids"],
-  relation_origin: ["relations"],
-};
-
 function injectSubSchemaVersions(obj: Record<string, unknown>): void {
   if (obj && typeof obj === "object") {
     obj.version = "1";
