@@ -8,6 +8,7 @@ from typing import Any
 from synapt_extract.finalize import FinalizeContext, FinalizeResult, finalize_extraction
 from synapt_extract.prompt import (
     CANONICAL_ORDER,
+    STANDARD_EMBEDDING_INPUTS,
     build_extraction_prompt,
     capability_embedding_input,
     capability_embedding_preference,
@@ -60,6 +61,36 @@ def _apply_embedding_overrides(inputs: list[str], overrides: dict[str, bool] | N
         if not enabled and input_name in selected:
             selected.remove(input_name)
     return selected
+
+
+def _embedding_inputs_from_selection(selection: str | list[Any] | None) -> list[str]:
+    if selection is None:
+        return []
+    if selection == "all":
+        return list(STANDARD_EMBEDDING_INPUTS)
+    if not isinstance(selection, list):
+        return []
+    values: list[str] = []
+    for input_item in selection:
+        if isinstance(input_item, str):
+            values.append(input_item)
+        elif isinstance(input_item, dict) and isinstance(input_item.get("input"), str):
+            values.append(input_item["input"])
+    return values
+
+
+def _unique(values: list[str]) -> list[str]:
+    result: list[str] = []
+    for value in values:
+        if value not in result:
+            result.append(value)
+    return result
+
+
+def _order_embedding_inputs(values: list[str]) -> list[str]:
+    standard = [input_name for input_name in STANDARD_EMBEDDING_INPUTS if input_name in values]
+    custom = [input_name for input_name in values if input_name not in STANDARD_EMBEDDING_INPUTS]
+    return [*standard, *custom]
 
 
 def _source_ref_schema(finalized: bool = False) -> JsonSchema:
@@ -564,6 +595,7 @@ class ExtractionBuilder:
     embeddings: list[dict[str, Any]] | None = None
     capabilities_hint: list[str] | None = None
     embedding_overrides: dict[str, bool] | None = None
+    embedding_inputs: str | list[Any] | None = None
 
     def with_text(self, text: str) -> "ExtractionBuilder":
         self.text = text
@@ -586,7 +618,10 @@ class ExtractionBuilder:
     def _with_profile_capabilities(self, profile: str, *, embed: bool | None = None) -> "ExtractionBuilder":
         if embed is None:
             return self.with_profile(profile)
-        self.capabilities = _capability_specs(profile_capabilities(profile), embed)
+        capabilities = profile_capabilities(profile)
+        self.capabilities = _capability_specs(capabilities, embed)
+        if embed is True and self.embedding_inputs is None:
+            self.embedding_inputs = ["source"]
         self.profile = None
         return self
 
@@ -618,6 +653,13 @@ class ExtractionBuilder:
 
     def embed_field(self, capability: str, enabled: bool = True) -> "ExtractionBuilder":
         return self.embed(capability, enabled)
+
+    def with_embedding_inputs(self, inputs: str | list[Any] = "all") -> "ExtractionBuilder":
+        self.embedding_inputs = inputs
+        return self
+
+    def with_standard_embeddings(self) -> "ExtractionBuilder":
+        return self.with_embedding_inputs("all")
 
     def with_categories(self, categories: list[str]) -> "ExtractionBuilder":
         self.categories = categories
@@ -690,11 +732,11 @@ class ExtractionBuilder:
         capabilities = self.resolved_capabilities()
         resolved = set(capabilities)
         excluded = expand_capability_exclusions(normalize_capability_inputs(self.remove or []))
-        embedded_inputs = _apply_embedding_overrides([
+        embedded_inputs = _order_embedding_inputs(_apply_embedding_overrides(_unique([
+            *(_embedding_inputs_from_selection(self.embedding_inputs)),
             *(_embedding_inputs_from_capabilities(self.capabilities, resolved)),
             *(_embedding_inputs_from_capabilities(self.add, resolved)),
-        ], self.embedding_overrides)
-        embedded_inputs = [input_name for index, input_name in enumerate(embedded_inputs) if input_name not in embedded_inputs[:index]]
+        ]), self.embedding_overrides))
         not_embedded = []
         for capability in capabilities:
             input_name = capability_embedding_input(capability)
@@ -714,6 +756,43 @@ class ExtractionBuilder:
 
     def plan(self) -> dict[str, Any]:
         return self.capability_plan()
+
+    def extract_options(self) -> dict[str, Any]:
+        plan = self.capability_plan()
+        custom_inputs = [
+            input_item
+            for input_item in self.embedding_inputs
+            if isinstance(input_item, dict) and isinstance(input_item.get("input"), str)
+        ] if isinstance(self.embedding_inputs, list) else []
+        embedding_inputs = [
+            *custom_inputs,
+            *(input_name for input_name in plan["embedded_inputs"] if all(item["input"] != input_name for item in custom_inputs)),
+        ] if plan["embedded_inputs"] else None
+        values = {
+            "capabilities": self.capabilities,
+            "profile": self.profile,
+            "add": self.add,
+            "remove": self.remove,
+            "categories": self.categories,
+            "source_type": self.source_type,
+            "date": self.date,
+            "stage": self.stage,
+            "extracted_at": self.extracted_at,
+            "compact": self.compact,
+            "produced_by": self.produced_by,
+            "user_id": self.user_id,
+            "source_id": self.source_id,
+            "kind": self.kind,
+            "extensions": self.extensions,
+            "embeddings": self.embeddings,
+            "capabilities_hint": self.capabilities_hint,
+            "embed": self.embedding_overrides,
+            "embedding_inputs": embedding_inputs,
+        }
+        return {key: value for key, value in values.items() if value is not None}
+
+    def to_options(self) -> dict[str, Any]:
+        return self.extract_options()
 
     def prompt(self) -> str:
         return build_extraction_prompt(

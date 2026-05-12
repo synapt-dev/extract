@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.5.0
+
+0.5.0 universal host-boundary groundwork.
+
+- Default TypeScript entry no longer imports Node-only prompt assets at runtime; capability registry and prompt fragments are embedded with parity tests against checked prompt files
+- Added `SynaptHost`, `callbacksFromHost`, host feature reporting, and universal host-boundary documentation for future browser/WASM runtimes
+- Added a CI guard that builds the package, follows the `dist/index.js` import graph, and fails if the default entry imports Node built-ins
+- Added builder `extractOptions()` / `extract_options()` handoff helpers so examples can use `.full({ embed: true })` / `.full(embed=True)` without listing every capability or embedding input
+
 ## v0.4.1
 
 OpenAI-compatible convenience adapters and fixture bundles.

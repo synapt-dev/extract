@@ -51,7 +51,15 @@ export {
   createExtractionBuilder,
 } from "./builder.js";
 export type { ExtractionBuilderOptions, ExtractionBuilderResult, JsonSchema, ResponseFormatOptions } from "./builder.js";
-export type { CapabilityPlan, CapabilityProfileOptions, EmbeddableInput } from "./builder.js";
+export type {
+  BuilderEmbeddingInputSelection,
+  BuilderEmbeddingInputSelector,
+  CapabilityPlan,
+  CapabilityProfileOptions,
+  CustomBuilderEmbeddingInput,
+  EmbeddableInput,
+  ExtractionBuilderRuntimeOptions,
+} from "./builder.js";
 
 export { extract, normalizeLlmResponse, runExtraction } from "./extract.js";
 export type {
@@ -80,3 +88,20 @@ export type {
   NormalizedLlmResponse,
   UsageSummary,
 } from "./extract.js";
+
+export {
+  callbacksFromHost,
+  supportedHostFeatures,
+  unsupportedHostFeatures,
+} from "./host.js";
+export type {
+  HostArtifact,
+  HostArtifactWriteResult,
+  HostHashAlgorithm,
+  HostHashEncoding,
+  HostHashRequest,
+  HostMaybePromise,
+  SynaptHost,
+  SynaptHostFeature,
+  SynaptHostRequirements,
+} from "./host.js";

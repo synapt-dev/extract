@@ -25,7 +25,8 @@ jobs:
       - run: pip install build
 
       - run: |
-          test -d ../../prompts && rm -rf src/synapt_extract/prompts && cp -r ../../prompts src/synapt_extract/prompts || true
+          rm -r src/synapt_extract/prompts 2>/dev/null || true
+          test -d ../../prompts && cp -r ../../prompts src/synapt_extract/prompts || true
 
       - run: python -m build
 

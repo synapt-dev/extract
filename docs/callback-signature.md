@@ -1,6 +1,6 @@
 # Extract Callback Signature Design
 
-**Status:** SHIPPED in v0.4.0 as provider callbacks in TypeScript and Python. WASM symmetry remains the forward compatibility constraint for the future host-import ABI.
+**Status:** SHIPPED in v0.4.0 as provider callbacks in TypeScript and Python. The 0.5.0 universal host boundary is tracked in [universal-host-boundary.md](universal-host-boundary.md).
 **Author:** Apollo
 **Anchored to:**
 - `config/research/conversa/2026-05-04-wasm-conditions-acceptance.md` (Condition 6: API symmetry)

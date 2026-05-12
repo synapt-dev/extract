@@ -1,13 +1,5 @@
-import { readFileSync, existsSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-
+import { EMBEDDED_CAPABILITY_REGISTRY, EMBEDDED_PROMPT_FRAGMENTS } from "./prompt-data.js";
 import { EXTRACTION_CAPABILITIES, type ExtractionCapability } from "./schema.js";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const _installedPrompts = resolve(__dirname, "..", "prompts");
-const _repoPrompts = resolve(__dirname, "..", "..", "..", "prompts");
-const PROMPTS_DIR = existsSync(_installedPrompts) ? _installedPrompts : _repoPrompts;
 
 export type PromptProfile = "minimal" | "standard" | "full";
 
@@ -94,12 +86,8 @@ function validateCapabilityRegistry(registry: CapabilityRegistry, sourcePath: st
 }
 
 function loadCapabilityRegistry(): CapabilityRegistry {
-  const path = resolve(PROMPTS_DIR, "capabilities.json");
-  if (!existsSync(path)) {
-    throw new Error(`Missing capability registry: ${path}`);
-  }
-  const registry = JSON.parse(readFileSync(path, "utf-8")) as CapabilityRegistry;
-  validateCapabilityRegistry(registry, path);
+  const registry = EMBEDDED_CAPABILITY_REGISTRY;
+  validateCapabilityRegistry(registry, "embedded capability registry");
   return registry;
 }
 
@@ -213,8 +201,11 @@ export function capabilityEmbeddingInput(capability: ExtractionCapability): stri
 }
 
 function loadFragment(name: string): string {
-  const path = resolve(PROMPTS_DIR, "v1", `${name}.txt`);
-  return readFileSync(path, "utf-8");
+  const fragment = EMBEDDED_PROMPT_FRAGMENTS[name];
+  if (fragment === undefined) {
+    throw new Error(`Missing prompt fragment: ${name}`);
+  }
+  return fragment;
 }
 
 function renderTemplate(template: string, ctx: Record<string, unknown>): string {

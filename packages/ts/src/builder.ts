@@ -3,6 +3,7 @@ import type { ExtractionCapability } from "./schema.js";
 import {
   buildExtractionPrompt,
   CANONICAL_ORDER,
+  STANDARD_EMBEDDING_INPUTS,
   capabilityEmbeddingInput,
   capabilityEmbeddingPreference,
   capabilityName,
@@ -16,7 +17,7 @@ import {
 
 export type JsonSchema = Record<string, unknown>;
 type CapabilityOptions = Pick<PromptOptions, "capabilities" | "profile" | "add" | "remove">;
-export type ExtractionBuilderOptions = PromptOptions & Partial<FinalizeContext>;
+export type ExtractionBuilderOptions = PromptOptions & Partial<FinalizeContext> & ExtractionBuilderRuntimeOptions;
 
 export interface ExtractionBuilderResult {
   capabilities: ExtractionCapability[];
@@ -50,10 +51,22 @@ export type CapabilityProfileOptions = {
   embed?: boolean;
 };
 
+export interface CustomBuilderEmbeddingInput {
+  input: string;
+  text: string;
+}
+
+export type BuilderEmbeddingInputSelector = EmbeddableInput | CustomBuilderEmbeddingInput;
+export type BuilderEmbeddingInputSelection = "all" | BuilderEmbeddingInputSelector[];
+
+export interface ExtractionBuilderRuntimeOptions {
+  embeddingInputs?: BuilderEmbeddingInputSelection;
+}
+
 export interface CapabilityPlan {
   capabilities: ExtractionCapability[];
   excluded: ExtractionCapability[];
-  embeddedInputs: EmbeddableInput[];
+  embeddedInputs: string[];
   notEmbedded: ExtractionCapability[];
   requiredCallbacks: {
     callLlm: true;
@@ -64,6 +77,7 @@ export interface CapabilityPlan {
 
 const DEFAULT_RESPONSE_FORMAT_NAME = "synapt_extraction_stage1";
 const ALL_CAPABILITIES: ExtractionCapability[] = [...CANONICAL_ORDER];
+const STANDARD_BUILDER_EMBEDDING_INPUTS = STANDARD_EMBEDDING_INPUTS as EmbeddableInput[];
 
 function embeddableInputForCapability(capability: ExtractionCapability): EmbeddableInput | undefined {
   return capabilityEmbeddingInput(capability) as EmbeddableInput | undefined;
@@ -87,7 +101,7 @@ function embeddingInputsFromCapabilities(capabilities: CapabilityInput[] | undef
   return selected;
 }
 
-function applyEmbeddingOverrides(inputs: EmbeddableInput[], overrides: Partial<Record<ExtractionCapability, boolean>> | undefined): EmbeddableInput[] {
+function applyEmbeddingOverrides(inputs: string[], overrides: Partial<Record<ExtractionCapability, boolean>> | undefined): string[] {
   if (!overrides) return inputs;
   const selected = [...inputs];
   for (const [capability, enabled] of Object.entries(overrides) as [ExtractionCapability, boolean][]) {
@@ -98,6 +112,22 @@ function applyEmbeddingOverrides(inputs: EmbeddableInput[], overrides: Partial<R
     if (!enabled && index !== -1) selected.splice(index, 1);
   }
   return selected;
+}
+
+function embeddingInputsFromSelection(selection: BuilderEmbeddingInputSelection | undefined): string[] {
+  if (selection === undefined) return [];
+  if (selection === "all") return [...STANDARD_BUILDER_EMBEDDING_INPUTS];
+  return selection.map((input) => typeof input === "string" ? input : input.input);
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return values.filter((value, index) => values.indexOf(value) === index);
+}
+
+function orderEmbeddingInputs(values: string[]): string[] {
+  const standard = STANDARD_BUILDER_EMBEDDING_INPUTS.filter((input) => values.includes(input));
+  const custom = values.filter((input) => !STANDARD_BUILDER_EMBEDDING_INPUTS.includes(input as EmbeddableInput));
+  return [...standard, ...custom];
 }
 
 function sourceRefSchema(finalized = false): JsonSchema {
@@ -723,7 +753,11 @@ export class ExtractionBuilder {
     if (options.embed === undefined) {
       return this.withProfile(profile);
     }
-    this.options.capabilities = capabilitySpecs(profileCapabilities(profile), options.embed);
+    const capabilities = profileCapabilities(profile);
+    this.options.capabilities = capabilitySpecs(capabilities, options.embed);
+    if (options.embed === true && this.options.embeddingInputs === undefined) {
+      this.options.embeddingInputs = ["source"];
+    }
     delete this.options.profile;
     return this;
   }
@@ -755,6 +789,15 @@ export class ExtractionBuilder {
   embed(capability: ExtractionCapability, enabled = true): this {
     this.options.embed = { ...(this.options.embed ?? {}), [capability]: enabled };
     return this;
+  }
+
+  withEmbeddingInputs(inputs: BuilderEmbeddingInputSelection = "all"): this {
+    this.options.embeddingInputs = inputs;
+    return this;
+  }
+
+  withStandardEmbeddings(): this {
+    return this.withEmbeddingInputs("all");
   }
 
   withCategories(categories: string[]): this {
@@ -826,10 +869,11 @@ export class ExtractionBuilder {
     const capabilities = this.resolvedCapabilities();
     const resolved = new Set(capabilities);
     const excluded = expandCapabilityExclusions(normalizeCapabilityInputs(this.options.remove ?? []));
-    const embeddedInputs = applyEmbeddingOverrides([
+    const embeddedInputs = orderEmbeddingInputs(applyEmbeddingOverrides(uniqueStrings([
+      ...embeddingInputsFromSelection(this.options.embeddingInputs),
       ...embeddingInputsFromCapabilities(this.options.capabilities, resolved),
       ...embeddingInputsFromCapabilities(this.options.add, resolved),
-    ].filter((input, index, arr) => arr.indexOf(input) === index), this.options.embed);
+    ]), this.options.embed));
     const notEmbedded = capabilities.filter((capability) => {
       const input = embeddableInputForCapability(capability);
       return input !== undefined && !embeddedInputs.includes(input);
@@ -850,6 +894,31 @@ export class ExtractionBuilder {
 
   plan(): CapabilityPlan {
     return this.capabilityPlan();
+  }
+
+  extractOptions(): ExtractionBuilderOptions {
+    const plan = this.capabilityPlan();
+    const customInputs = Array.isArray(this.options.embeddingInputs)
+      ? this.options.embeddingInputs.filter((input): input is CustomBuilderEmbeddingInput => typeof input === "object" && input !== null)
+      : [];
+    const namedInputs = plan.embeddedInputs.filter((input): input is EmbeddableInput => (
+      STANDARD_BUILDER_EMBEDDING_INPUTS.includes(input as EmbeddableInput)
+      && !customInputs.some((custom) => custom.input === input)
+    ));
+    const embeddingInputs = plan.embeddedInputs.length > 0
+      ? [
+        ...customInputs,
+        ...namedInputs,
+      ]
+      : undefined;
+    return {
+      ...this.options,
+      ...(embeddingInputs !== undefined ? { embeddingInputs } : {}),
+    };
+  }
+
+  toOptions(): ExtractionBuilderOptions {
+    return this.extractOptions();
   }
 
   prompt(): string {

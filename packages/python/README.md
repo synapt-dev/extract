@@ -81,16 +81,21 @@ For OpenAI-compatible clients, use the thin adapter instead of writing callbacks
 
 ```python
 from openai import OpenAI
-from synapt_extract import extract_openai
+from synapt_extract import create_extraction_builder, extract_openai
+
+builder = (
+    create_extraction_builder(text)
+    .full(embed=True)
+    .with_source(source_id="note-1", source_type="note")
+)
 
 result = await extract_openai(
     text,
     OpenAI(),
-    profile="full",
+    **builder.extract_options(),
     model="gpt-5.5",
     reasoning_effort="medium",
     embedding_model="text-embedding-3-small",
-    embedding_inputs=["source"],
     artifact_dir="./artifacts",
 )
 ```
@@ -98,7 +103,13 @@ result = await extract_openai(
 The returned result includes `artifact_bundle`. `write_artifact_bundle()` can also write a bundle created from any `extract()` result.
 
 ```python
-from synapt_extract import extract
+from synapt_extract import create_extraction_builder, extract
+
+builder = (
+    create_extraction_builder(text)
+    .full(embed=True)
+    .with_source(source_id="note-1", source_type="note")
+)
 
 result = await extract(
     text,
@@ -106,15 +117,7 @@ result = await extract(
         "call_llm": call_llm,
         "get_embedding": get_embedding,
     },
-    capabilities=[
-        {"name": "entities", "embed": True},
-        {"name": "goals", "embed": True},
-        {"name": "summary", "embed": True},
-        "themes",
-    ],
-    source_id="note-1",
-    source_type="note",
-    embedding_inputs=["source"],
+    **builder.extract_options(),
     extend=lambda ctx: {
         "synapt/response_binding": {
             "response_id": ctx["response"].get("id"),
@@ -126,7 +129,7 @@ result = await extract(
 )
 ```
 
-Capability entries can be plain strings or `{"name": ..., "embed": True}` specs. The runner derives embeddings from embedded capability specs and merges them with explicit embedding inputs such as `"source"`. `embedding_inputs="all"` remains available for exhaustive tests and computes embeddings for source, summary, entities, goals, themes, keywords, facts, questions, actions, decisions, temporal refs, and sentiment when those fields exist. Embeddings are opt-in; no embedding API call is made unless requested.
+Profile helpers keep the public UX short: `.full(embed=True)` resolves the full capability set and standard embedding inputs, including the source text. Capability entries can still be plain strings or `{"name": ..., "embed": True}` specs for lower-level control. `embedding_inputs="all"` remains available for exhaustive tests and computes embeddings for source, summary, entities, goals, themes, keywords, facts, questions, actions, decisions, temporal refs, and sentiment when those fields exist. Embeddings are opt-in; no embedding API call is made unless requested.
 
 The `extend` resolver runs after the LLM response is parsed and embeddings are computed, but before finalization. It receives a normalized response envelope (`provider`, `id`, `status`, `model`, `stop_reason`, `usage`, and `raw`), so extensions can depend on provider output without knowing the provider's raw response shape. Raw OpenAI Responses and Anthropic Messages objects are translated automatically when returned as `raw`; callers can pass `response_translator` for custom providers. If `produced_by` is omitted, the runner can derive `openai://...` or `anthropic://...` producer metadata from normalized provider/model fields.
 
@@ -141,6 +144,8 @@ plan = (
     .plan()
 )
 ```
+
+`extract_options()` returns the resolved run contract for `extract()` and `extract_openai()`.
 
 ## Links
 
