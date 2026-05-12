@@ -17,6 +17,7 @@ import {
   createExtractionBuilder,
   resolveCapabilities,
 } from "../src/index.js";
+import { EMBEDDED_PROMPT_FRAGMENTS } from "../src/prompt-data.js";
 
 const REPO_ROOT = resolve(import.meta.dirname, "..", "..", "..");
 const CONFORMANCE_DIR = resolve(REPO_ROOT, "tests", "conformance");
@@ -273,6 +274,18 @@ describe("registry consistency", () => {
   const capabilityFragments = fragmentFiles.filter((f) => f !== "preamble" && f !== "postamble");
 
   const fullProfile = loadJson<{ capabilities: string[] }>(PROMPTS_DIR, "profiles", "full.json").capabilities;
+
+  test("embedded capability registry matches the prompt asset", () => {
+    expect(CAPABILITY_REGISTRY).toEqual(loadJson(PROMPTS_DIR, "capabilities.json"));
+  });
+
+  test("embedded prompt fragments match the prompt assets", () => {
+    const expectedNames = fragmentFiles.sort();
+    expect(Object.keys(EMBEDDED_PROMPT_FRAGMENTS).sort()).toEqual(expectedNames);
+    for (const name of expectedNames) {
+      expect(EMBEDDED_PROMPT_FRAGMENTS[name], name).toBe(readFileSync(resolve(fragmentDir, `${name}.txt`), "utf-8"));
+    }
+  });
 
   test("capability registry covers schema capabilities in canonical order", () => {
     expect(CAPABILITY_REGISTRY.capabilities.map((definition) => definition.name)).toEqual(CANONICAL_ORDER);

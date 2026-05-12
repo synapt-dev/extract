@@ -4,10 +4,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
+  callbacksFromHost,
   createExtractionBuilder,
   extract,
+  supportedHostFeatures,
+  unsupportedHostFeatures,
   type EmbeddingRequest,
   type LlmRequest,
+  type SynaptHost,
 } from "../src/index.js";
 import { extractOpenAI, type OpenAICompatibleClient } from "../src/openai.js";
 
@@ -555,5 +559,21 @@ describe("extract", () => {
       source_id: "fixture-openai-adapter",
       produced_by: { model: "openai://gpt-5.5" },
     });
+  });
+});
+
+describe("SynaptHost", () => {
+  test("adapts host imports to extraction callbacks and reports missing features", () => {
+    const host: SynaptHost = {
+      callLlm: () => ({ output: { extracted_at: "2026-05-12T14:00:00Z", entities: [] }, model: "openai://gpt-5.5" }),
+      now: () => "2026-05-12T14:00:00Z",
+      hash: () => "digest",
+    };
+
+    const callbacks = callbacksFromHost(host);
+    expect(callbacks.callLlm).toBe(host.callLlm);
+    expect(callbacks.getEmbedding).toBeUndefined();
+    expect(supportedHostFeatures(host)).toEqual(["callLlm", "now", "hash"]);
+    expect(unsupportedHostFeatures(host, { callLlm: true, getEmbedding: true, hash: true })).toEqual(["getEmbedding"]);
   });
 });

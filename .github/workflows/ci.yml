@@ -114,6 +114,7 @@ jobs:
           npm ci
           npm run build
           node ../../scripts/check-no-network.mjs dist
+          node ../../scripts/check-ts-universal-entry.mjs dist/index.js
 
       - name: Scan packed artifact for forbidden APIs
         working-directory: packages/ts
@@ -123,6 +124,7 @@ jobs:
           cd /tmp/pack-scan
           tar xzf *.tgz
           node $GITHUB_WORKSPACE/scripts/check-no-network.mjs package/src package/dist
+          node $GITHUB_WORKSPACE/scripts/check-ts-universal-entry.mjs package/dist/index.js
 
       - name: Scan Python source for forbidden APIs
         run: python3 scripts/check-no-network.py packages/python/src

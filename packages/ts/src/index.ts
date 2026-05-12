@@ -80,3 +80,20 @@ export type {
   NormalizedLlmResponse,
   UsageSummary,
 } from "./extract.js";
+
+export {
+  callbacksFromHost,
+  supportedHostFeatures,
+  unsupportedHostFeatures,
+} from "./host.js";
+export type {
+  HostArtifact,
+  HostArtifactWriteResult,
+  HostHashAlgorithm,
+  HostHashEncoding,
+  HostHashRequest,
+  HostMaybePromise,
+  SynaptHost,
+  SynaptHostFeature,
+  SynaptHostRequirements,
+} from "./host.js";

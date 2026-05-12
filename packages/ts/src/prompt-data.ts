@@ -1,0 +1,248 @@
+import type { CapabilityRegistry } from "./prompt.js";
+
+export const EMBEDDED_CAPABILITY_REGISTRY: CapabilityRegistry = {
+  version: "1",
+  profiles: {
+    minimal: [
+      "entities",
+      "entity_state",
+      "goals",
+      "themes",
+      "summary",
+    ],
+    standard: [
+      "entities",
+      "entity_state",
+      "entity_context",
+      "goals",
+      "goal_timing",
+      "themes",
+      "summary",
+      "sentiment",
+      "facts",
+      "temporal_refs",
+      "evidence_anchoring",
+    ],
+    full: [
+      "entities",
+      "entity_state",
+      "entity_context",
+      "entity_ids",
+      "goals",
+      "goal_timing",
+      "goal_entity_refs",
+      "themes",
+      "keywords",
+      "summary",
+      "sentiment",
+      "structured_sentiment",
+      "facts",
+      "questions",
+      "actions",
+      "decisions",
+      "temporal_refs",
+      "temporal_classes",
+      "relations",
+      "relation_origin",
+      "assertion_signals",
+      "evidence_anchoring",
+      "language",
+      "source_metadata",
+      "confidence",
+    ],
+  },
+  omit_when_absent: [
+    "keywords",
+    "questions",
+    "actions",
+    "decisions",
+    "language",
+    "source_metadata",
+    "confidence",
+  ],
+  standard_embedding_inputs: [
+    "source",
+    "summary",
+    "entities",
+    "goals",
+    "themes",
+    "keywords",
+    "facts",
+    "questions",
+    "actions",
+    "decisions",
+    "temporal_refs",
+    "sentiment",
+  ],
+  capabilities: [
+    {
+      name: "entities",
+      base: true,
+      embedding_input: "entities",
+    },
+    {
+      name: "goals",
+      base: true,
+      embedding_input: "goals",
+    },
+    {
+      name: "themes",
+      embedding_input: "themes",
+    },
+    {
+      name: "keywords",
+      embedding_input: "keywords",
+      rule: "Extract specific terms from the source, not topical categories (those go in themes).",
+    },
+    {
+      name: "summary",
+      embedding_input: "summary",
+    },
+    {
+      name: "sentiment",
+      embedding_input: "sentiment",
+    },
+    {
+      name: "structured_sentiment",
+      depends_on: [
+        "sentiment",
+      ],
+      embedding_input: "sentiment",
+      rule: "Return sentiment as an object with \"valence\" (positive/negative/neutral/mixed), optional \"intensity\" (0.0-1.0), and optional \"confidence\" (0.0-1.0).",
+    },
+    {
+      name: "facts",
+      base: true,
+      embedding_input: "facts",
+    },
+    {
+      name: "questions",
+      base: true,
+      embedding_input: "questions",
+    },
+    {
+      name: "actions",
+      base: true,
+      embedding_input: "actions",
+      rule: "Set origin to \"extracted\" for actions stated in the text, \"proposed_from_goals\" for actions inferred from goals.",
+    },
+    {
+      name: "decisions",
+      base: true,
+      embedding_input: "decisions",
+    },
+    {
+      name: "temporal_refs",
+      embedding_input: "temporal_refs",
+      rule: "Resolve all relative dates to absolute dates.",
+    },
+    {
+      name: "entity_state",
+      depends_on: [
+        "entities",
+      ],
+      embedding_input: "entities",
+    },
+    {
+      name: "entity_context",
+      depends_on: [
+        "entities",
+      ],
+      embedding_input: "entities",
+    },
+    {
+      name: "entity_ids",
+      depends_on: [
+        "entities",
+      ],
+      embedding_input: "entities",
+      rule: "Assign each entity a short local ID (\"e1\", \"e2\", etc.). Goals and relations reference entities by ID.",
+    },
+    {
+      name: "goal_timing",
+      depends_on: [
+        "goals",
+      ],
+      embedding_input: "goals",
+    },
+    {
+      name: "goal_entity_refs",
+      depends_on: [
+        "goals",
+        "entity_ids",
+      ],
+      embedding_input: "goals",
+    },
+    {
+      name: "temporal_classes",
+      depends_on: [
+        "temporal_refs",
+      ],
+      embedding_input: "temporal_refs",
+    },
+    {
+      name: "relations",
+      depends_on: [
+        "entities",
+        "entity_ids",
+      ],
+      embedding_input: "entities",
+    },
+    {
+      name: "relation_origin",
+      depends_on: [
+        "relations",
+      ],
+      embedding_input: "entities",
+      rule: "Mark relation origin: \"explicit\" if stated in text, \"inferred\" if deduced from context, \"dependent\" if derived from another relation.",
+    },
+    {
+      name: "assertion_signals",
+      modifier_only: true,
+      rule: "Preserve negation, hedging, and conditions in signals. \"I might move\" \u2192 hedged=true. \"No longer using Redis\" \u2192 negated=true. \"If we get funding\" \u2192 condition=\"we get funding\".",
+    },
+    {
+      name: "evidence_anchoring",
+      modifier_only: true,
+    },
+    {
+      name: "language",
+    },
+    {
+      name: "source_metadata",
+    },
+    {
+      name: "confidence",
+    },
+  ],
+};
+
+export const EMBEDDED_PROMPT_FRAGMENTS: Record<string, string> = {
+  actions: "- \"actions\": array of objects with \"text\", \"origin\" (\"extracted\" or \"proposed_from_goals\"), optional \"entity_refs\" and \"due\"\n",
+  assertion_signals: "  - on entities, goals, facts, questions, actions, decisions, and relations, include \"signals\": {\"confidence\": 0.0-1.0, \"negated\": boolean, \"hedged\": boolean, \"condition\": string}\n",
+  confidence: "- \"confidence\": overall extraction confidence score from 0.0 to 1.0\n",
+  decisions: "- \"decisions\": array of objects with \"text\", optional \"entity_refs\" and \"decided_at\"\n",
+  entities: "- \"entities\": array of objects with \"name\" (string) and \"type\" (\"person\", \"place\", \"event\", \"concept\", \"organization\", \"object\")\n",
+  entity_context: "  - include \"context\": role or relationship, and \"date_hint\": relevant date\n",
+  entity_ids: "  - include \"id\": short local ID (\"e1\", \"e2\", etc.)\n",
+  entity_state: "  - include \"state\": current state described in text\n",
+  evidence_anchoring: "  - on entities, goals, facts, questions, actions, and decisions, include \"source\": {\"snippet\": verbatim quote from text}\n",
+  facts: "- \"facts\": array of objects with \"text\" and optional \"category\"\n",
+  goal_entity_refs: "  - include \"entity_refs\": array of entity IDs (not names)\n",
+  goal_timing: "  - on goals, include \"stated_at\" and \"resolved_at\" (ISO 8601). These fields apply only to goals, not to entities or other objects.\n",
+  goals: "- \"goals\": array of objects with \"text\" (description), \"status\" (\"open\", \"resolved\", \"abandoned\", \"in_progress\"), and \"entity_refs\" (array of entity IDs involved; use empty array if no entities apply)\n",
+  keywords: "- \"keywords\": array of specific lexical terms extracted from the source text\n",
+  language: "- \"language\": IETF BCP 47 language tag of the source text (e.g. \"en-US\", \"es\", \"pt-BR\")\n",
+  postamble: "Rules:\n- Extract what's IN the text. Do not infer or fabricate.\n- Use specific details, not general descriptions.\n- Output ONLY valid JSON. No markdown fences, no explanation.\n\nText:\n{{text}}\n",
+  preamble: "Extract structured data from the following text.\n\n{{#if categories}}Available categories: {{categories}}{{/if}}\n{{#if source_type}}Content type: {{source_type}}{{/if}}\n{{#if date}}Date: {{date}}{{/if}}\n\nReturn a JSON object with the following fields:\n- \"extracted_at\": current ISO 8601 timestamp\n",
+  questions: "- \"questions\": array of objects with \"text\" and optional \"directed_to\" (entity ID the question is addressed to)\n",
+  relation_origin: "    - include \"origin\": \"explicit\" (stated in text), \"inferred\" (deduced), or \"dependent\" (reverse edge)\n",
+  relations: "  - include \"relations\": array of {\"target\": entity ID, \"type\": relationship type}\n",
+  sentiment: "- \"sentiment\": overall emotional tone in one word\n",
+  source_metadata: "- \"source_metadata\": object with optional \"token_count\", \"character_count\", \"modality\", \"format\"\n",
+  structured_sentiment: "- \"sentiment\": object with \"valence\" (one of \"positive\", \"negative\", \"neutral\", \"mixed\"), optional \"intensity\" (0.0-1.0), optional \"confidence\" (0.0-1.0)\n",
+  summary: "- \"summary\": one sentence, max 200 characters\n",
+  temporal_classes: "  - include \"type\" (\"point\", \"range\", \"duration\", \"unresolved\") and \"resolved_end\" for ranges\n",
+  temporal_refs: "- \"temporal_refs\": array of objects with \"raw\" (as it appeared in text), \"type\" (\"point\", \"range\", \"duration\", or \"unresolved\"), \"resolved\" (ISO 8601 date/datetime for points and range starts), optional \"resolved_end\" (required for ranges), and optional \"context\". Resolve relative dates using: {{date}}. For durations, omit \"resolved\" and \"resolved_end\" unless the source gives concrete dates; never put ISO duration strings such as \"P30D\" or \"P1Y\" in \"resolved\".\n",
+  themes: "- \"themes\": array of topic strings{{#if categories}} chosen from: {{categories}}{{/if}}\n",
+};
