@@ -147,6 +147,91 @@ built = builder.build(name="synapt_extract_stage1")
 
 `buildExtractionSchema()` / `build_extraction_schema()` return the semantic Stage 1 schema. `buildExtractionResponseFormat()` / `build_extraction_response_format()` return an OpenAI-compatible `json_schema` response format; strict mode requires every object property as OpenAI expects and represents semantic optional fields as nullable. `buildFinalizedExtractionSchema()` / `build_finalized_extraction_schema()` return the finalized packet shape, including `produced_by`, source context, capabilities, embeddings, and extensions.
 
+## Full extraction runner
+
+Use `extract()` when you want the library to execute the full pipeline while your application owns the model and embedding API calls. The callbacks receive plain JSON requests, so callers can route to OpenAI, another provider, a local model, or a test fixture.
+
+```typescript
+import { extract } from "@synapt-dev/extract";
+
+const result = await extract(text, {
+  callLlm: async (request) => {
+    // Send request.messages and request.responseFormat to your model provider.
+    return {
+      output: stage1Json,
+      produced_by: { model: "openai://gpt-5.5" },
+    };
+  },
+  getEmbedding: async (request) => {
+    // Embed request.text and record the provider URI for the embedding model.
+    return { vector, model: "openai://text-embedding-3-small" };
+  },
+}, {
+  capabilities: [
+    { name: "entities", embed: true },
+    { name: "goals", embed: true },
+    { name: "summary", embed: true },
+    "themes",
+  ],
+  source_id: "note-1",
+  source_type: "note",
+  embeddingInputs: ["source"],
+  extend: ({ response, stage1, embeddings }) => ({
+    "synapt/response_binding": {
+      response_id: response.id,
+      response_model: response.model,
+      stage1_fields: Object.keys(stage1).length,
+      embedding_count: embeddings.length,
+    },
+  }),
+});
+```
+
+```python
+from synapt_extract import extract
+
+result = await extract(
+    text,
+    {
+        "call_llm": call_llm,
+        "get_embedding": get_embedding,
+    },
+    capabilities=[
+        {"name": "entities", "embed": True},
+        {"name": "goals", "embed": True},
+        {"name": "summary", "embed": True},
+        "themes",
+    ],
+    source_id="note-1",
+    source_type="note",
+    embedding_inputs=["source"],
+    extend=lambda ctx: {
+        "synapt/response_binding": {
+            "response_id": ctx["response"].get("id"),
+            "response_model": ctx["response"].get("model"),
+            "stage1_fields": len(ctx["stage1"]),
+            "embedding_count": len(ctx["embeddings"]),
+        }
+    },
+)
+```
+
+Capability entries can be plain strings or `{ name, embed: true }` specs. The runner derives embeddings from embedded capability specs and merges them with explicit embedding inputs such as `"source"`. `embeddingInputs: "all"` / `embedding_inputs="all"` remains available for exhaustive tests and computes embeddings for source, summary, entities, goals, themes, keywords, facts, questions, actions, decisions, temporal refs, and sentiment when those fields exist. Embeddings are opt-in; if no embedding inputs are requested and no capability has `embed: true`, no embedding API call is made.
+
+The `extend` resolver runs after the LLM response is parsed and embeddings are computed, but before finalization. It receives a normalized response envelope (`response.id`, `response.status`, `response.model`, `response.usage`, and `response.raw`), so extensions can depend on provider output without knowing the provider's raw response shape. Returned extension objects are merged over static `extensions` and receive `version: "1"` during finalization.
+
+For preflight UX, builders expose profile helpers and a plan:
+
+```typescript
+const plan = createExtractionBuilder(text)
+  .full({ embed: true })
+  .minus("questions")
+  .embed("summary", false)
+  .plan();
+```
+
+`plan()` reports resolved capabilities, excluded capabilities, embedding inputs, requested-but-not-embedded capabilities, required callbacks, and prompt character count.
+
 ## JSON Schema
 
 The canonical schema is hosted at:

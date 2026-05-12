@@ -92,6 +92,10 @@ def _load_profile(name: str) -> list[str]:
     return data["capabilities"]
 
 
+def profile_capabilities(profile: str) -> list[str]:
+    return list(_load_profile(profile))
+
+
 def _load_fragment(name: str) -> str:
     path = PROMPTS_DIR / "v1" / f"{name}.txt"
     return path.read_text()
@@ -124,33 +128,61 @@ BASE_CAPABILITIES = frozenset(["entities", "goals", "facts", "questions", "actio
 MODIFIER_ONLY_CAPABILITIES = frozenset(["assertion_signals", "evidence_anchoring"])
 
 
-def _validate_capability_names(caps: set[str], source: str) -> None:
-    unknown = caps - EXTRACTION_CAPABILITIES
+def capability_name(capability: Any) -> str:
+    if isinstance(capability, str):
+        return capability
+    if isinstance(capability, dict):
+        name = capability.get("name") or capability.get("capability")
+        if isinstance(name, str):
+            return name
+    raise ValueError("Capability object must include name or capability")
+
+
+def normalize_capability_inputs(capabilities: list[Any]) -> list[str]:
+    return [capability_name(capability) for capability in capabilities]
+
+
+def capability_requests_embedding(capability: Any) -> bool:
+    return isinstance(capability, dict) and (capability.get("embed") is True or capability.get("embedding") is True)
+
+
+def capability_embedding_preference(capability: Any) -> bool | None:
+    if not isinstance(capability, dict):
+        return None
+    if isinstance(capability.get("embed"), bool):
+        return capability["embed"]
+    if isinstance(capability.get("embedding"), bool):
+        return capability["embedding"]
+    return None
+
+
+def _validate_capability_names(caps: list[Any], source: str) -> None:
+    names = set(normalize_capability_inputs(caps))
+    unknown = names - EXTRACTION_CAPABILITIES
     if unknown:
         raise ValueError(f"Unknown {source}: {', '.join(sorted(unknown))}")
 
 
 def resolve_capabilities(
     *,
-    capabilities: list[str] | None = None,
+    capabilities: list[Any] | None = None,
     profile: str | None = None,
-    add: list[str] | None = None,
-    remove: list[str] | None = None,
+    add: list[Any] | None = None,
+    remove: list[Any] | None = None,
 ) -> list[str]:
     if capabilities is None and profile is None:
         raise ValueError("Either capabilities or profile must be provided")
 
     if capabilities is not None:
-        _validate_capability_names(set(capabilities), "capabilities")
-        caps = set(capabilities)
+        _validate_capability_names(capabilities, "capabilities")
+        caps = set(normalize_capability_inputs(capabilities))
     else:
         caps = set(_load_profile(profile))
 
     if add:
-        _validate_capability_names(set(add), "capabilities in add")
-        caps.update(add)
-    if remove:
-        caps -= set(remove)
+        _validate_capability_names(add, "capabilities in add")
+        caps.update(normalize_capability_inputs(add))
+    removed = set(expand_capability_exclusions(normalize_capability_inputs(remove))) if remove else set()
 
     changed = True
     while changed:
@@ -160,6 +192,8 @@ def resolve_capabilities(
                 if dep not in caps:
                     caps.add(dep)
                     changed = True
+
+    caps -= removed
 
     if not caps:
         raise ValueError("Resolved capability set is empty")
@@ -174,13 +208,25 @@ def resolve_capabilities(
     return sorted(caps, key=lambda c: CANONICAL_ORDER.index(c) if c in CANONICAL_ORDER else len(CANONICAL_ORDER))
 
 
+def expand_capability_exclusions(capabilities: list[str]) -> list[str]:
+    excluded = set(capabilities)
+    changed = True
+    while changed:
+        changed = False
+        for capability, deps in CAPABILITY_DEPS.items():
+            if capability not in excluded and any(dep in excluded for dep in deps):
+                excluded.add(capability)
+                changed = True
+    return sorted(excluded, key=lambda c: CANONICAL_ORDER.index(c) if c in CANONICAL_ORDER else len(CANONICAL_ORDER))
+
+
 def build_extraction_prompt(
     text: str,
     *,
-    capabilities: list[str] | None = None,
+    capabilities: list[Any] | None = None,
     profile: str | None = None,
-    add: list[str] | None = None,
-    remove: list[str] | None = None,
+    add: list[Any] | None = None,
+    remove: list[Any] | None = None,
     categories: list[str] | None = None,
     source_type: str | None = None,
     date: str | None = None,

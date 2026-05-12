@@ -1,6 +1,16 @@
 import { finalizeExtraction, type FinalizeContext, type FinalizeResult } from "./finalize.js";
 import type { ExtractionCapability } from "./schema.js";
-import { buildExtractionPrompt, resolveCapabilities, type PromptOptions } from "./prompt.js";
+import {
+  buildExtractionPrompt,
+  capabilityEmbeddingPreference,
+  capabilityName,
+  expandCapabilityExclusions,
+  normalizeCapabilityInputs,
+  profileCapabilities,
+  resolveCapabilities,
+  type CapabilityInput,
+  type PromptOptions,
+} from "./prompt.js";
 
 export type JsonSchema = Record<string, unknown>;
 type CapabilityOptions = Pick<PromptOptions, "capabilities" | "profile" | "add" | "remove">;
@@ -20,6 +30,36 @@ export interface ResponseFormatOptions {
   strict?: boolean;
 }
 
+export type EmbeddableInput =
+  | "source"
+  | "summary"
+  | "entities"
+  | "goals"
+  | "themes"
+  | "keywords"
+  | "facts"
+  | "questions"
+  | "actions"
+  | "decisions"
+  | "temporal_refs"
+  | "sentiment";
+
+export type CapabilityProfileOptions = {
+  embed?: boolean;
+};
+
+export interface CapabilityPlan {
+  capabilities: ExtractionCapability[];
+  excluded: ExtractionCapability[];
+  embeddedInputs: EmbeddableInput[];
+  notEmbedded: ExtractionCapability[];
+  requiredCallbacks: {
+    callLlm: true;
+    getEmbedding: boolean;
+  };
+  promptCharacters: number;
+}
+
 const DEFAULT_RESPONSE_FORMAT_NAME = "synapt_extraction_stage1";
 const ALL_CAPABILITIES: ExtractionCapability[] = [
   "entities", "entity_state", "entity_context", "entity_ids",
@@ -31,6 +71,59 @@ const ALL_CAPABILITIES: ExtractionCapability[] = [
   "assertion_signals", "evidence_anchoring",
   "language", "source_metadata", "confidence",
 ];
+const CAPABILITY_EMBEDDING_INPUTS: Partial<Record<ExtractionCapability, EmbeddableInput>> = {
+  entities: "entities",
+  entity_state: "entities",
+  entity_context: "entities",
+  entity_ids: "entities",
+  relations: "entities",
+  relation_origin: "entities",
+  goals: "goals",
+  goal_timing: "goals",
+  goal_entity_refs: "goals",
+  themes: "themes",
+  keywords: "keywords",
+  summary: "summary",
+  sentiment: "sentiment",
+  structured_sentiment: "sentiment",
+  facts: "facts",
+  questions: "questions",
+  actions: "actions",
+  decisions: "decisions",
+  temporal_refs: "temporal_refs",
+  temporal_classes: "temporal_refs",
+};
+
+function capabilitySpecs(capabilities: ExtractionCapability[], embed?: boolean): CapabilityInput[] {
+  if (embed === undefined) return capabilities;
+  return capabilities.map((name) => ({ name, embed }));
+}
+
+function embeddingInputsFromCapabilities(capabilities: CapabilityInput[] | undefined, resolved: Set<ExtractionCapability>): EmbeddableInput[] {
+  if (!capabilities) return [];
+  const selected: EmbeddableInput[] = [];
+  for (const capability of capabilities) {
+    if (capabilityEmbeddingPreference(capability) !== true) continue;
+    const name = capabilityName(capability);
+    if (!resolved.has(name)) continue;
+    const input = CAPABILITY_EMBEDDING_INPUTS[name];
+    if (input !== undefined && !selected.includes(input)) selected.push(input);
+  }
+  return selected;
+}
+
+function applyEmbeddingOverrides(inputs: EmbeddableInput[], overrides: Partial<Record<ExtractionCapability, boolean>> | undefined): EmbeddableInput[] {
+  if (!overrides) return inputs;
+  const selected = [...inputs];
+  for (const [capability, enabled] of Object.entries(overrides) as [ExtractionCapability, boolean][]) {
+    const input = CAPABILITY_EMBEDDING_INPUTS[capability];
+    if (input === undefined) continue;
+    const index = selected.indexOf(input);
+    if (enabled && index === -1) selected.push(input);
+    if (!enabled && index !== -1) selected.splice(index, 1);
+  }
+  return selected;
+}
 
 function sourceRefSchema(finalized = false): JsonSchema {
   const properties: JsonSchema = {
@@ -639,19 +732,53 @@ export class ExtractionBuilder {
     return this;
   }
 
-  withCapabilities(capabilities: ExtractionCapability[]): this {
+  minimal(options: CapabilityProfileOptions = {}): this {
+    return this.withProfileCapabilities("minimal", options);
+  }
+
+  standard(options: CapabilityProfileOptions = {}): this {
+    return this.withProfileCapabilities("standard", options);
+  }
+
+  full(options: CapabilityProfileOptions = {}): this {
+    return this.withProfileCapabilities("full", options);
+  }
+
+  private withProfileCapabilities(profile: NonNullable<PromptOptions["profile"]>, options: CapabilityProfileOptions): this {
+    if (options.embed === undefined) {
+      return this.withProfile(profile);
+    }
+    this.options.capabilities = capabilitySpecs(profileCapabilities(profile), options.embed);
+    delete this.options.profile;
+    return this;
+  }
+
+  withCapabilities(capabilities: CapabilityInput[]): this {
     this.options.capabilities = capabilities;
     delete this.options.profile;
     return this;
   }
 
-  addCapabilities(capabilities: ExtractionCapability[]): this {
+  addCapabilities(capabilities: CapabilityInput[]): this {
     this.options.add = [...(this.options.add ?? []), ...capabilities];
     return this;
   }
 
-  removeCapabilities(capabilities: ExtractionCapability[]): this {
+  removeCapabilities(capabilities: CapabilityInput[]): this {
     this.options.remove = [...(this.options.remove ?? []), ...capabilities];
+    return this;
+  }
+
+  minus(...capabilities: CapabilityInput[]): this {
+    return this.removeCapabilities(capabilities);
+  }
+
+  unsupported(...capabilities: CapabilityInput[]): this {
+    return this.removeCapabilities(capabilities);
+  }
+
+  embed(capability: ExtractionCapability, enabled = true): this {
+    this.options.embed = { ...(this.options.embed ?? {}), [capability]: enabled };
     return this;
   }
 
@@ -718,6 +845,36 @@ export class ExtractionBuilder {
 
   resolvedCapabilities(): ExtractionCapability[] {
     return resolveCapabilities(this.options);
+  }
+
+  capabilityPlan(): CapabilityPlan {
+    const capabilities = this.resolvedCapabilities();
+    const resolved = new Set(capabilities);
+    const excluded = expandCapabilityExclusions(normalizeCapabilityInputs(this.options.remove ?? []));
+    const embeddedInputs = applyEmbeddingOverrides([
+      ...embeddingInputsFromCapabilities(this.options.capabilities, resolved),
+      ...embeddingInputsFromCapabilities(this.options.add, resolved),
+    ].filter((input, index, arr) => arr.indexOf(input) === index), this.options.embed);
+    const notEmbedded = capabilities.filter((capability) => {
+      const input = CAPABILITY_EMBEDDING_INPUTS[capability];
+      return input !== undefined && !embeddedInputs.includes(input);
+    });
+
+    return {
+      capabilities,
+      excluded,
+      embeddedInputs,
+      notEmbedded,
+      requiredCallbacks: {
+        callLlm: true,
+        getEmbedding: embeddedInputs.length > 0,
+      },
+      promptCharacters: this.prompt().length,
+    };
+  }
+
+  plan(): CapabilityPlan {
+    return this.capabilityPlan();
   }
 
   prompt(): string {
