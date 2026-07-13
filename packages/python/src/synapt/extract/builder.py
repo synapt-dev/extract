@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from synapt_extract.finalize import FinalizeContext, FinalizeResult, finalize_extraction
-from synapt_extract.prompt import (
+from synapt.extract.finalize import FinalizeContext, FinalizeResult, finalize_extraction
+from synapt.extract.prompt import (
     CANONICAL_ORDER,
     STANDARD_EMBEDDING_INPUTS,
     build_extraction_prompt,

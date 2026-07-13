@@ -10,7 +10,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "packages" / "python" / "src"))
 
-from synapt_extract import create_extraction_builder, extract, extract_openai
+from synapt.extract import create_extraction_builder, extract, extract_openai
 
 
 SAMPLE_TEXT = (

@@ -9,7 +9,7 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
-from synapt_extract.extract import ExtractResult
+from synapt.extract.extract import ExtractResult
 
 
 JsonObject = dict[str, Any]

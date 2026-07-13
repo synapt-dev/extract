@@ -7,10 +7,12 @@ import re
 from pathlib import Path
 from typing import Any
 
-from synapt_extract.schema import EXTRACTION_CAPABILITIES
+from synapt.extract.schema import EXTRACTION_CAPABILITIES
 
 _INSTALLED_PROMPTS = Path(__file__).resolve().parent / "prompts"
-_REPO_PROMPTS = Path(__file__).resolve().parents[4] / "prompts"
+# parents[5] → repo root: this module sits at src/synapt/extract/prompt.py.
+# (Pre-PEP420 it was one directory shallower and used parents[4].)
+_REPO_PROMPTS = Path(__file__).resolve().parents[5] / "prompts"
 PROMPTS_DIR = _INSTALLED_PROMPTS if _INSTALLED_PROMPTS.is_dir() else _REPO_PROMPTS
 
 
