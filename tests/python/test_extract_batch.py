@@ -14,14 +14,14 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "packages" / "python" / "src"))
 
-from synapt_extract import (
+from synapt.extract import (
     BatchFailureReason,
     BatchUnit,
     extract_batch,
     profile_capabilities,
     validate_extraction,
 )
-from synapt_extract.batch import _coerce_shape, _strip_output_hygiene
+from synapt.extract.batch import _coerce_shape, _strip_output_hygiene
 
 
 RECALL_CAPABILITIES = ["facts", "decisions", "temporal_refs"]
