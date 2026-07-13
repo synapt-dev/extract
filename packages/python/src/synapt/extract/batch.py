@@ -42,10 +42,24 @@ Harvest map: scratchpad/extract_batch_craft_harvest.md. Boundary: OSS.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from typing import Any, Callable, Literal, TypedDict
 
-from synapt.extract.finalize import finalize_extraction
+from synapt.extract.builder import build_extraction_schema
+from synapt.extract.finalize import FinalizeContext, finalize_extraction
+from synapt.extract.prompt import (
+    build_extraction_prompt,
+    profile_capabilities,
+    resolve_capabilities,
+)
+
+# Container capabilities the finalized schema always requires, even when a caller
+# did not request them (mirrors recall's backfill so validation does not fail on
+# containers we deliberately did not request).
+_ALWAYS_BACKFILL = ("entities", "goals", "themes")
+# One deterministic retry per failed unit → 2 attempts total (Q-B, Sentinel).
+_MAX_ATTEMPTS = 2
 
 # Terminal per-unit failure reasons (Q5). A Literal (not an Enum) so the spec's
 # get_args(BatchFailureReason) reads the members. "merged" is reserved for a future
@@ -104,27 +118,217 @@ async def extract_batch(
     per-unit calls with one deterministic retry per failed unit) driven through the
     injected ``infer`` seam, with zero dependency on any specific model client (Q4).
     ``capabilities`` defaults to the standard profile when omitted (Q3).
-
-    SKELETON — body is NotImplementedError; the impl lands in the follow-up PR.
     """
-    raise NotImplementedError(
-        "extract_batch skeleton conforms to the pinned contract + spec; the "
-        "implementation lands in the impl PR (recall#868)."
+    if not units:
+        return []
+    ids = [unit.id for unit in units]
+    if len(set(ids)) != len(ids):
+        raise ValueError("duplicate unit id; BatchUnit ids must be unique")
+
+    default_capabilities = (
+        capabilities if capabilities is not None else profile_capabilities("standard")
     )
+    results: list[BatchUnitResult] = []
+    for unit in units:
+        unit_capabilities = (
+            unit.capabilities if unit.capabilities is not None else default_capabilities
+        )
+        results.append(_extract_unit(unit, infer, produced_by, unit_capabilities))
+    return results
 
 
-# --- Intended internal decomposition (stubs; bodies in the impl PR) ------------
+def _extract_unit(
+    unit: BatchUnit,
+    infer: Inferer,
+    produced_by: str,
+    capabilities: list[str],
+) -> BatchUnitResult:
+    """Run one unit through the reliability ladder: build an out-of-band request →
+    infer → Class-A hygiene + parse → Class-B coerce → finalize/validate. One
+    deterministic retry on failure (2 attempts total); a persisting failure yields a
+    terminal marker carrying the last failure's reason (Q-B)."""
+    reason: BatchFailureReason = "dropped"
+    for _attempt in range(_MAX_ATTEMPTS):
+        # Out-of-band: the model sees the unit TEXT only — never its id or a boundary
+        # tag (Q-D). The id lives in bookkeeping and rides into the packet post-hoc.
+        prompt = build_extraction_prompt(unit.text, capabilities=list(capabilities), stage="stage1")
+        request: BatchInferRequest = {
+            "prompt": prompt,
+            "messages": [{"role": "user", "content": prompt}],
+            "capabilities": list(capabilities),
+        }
+        parsed = _parse_completion(infer(request))
+        if parsed is None:
+            reason = "unparseable"
+            continue
+
+        coerced = _coerce_shape(parsed, capabilities)
+        for key in _ALWAYS_BACKFILL:
+            coerced.setdefault(key, [])
+        context = FinalizeContext(
+            produced_by=produced_by,
+            source_id=unit.id,
+            capabilities_hint=list(capabilities),
+        )
+        try:
+            finalized = finalize_extraction(coerced, context)
+        except Exception:
+            reason = "schema_invalid"
+            continue
+        if not finalized.validation.valid:
+            reason = "schema_invalid"
+            continue
+        if _is_empty_extraction(finalized.extraction, capabilities):
+            reason = "dropped"
+            continue
+        return BatchUnitResult(
+            source_unit_id=unit.id, status="ok", extraction=finalized.extraction
+        )
+
+    return BatchUnitResult(source_unit_id=unit.id, status="failed", reason=reason)
+
+
+def _parse_completion(completion: str) -> dict | None:
+    """Class-A hygiene + JSON parse; None if the result is not a JSON object."""
+    try:
+        parsed = json.loads(_strip_output_hygiene(completion))
+    except (ValueError, TypeError):
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
 
 def _strip_output_hygiene(raw: str) -> str:
     """Class-A PRE-parse (NET-NEW): strip ``` fences + ``//`` comments so grounded-
     but-wrapped JSON parses. STRING-LITERAL-AWARE — a ``//`` inside a JSON string
     value (e.g. ``https://…``) is preserved; only real line-comments are removed."""
-    raise NotImplementedError
+    text = raw.strip()
+    # strip_markdown_fence: drop a leading ```/```json fence line, then the closing
+    # ``` and anything trailing it (e.g. a "Reasoning:" epilogue the model appends).
+    if text.startswith("```"):
+        newline = text.find("\n")
+        text = text[newline + 1:] if newline != -1 else ""
+        close = text.rfind("```")
+        if close != -1:
+            text = text[:close]
+    # strip_line_comments_outside_strings: remove `//` to end-of-line, but never when
+    # inside a JSON string literal (so a URL's `//` survives). Tracks string + escape.
+    out: list[str] = []
+    in_string = False
+    escaped = False
+    i, n = 0, len(text)
+    while i < n:
+        ch = text[i]
+        if in_string:
+            out.append(ch)
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = False
+            i += 1
+        elif ch == '"':
+            in_string = True
+            out.append(ch)
+            i += 1
+        elif ch == "/" and i + 1 < n and text[i + 1] == "/":
+            while i < n and text[i] != "\n":
+                i += 1  # drop the comment body; the newline (if any) is kept next loop
+        else:
+            out.append(ch)
+            i += 1
+    return "".join(out).strip()
 
 
 def _coerce_shape(parsed: dict, capabilities: list[str]) -> dict:
     """Class-B POST-parse (harvest ``_sanitize_stage1_output`` whitelist backbone):
-    the capability set is the arbiter (Q2) — in-scope fields coerced (scalar→array,
-    ``decided_at`` null→omit, ``category``→valid/default), out-of-scope dropped;
-    ``temporal_refs`` coerced to schema-valid ``raw``/``resolved`` only."""
-    raise NotImplementedError
+    the capability set is the arbiter (Q2). Per the Stage-1 schema for the requested
+    capabilities, whitelist each item type to its fields, coerce (scalar→array,
+    null/non-string optional → omit), and drop out-of-scope item types. ``entity_refs``
+    is retained only when the ``entities`` capability is in scope; ``temporal_refs``
+    keeps ``raw``/``resolved`` and drops schema-illegal extras (type/context/…)."""
+    resolved = set(resolve_capabilities(capabilities=list(capabilities)))
+    schema = build_extraction_schema(capabilities=list(capabilities))
+    props = schema.get("properties", {})
+    entities_in_scope = "entities" in resolved
+
+    result: dict[str, Any] = {}
+    if "extracted_at" in parsed:
+        result["extracted_at"] = parsed["extracted_at"]
+
+    for type_name, type_schema in props.items():
+        if type_name == "extracted_at":
+            continue
+        if type_schema.get("type") != "array":
+            if type_name in parsed:
+                result[type_name] = parsed[type_name]
+            continue
+        items_schema = type_schema.get("items")
+        parsed_items = parsed.get(type_name)
+        if not isinstance(items_schema, dict) or "properties" not in items_schema:
+            result[type_name] = parsed_items if isinstance(parsed_items, list) else []
+            continue
+        item_props = items_schema["properties"]
+        required = set(items_schema.get("required", []))
+        coerced_items: list[Any] = []
+        if isinstance(parsed_items, list):
+            for item in parsed_items:
+                if isinstance(item, dict):
+                    coerced_items.append(
+                        _coerce_item(item, item_props, required, entities_in_scope)
+                    )
+        result[type_name] = coerced_items
+    return result
+
+
+def _coerce_item(
+    item: dict,
+    item_props: dict,
+    required: set[str],
+    entities_in_scope: bool,
+) -> dict:
+    """Whitelist + type-coerce one item to its schema fields. Null/non-string optional
+    fields are omitted (they were grounded but wrongly shaped); a scalar for an
+    array-typed field is wrapped; an invalid REQUIRED field is kept so finalize
+    rejects it (→ schema_invalid) rather than silently passing."""
+    new_item: dict[str, Any] = {}
+    for field, field_schema in item_props.items():
+        if field == "entity_refs" and not entities_in_scope:
+            continue  # out-of-scope reference field → drop (Q2)
+        if field not in item:
+            continue
+        value = item[field]
+        field_type = field_schema.get("type")
+        if field_type == "array" and not isinstance(value, list):
+            if value is None:
+                continue  # omit null optional array
+            value = [value]  # scalar → array (in-scope coerce)
+        elif value is None:
+            if field in required:
+                new_item[field] = value  # keep null required → finalize rejects
+            continue
+        elif field_type == "string" and not isinstance(value, str):
+            if field in required:
+                new_item[field] = value  # keep invalid required → finalize rejects
+            continue
+        new_item[field] = value
+    return new_item
+
+
+# Container/metadata capabilities that do not count as per-unit "content" when
+# deciding whether the model produced anything for a unit (→ "dropped").
+_NON_CONTENT_CAPABILITIES = frozenset(
+    {"entities", "goals", "themes", "summary", "sentiment", "keywords"}
+)
+
+
+def _is_empty_extraction(extraction: Any, capabilities: list[str]) -> bool:
+    """True when the model produced no content for the unit — every requested
+    content array (facts/decisions/temporal_refs/…) is empty. Empty-but-valid is the
+    10/45 "dropped" mode: caught here and retried, never silently absorbed."""
+    resolved = set(resolve_capabilities(capabilities=list(capabilities)))
+    for cap in resolved - _NON_CONTENT_CAPABILITIES:
+        value = extraction.get(cap) if isinstance(extraction, dict) else getattr(extraction, cap, None)
+        if isinstance(value, list) and value:
+            return False
+    return True
