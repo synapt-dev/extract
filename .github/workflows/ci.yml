@@ -37,8 +37,8 @@ jobs:
       - run: pip install build
 
       - run: |
-          rm -r src/synapt_extract/prompts 2>/dev/null || true
-          test -d ../../prompts && cp -r ../../prompts src/synapt_extract/prompts || true
+          rm -r src/synapt/extract/prompts 2>/dev/null || true
+          test -d ../../prompts && cp -r ../../prompts src/synapt/extract/prompts || true
 
       - run: python -m build
 
@@ -154,7 +154,7 @@ jobs:
 
       - name: Verify Python package schemas match root schemas
         run: |
-          diff -r schemas packages/python/src/synapt_extract/schemas
+          diff -r schemas packages/python/src/synapt/extract/schemas
           echo "✅ Python package schemas match root schemas"
 
   schema-url-check:
@@ -205,8 +205,8 @@ jobs:
           SOURCE_DATE_EPOCH: "1704067200"
         run: |
           pip install build
-          rm -r src/synapt_extract/prompts 2>/dev/null || true
-          test -d ../../prompts && cp -r ../../prompts src/synapt_extract/prompts || true
+          rm -r src/synapt/extract/prompts 2>/dev/null || true
+          test -d ../../prompts && cp -r ../../prompts src/synapt/extract/prompts || true
           python -m build --outdir /tmp/py-dist-1
           rm -r src/synapt_extract.egg-info build 2>/dev/null || true
           python -m build --outdir /tmp/py-dist-2

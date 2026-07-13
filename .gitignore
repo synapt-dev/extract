@@ -7,7 +7,7 @@ dist/
 !tests/security-probes/**/*.js
 
 packages/ts/prompts/
-packages/python/src/synapt_extract/prompts/
+packages/python/src/synapt/extract/prompts/
 
 __pycache__/
 *.pyc

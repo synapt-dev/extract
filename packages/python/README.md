@@ -15,7 +15,7 @@ pip install synapt-extract
 ## Quick start
 
 ```python
-from synapt_extract import (
+from synapt.extract import (
     build_extraction_prompt,
     finalize_extraction,
     FinalizeContext,
@@ -50,7 +50,7 @@ assert result.validation.valid
 Use the builder when the model API supports structured output. It resolves capabilities once, then builds the matching prompt, Stage 1 JSON schema, OpenAI response format, finalized packet schema, and optional finalization context.
 
 ```python
-from synapt_extract import create_extraction_builder
+from synapt.extract import create_extraction_builder
 
 builder = (
     create_extraction_builder(text, profile="standard")
@@ -81,7 +81,7 @@ For OpenAI-compatible clients, use the thin adapter instead of writing callbacks
 
 ```python
 from openai import OpenAI
-from synapt_extract import create_extraction_builder, extract_openai
+from synapt.extract import create_extraction_builder, extract_openai
 
 builder = (
     create_extraction_builder(text)
@@ -103,7 +103,7 @@ result = await extract_openai(
 The returned result includes `artifact_bundle`. `write_artifact_bundle()` can also write a bundle created from any `extract()` result.
 
 ```python
-from synapt_extract import create_extraction_builder, extract
+from synapt.extract import create_extraction_builder, extract
 
 builder = (
     create_extraction_builder(text)
