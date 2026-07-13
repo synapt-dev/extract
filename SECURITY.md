@@ -78,8 +78,8 @@ sha256sum *.tgz
 
 # Python (wheel)
 cd packages/python
-cp -r ../../prompts src/synapt_extract/prompts
-cp -r ../../schemas src/synapt_extract/schemas
+cp -r ../../prompts src/synapt/extract/prompts
+cp -r ../../schemas src/synapt/extract/schemas
 SOURCE_DATE_EPOCH=1704067200 python -m build
 sha256sum dist/*.whl
 ```

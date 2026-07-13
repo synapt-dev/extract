@@ -9,7 +9,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "packages" / "python" / "src"))
 
-from synapt_extract.finalize import finalize_extraction, FinalizeContext
+from synapt.extract.finalize import finalize_extraction, FinalizeContext
 
 
 def _llm_output(**overrides):

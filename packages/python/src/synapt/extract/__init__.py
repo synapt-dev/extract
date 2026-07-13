@@ -1,6 +1,6 @@
 """synapt-extract: SynaptExtraction IL v1 schema, validation, and finalization."""
 
-from synapt_extract.schema import (
+from synapt.extract.schema import (
     SynaptExtraction,
     SynaptEntity,
     SynaptGoal,
@@ -16,9 +16,9 @@ from synapt_extract.schema import (
     SynaptAssertionSignals,
     SynaptTemporalRef,
 )
-from synapt_extract.validate import validate_extraction, ValidationResult, ValidationError
-from synapt_extract.finalize import finalize_extraction, FinalizeContext, FinalizeResult
-from synapt_extract.prompt import (
+from synapt.extract.validate import validate_extraction, ValidationResult, ValidationError
+from synapt.extract.finalize import finalize_extraction, FinalizeContext, FinalizeResult
+from synapt.extract.prompt import (
     build_extraction_prompt,
     capability_embedding_input,
     profile_capabilities,
@@ -27,14 +27,14 @@ from synapt_extract.prompt import (
     CAPABILITY_REGISTRY,
     STANDARD_EMBEDDING_INPUTS,
 )
-from synapt_extract.builder import (
+from synapt.extract.builder import (
     ExtractionBuilder,
     build_finalized_extraction_schema,
     build_extraction_schema,
     build_extraction_response_format,
     create_extraction_builder,
 )
-from synapt_extract.extract import (
+from synapt.extract.extract import (
     extract,
     normalize_llm_response,
     run_extraction,
@@ -52,14 +52,21 @@ from synapt_extract.extract import (
     NormalizedLlmResponse,
     UsageSummary,
 )
-from synapt_extract.artifacts import (
+from synapt.extract.artifacts import (
     create_artifact_bundle,
     sha256_text,
     write_artifact_bundle,
 )
-from synapt_extract.openai import (
+from synapt.extract.openai import (
     extract_openai,
     OpenAIExtractResult,
+)
+from synapt.extract.batch import (
+    BatchFailureReason,
+    BatchInferRequest,
+    BatchUnit,
+    BatchUnitResult,
+    extract_batch,
 )
 
 __all__ = [
@@ -116,4 +123,9 @@ __all__ = [
     "write_artifact_bundle",
     "extract_openai",
     "OpenAIExtractResult",
+    "BatchFailureReason",
+    "BatchInferRequest",
+    "BatchUnit",
+    "BatchUnitResult",
+    "extract_batch",
 ]

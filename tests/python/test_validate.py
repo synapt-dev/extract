@@ -10,7 +10,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "packages" / "python" / "src"))
 
-from synapt_extract.validate import validate_extraction
+from synapt.extract.validate import validate_extraction
 
 
 def _minimal_extraction(**overrides):
@@ -279,7 +279,7 @@ class TestCapabilityValidation:
         assert any("psychic_powers" in e.message for e in result.errors)
 
     def test_all_valid_capabilities(self):
-        from synapt_extract.schema import EXTRACTION_CAPABILITIES
+        from synapt.extract.schema import EXTRACTION_CAPABILITIES
         doc = _minimal_extraction(capabilities=sorted(EXTRACTION_CAPABILITIES))
         result = validate_extraction(doc)
         assert result.valid

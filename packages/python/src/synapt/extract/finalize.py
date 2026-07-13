@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from synapt_extract.validate import ValidationResult, validate_extraction
+from synapt.extract.validate import ValidationResult, validate_extraction
 
 
 @dataclass

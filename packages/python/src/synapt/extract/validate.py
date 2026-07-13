@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from synapt_extract.schema import EXTRACTION_CAPABILITIES
+from synapt.extract.schema import EXTRACTION_CAPABILITIES
 
 VALID_GOAL_STATUSES = frozenset(["open", "resolved", "abandoned", "in_progress"])
 VALID_TEMPORAL_TYPES = frozenset(["point", "range", "duration", "unresolved"])

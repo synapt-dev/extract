@@ -7,15 +7,15 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Literal, Protocol, TypeAlias, TypedDict
 
-from synapt_extract.builder import DEFAULT_RESPONSE_FORMAT_NAME, ExtractionBuilder
-from synapt_extract.finalize import FinalizeContext
-from synapt_extract.prompt import (
+from synapt.extract.builder import DEFAULT_RESPONSE_FORMAT_NAME, ExtractionBuilder
+from synapt.extract.finalize import FinalizeContext
+from synapt.extract.prompt import (
     STANDARD_EMBEDDING_INPUTS as STANDARD_EMBEDDING_INPUT_NAMES,
     capability_embedding_input,
     capability_embedding_preference,
     capability_name,
 )
-from synapt_extract.validate import ValidationResult
+from synapt.extract.validate import ValidationResult
 
 
 JsonObject = dict[str, Any]

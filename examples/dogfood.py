@@ -12,9 +12,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "packages" / "python" / "src"))
 
 import anthropic
-from synapt_extract.prompt import build_extraction_prompt
-from synapt_extract.finalize import FinalizeContext, finalize_extraction
-from synapt_extract.validate import validate_extraction
+from synapt.extract.prompt import build_extraction_prompt
+from synapt.extract.finalize import FinalizeContext, finalize_extraction
+from synapt.extract.validate import validate_extraction
 
 CONVERSATION = """\
 Session: Weekly check-in with Marcus, April 22, 2026
