@@ -1,10 +1,10 @@
 """Batch Stage-1 extraction primitive for SynaptExtraction.
 
-SKELETON (recall#868 → extract_batch). API conformed to the pinned contract
-(config/design/extract-batch-limits-characterization-2026-07-13.md §"Contract
-decisions") AND to Sentinel's spec (extract#28, tests/python/test_extract_batch.py).
-Every body raises NotImplementedError — the implementation lands in the follow-up
-impl PR (TDD: this skeleton makes the spec COLLECT and run RED, not ImportError).
+Implements the pinned contract (config/design/extract-batch-limits-characterization-
+2026-07-13.md §"Contract decisions") and Sentinel's spec (extract#28,
+tests/python/test_extract_batch.py). Reliability logic is per-unit: shaping +
+per-item validation + fail-closed fallback, with every failure contained to its
+own unit slot (count-invariant).
 
 Why this primitive exists
 -------------------------
@@ -34,8 +34,10 @@ Contract (pinned + spec-confirmed)
       Class-A PRE-parse text hygiene — strip ``` fences + `//` comments, STRING-
         LITERAL-AWARE (a `//` inside a JSON string, e.g. a URL, must survive).
       Class-B POST-parse coercion — capability set is the arbiter: in-scope fields
-        coerced (scalar→array, decided_at null→omit, category→valid/default),
-        out-of-scope dropped; temporal_refs → schema-valid raw/resolved only.
+        coerced (scalar→array; null/non-string OPTIONAL fields like category or
+        decided_at are omitted; an invalid REQUIRED field is kept so strict
+        validation rejects it), out-of-scope dropped; temporal_refs → schema-valid
+        raw/resolved only; non-dict leaves preserved into strict validation.
 
 Harvest map: scratchpad/extract_batch_craft_harvest.md. Boundary: OSS.
 """
@@ -157,7 +159,16 @@ def _extract_unit(
             "messages": [{"role": "user", "content": prompt}],
             "capabilities": list(capabilities),
         }
-        parsed = _parse_completion(infer(request))
+        # Contain the injected seam per-unit: an infer failure (e.g. RuntimeError)
+        # must NOT escape and void the whole batch — it is this unit's failure,
+        # retried once then terminal, while neighbours still produce their slots.
+        # No output was produced, so the closest Q5 class is "dropped".
+        try:
+            completion = infer(request)
+        except Exception:
+            reason = "dropped"
+            continue
+        parsed = _parse_completion(completion)
         if parsed is None:
             reason = "unparseable"
             continue
@@ -277,6 +288,11 @@ def _coerce_shape(parsed: dict, capabilities: list[str]) -> dict:
                     coerced_items.append(
                         _coerce_item(item, item_props, required, entities_in_scope)
                     )
+                else:
+                    # Preserve non-dict leaves (null, 42, "str") verbatim so strict
+                    # validation REJECTS them (→ schema_invalid) instead of silently
+                    # dropping — a null sibling must fail its whole unit, not vanish.
+                    coerced_items.append(item)
         result[type_name] = coerced_items
     return result
 
@@ -315,20 +331,25 @@ def _coerce_item(
     return new_item
 
 
-# Container/metadata capabilities that do not count as per-unit "content" when
-# deciding whether the model produced anything for a unit (→ "dropped").
-_NON_CONTENT_CAPABILITIES = frozenset(
-    {"entities", "goals", "themes", "summary", "sentiment", "keywords"}
-)
-
-
 def _is_empty_extraction(extraction: Any, capabilities: list[str]) -> bool:
-    """True when the model produced no content for the unit — every requested
-    content array (facts/decisions/temporal_refs/…) is empty. Empty-but-valid is the
-    10/45 "dropped" mode: caught here and retried, never silently absorbed."""
-    resolved = set(resolve_capabilities(capabilities=list(capabilities)))
-    for cap in resolved - _NON_CONTENT_CAPABILITIES:
-        value = extraction.get(cap) if isinstance(extraction, dict) else getattr(extraction, cap, None)
-        if isinstance(value, list) and value:
+    """True when the model produced NO payload for the unit across the REQUESTED
+    capabilities — every requested payload is empty. Type-aware over the Stage-1
+    schema: an array payload (facts/decisions/entities/goals/…) counts when
+    non-empty; a scalar payload (summary/sentiment) counts when present and
+    non-empty. So an entities-only or summary-only extraction is NOT a false-drop.
+    Empty-but-valid is the 10/45 "dropped" mode: caught here and retried, never
+    silently absorbed."""
+    schema = build_extraction_schema(capabilities=list(capabilities))
+    for name, prop_schema in schema.get("properties", {}).items():
+        if name == "extracted_at":
+            continue
+        value = (
+            extraction.get(name) if isinstance(extraction, dict)
+            else getattr(extraction, name, None)
+        )
+        if prop_schema.get("type") == "array":
+            if isinstance(value, list) and value:
+                return False
+        elif value not in (None, "", [], {}):
             return False
     return True

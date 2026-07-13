@@ -385,3 +385,74 @@ def test_empty_input_is_a_noop():
     )
 
     assert outputs == []
+
+
+# --- Fidelity-gate regression locks (Sentinel, extract#30 re-gate) -------------
+
+def test_infer_exception_in_one_unit_never_voids_the_batch():
+    """HIGH-1: an infer() exception must be contained to its own unit — neighbours
+    still produce their slots and the count-invariant holds (no output produced for
+    the failing unit → terminal "dropped" after retry)."""
+    units = [
+        BatchUnit(id="good-before", text="The first durable fact is grounded."),
+        BatchUnit(id="raises", text="This unit's inference raises."),
+        BatchUnit(id="good-after", text="The final durable fact is grounded."),
+    ]
+    responses = {
+        units[0].text: json.dumps(_stage1(facts=[{"text": units[0].text}])),
+        units[2].text: json.dumps(_stage1(facts=[{"text": units[2].text}])),
+    }
+
+    def infer(request):
+        if units[1].text in _request_prompt(request):
+            raise RuntimeError("inference exploded")
+        return _response_for_prompt(request, responses)
+
+    outputs = _run_batch(units, infer)
+
+    assert len(outputs) == len(units)
+    assert [output.source_unit_id for output in outputs] == [unit.id for unit in units]
+    _assert_success(outputs[0], "good-before")
+    _assert_failure(outputs[1], "raises", "dropped")
+    _assert_success(outputs[2], "good-after")
+
+
+@pytest.mark.parametrize(
+    ("label", "malformed"),
+    [
+        ("facts_null", _stage1(facts=[None])),
+        ("facts_null_beside_valid", _stage1(facts=[None, {"text": "A grounded durable fact."}])),
+        ("decisions_non_dict", _stage1(decisions=[42])),
+        ("temporal_non_dict", _stage1(temporal_refs=["tomorrow"])),
+    ],
+)
+def test_non_dict_leaves_reach_strict_validation(label, malformed):
+    """HIGH-2: a non-object leaf must not be silently deleted — it reaches strict
+    validation and fails its unit (schema_invalid), even beside a valid sibling."""
+    unit = BatchUnit(id=f"nondict-{label}", text="This source unit stays attributable.")
+
+    outputs = _run_batch([unit], lambda _request: json.dumps(malformed))
+
+    assert len(outputs) == 1
+    _assert_failure(outputs[0], unit.id, "schema_invalid")
+
+
+def test_valid_metadata_only_extraction_is_not_dropped():
+    """HIGH-3: extract_batch is a GENERAL primitive (Q3) — an entities-only (array)
+    or summary-only (scalar) extraction is real content for its requested capability
+    set, not the empty "dropped" mode."""
+    entities_unit = BatchUnit(id="entities-only", text="Synapt is an organization.")
+    entities_out = _run_batch(
+        [entities_unit],
+        lambda _request: json.dumps(_stage1(entities=[{"name": "Synapt", "type": "org"}])),
+        capabilities=["entities"],
+    )
+    _assert_success(entities_out[0], "entities-only")
+
+    summary_unit = BatchUnit(id="summary-only", text="A paragraph worth summarizing.")
+    summary_out = _run_batch(
+        [summary_unit],
+        lambda _request: json.dumps(_stage1(summary="A concise summary of the source.")),
+        capabilities=["summary"],
+    )
+    _assert_success(summary_out[0], "summary-only")
