@@ -1,0 +1,2951 @@
+{
+  "fixture_set": "extract-batch-real-failures-2026-07-13",
+  "fixture_schema_version": 1,
+  "source": {
+    "repository": "synapt-dev/config",
+    "merge_commit": "3b3d528",
+    "leaf_labels_path": "config/design/results/extract-batch-limits-2026-07-13/manual-leaf-labels.jsonl",
+    "leaf_labels_sha256": "272599669916bb2eec16aaebeca6ccee50dde3ef05bc6ae0fd1d51436e70ca6f",
+    "unit_labels_path": "config/design/results/extract-batch-limits-2026-07-13/manual-unit-labels.jsonl",
+    "unit_labels_sha256": "362c8412fb862ffc6cb300ae2b1b68218e58b7bc4d2a4313b78bb2a84e298764",
+    "raw_results_path": "config/design/results/extract-batch-limits-2026-07-13/raw-results.jsonl",
+    "raw_results_sha256": "30412251126a4f1fe83ae3c2329c3c65416db21a9779a246feeb5b6ab14e68da"
+  },
+  "boundary": {
+    "target": "OSS synapt-extract tests",
+    "review": "The selected sensitivity content contains public product/process facts only. No unpublished scores, private implementation, secrets, or user data are included."
+  },
+  "interpretation": {
+    "normalization_scope": "Repair envelope and leaf shape only. Preserve text and semantic placement; do not silently rewrite wrong-category or incomplete content.",
+    "per_unit_scope": "Every structured input unit receives one attributable terminal result: a schema-valid envelope or an explicit fail-closed marker.",
+    "forbidden": [
+      "in-band unit delimiters",
+      "silent source-unit drops",
+      "counting analysis-only repair as an empirical success",
+      "reporting contract-derived scalar coercion as observed data"
+    ]
+  },
+  "counts": {
+    "exact_raw_response_cases": 21,
+    "exact_malformed_sensitivity_leaves": 25,
+    "exact_dropped_source_occurrences": 10,
+    "exact_unknown_key_leaves": 2,
+    "exact_temporal_shape_cases": 3,
+    "contract_derived_cases": 1,
+    "raw_responses_with_markdown_fences": 21,
+    "raw_responses_with_line_comments": 15,
+    "malformed_sensitivity_error_counts": {
+      "category_not_string": 15,
+      "decided_at_not_string": 8,
+      "entity_refs_not_string_array": 10
+    }
+  },
+  "raw_response_cases": [
+    {
+      "fixture_id": "raw-response::sensitivity-bullets_mixed_N02-r01",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-bullets_mixed_N02-r01",
+      "serialization": "numbered_bullets",
+      "sensitivity_cell": "bullets_mixed_N02",
+      "seed": 202607150500,
+      "input_units": [
+        {
+          "unit_id": "S03",
+          "pool": "simple",
+          "text": "The premium package is proprietary.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "M05",
+          "pool": "multi",
+          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "expected_leaf_count": 1,
+          "expected_type": "decision"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    }\n  ],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence"
+      ],
+      "expected_normalization_actions": [
+        "facts[0]:omit_null_or_non_string_category",
+        "decisions[0]:omit_null_or_invalid_entity_refs",
+        "decisions[0]:omit_null_or_non_string_decided_at"
+      ],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [
+          {
+            "text": "The premium package is proprietary."
+          }
+        ],
+        "decisions": [
+          {
+            "text": "measure fidelity at the facts-and-decisions leaf level"
+          }
+        ],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "S03",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_mixed_N02-r01::facts::0"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "M05",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_mixed_N02-r01::decisions::0"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [],
+      "required_terminal_result_count": 2
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-bullets_mixed_N02-r02",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-bullets_mixed_N02-r02",
+      "serialization": "numbered_bullets",
+      "sensitivity_cell": "bullets_mixed_N02",
+      "seed": 202607150501,
+      "input_units": [
+        {
+          "unit_id": "S03",
+          "pool": "simple",
+          "text": "The premium package is proprietary.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "M05",
+          "pool": "multi",
+          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "expected_leaf_count": 1,
+          "expected_type": "decision"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current ISO 8601 timestamp\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    },\n    {\n      \"text\": \"because one extract call produces one envelope rather than one packet per input unit\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    }\n  ],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence",
+        "strip_line_comments_outside_strings"
+      ],
+      "expected_normalization_actions": [
+        "facts[0]:omit_null_or_non_string_category",
+        "decisions[0]:omit_null_or_invalid_entity_refs",
+        "decisions[0]:omit_null_or_non_string_decided_at",
+        "decisions[1]:omit_null_or_invalid_entity_refs",
+        "decisions[1]:omit_null_or_non_string_decided_at"
+      ],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [
+          {
+            "text": "The premium package is proprietary."
+          }
+        ],
+        "decisions": [
+          {
+            "text": "measure fidelity at the facts-and-decisions leaf level"
+          },
+          {
+            "text": "because one extract call produces one envelope rather than one packet per input unit"
+          }
+        ],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "S03",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_mixed_N02-r02::facts::0"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "M05",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_mixed_N02-r02::decisions::0",
+            "sensitivity-bullets_mixed_N02-r02::decisions::1"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [],
+      "required_terminal_result_count": 2
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-bullets_mixed_N02-r03",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-bullets_mixed_N02-r03",
+      "serialization": "numbered_bullets",
+      "sensitivity_cell": "bullets_mixed_N02",
+      "seed": 202607150502,
+      "input_units": [
+        {
+          "unit_id": "S03",
+          "pool": "simple",
+          "text": "The premium package is proprietary.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "M05",
+          "pool": "multi",
+          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "expected_leaf_count": 1,
+          "expected_type": "decision"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    },\n    {\n      \"text\": \"because one extract call produces one envelope rather than one packet per input unit\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    }\n  ],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence"
+      ],
+      "expected_normalization_actions": [
+        "facts[0]:omit_null_or_non_string_category",
+        "decisions[0]:omit_null_or_invalid_entity_refs",
+        "decisions[0]:omit_null_or_non_string_decided_at",
+        "decisions[1]:omit_null_or_invalid_entity_refs",
+        "decisions[1]:omit_null_or_non_string_decided_at"
+      ],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [
+          {
+            "text": "The premium package is proprietary."
+          }
+        ],
+        "decisions": [
+          {
+            "text": "measure fidelity at the facts-and-decisions leaf level"
+          },
+          {
+            "text": "because one extract call produces one envelope rather than one packet per input unit"
+          }
+        ],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "S03",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_mixed_N02-r03::facts::0"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "M05",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_mixed_N02-r03::decisions::0",
+            "sensitivity-bullets_mixed_N02-r03::decisions::1"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [],
+      "required_terminal_result_count": 2
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-bullets_mixed_N04-r01",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-bullets_mixed_N04-r01",
+      "serialization": "numbered_bullets",
+      "sensitivity_cell": "bullets_mixed_N04",
+      "seed": 202607150600,
+      "input_units": [
+        {
+          "unit_id": "S03",
+          "pool": "simple",
+          "text": "The premium package is proprietary.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "M05",
+          "pool": "multi",
+          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "expected_leaf_count": 1,
+          "expected_type": "decision"
+        },
+        {
+          "unit_id": "M09",
+          "pool": "multi",
+          "text": "On June 22, 2026, the team established that independent Modal variants should run concurrently with spawn.",
+          "expected_leaf_count": 1,
+          "expected_type": "decision"
+        },
+        {
+          "unit_id": "M01",
+          "pool": "multi",
+          "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.\",\n      \"decided_at\": null,\n      \"entity_refs\": null\n    },\n    {\n      \"text\": \"independent Modal variants should run concurrently with spawn.\",\n      \"decided_at\": \"2026-06-22T00:00:00Z\",\n      \"entity_refs\": null\n    }\n  ],\n  \"temporal_refs\": [\n    {\n      \"raw\": \"June 22, 2026\",\n      \"type\": \"point\",\n      \"resolved\": \"2026-06-22T00:00:00Z\",\n      \"context\": \"decision reference\"\n    }\n  ]\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence"
+      ],
+      "expected_normalization_actions": [
+        "facts[0]:omit_null_or_non_string_category",
+        "decisions[0]:omit_null_or_invalid_entity_refs",
+        "decisions[0]:omit_null_or_non_string_decided_at",
+        "decisions[1]:omit_null_or_invalid_entity_refs",
+        "temporal_refs[0]:drop_unknown_key:context",
+        "temporal_refs[0]:drop_unknown_key:type"
+      ],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [
+          {
+            "text": "The premium package is proprietary."
+          }
+        ],
+        "decisions": [
+          {
+            "text": "measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit."
+          },
+          {
+            "text": "independent Modal variants should run concurrently with spawn.",
+            "decided_at": "2026-06-22T00:00:00Z"
+          }
+        ],
+        "temporal_refs": [
+          {
+            "raw": "June 22, 2026",
+            "resolved": "2026-06-22T00:00:00Z"
+          }
+        ]
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "S03",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_mixed_N04-r01::facts::0"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "M05",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_mixed_N04-r01::decisions::0"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "M09",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_mixed_N04-r01::decisions::1"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "M01",
+          "observed_mapped_leaf_ids": [],
+          "observed_primary_status": "missing",
+          "required_terminal_slot": true,
+          "required_fallback": true,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [
+        "M01"
+      ],
+      "required_terminal_result_count": 4
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-bullets_mixed_N04-r02",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-bullets_mixed_N04-r02",
+      "serialization": "numbered_bullets",
+      "sensitivity_cell": "bullets_mixed_N04",
+      "seed": 202607150601,
+      "input_units": [
+        {
+          "unit_id": "S03",
+          "pool": "simple",
+          "text": "The premium package is proprietary.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "M05",
+          "pool": "multi",
+          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "expected_leaf_count": 1,
+          "expected_type": "decision"
+        },
+        {
+          "unit_id": "M09",
+          "pool": "multi",
+          "text": "On June 22, 2026, the team established that independent Modal variants should run concurrently with spawn.",
+          "expected_leaf_count": 1,
+          "expected_type": "decision"
+        },
+        {
+          "unit_id": "M01",
+          "pool": "multi",
+          "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.\",\n      \"decided_at\": null,\n      \"entity_refs\": null\n    },\n    {\n      \"text\": \"independent Modal variants should run concurrently with spawn.\",\n      \"decided_at\": \"2026-06-22T00:00:00Z\",\n      \"entity_refs\": null\n    }\n  ],\n  \"temporal_refs\": [\n    {\n      \"raw\": \"June 22, 2026\",\n      \"type\": \"point\",\n      \"resolved\": \"2026-06-22T00:00:00Z\",\n      \"context\": \"decision reference\"\n    }\n  ]\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence"
+      ],
+      "expected_normalization_actions": [
+        "facts[0]:omit_null_or_non_string_category",
+        "decisions[0]:omit_null_or_invalid_entity_refs",
+        "decisions[0]:omit_null_or_non_string_decided_at",
+        "decisions[1]:omit_null_or_invalid_entity_refs",
+        "temporal_refs[0]:drop_unknown_key:context",
+        "temporal_refs[0]:drop_unknown_key:type"
+      ],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [
+          {
+            "text": "The premium package is proprietary."
+          }
+        ],
+        "decisions": [
+          {
+            "text": "measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit."
+          },
+          {
+            "text": "independent Modal variants should run concurrently with spawn.",
+            "decided_at": "2026-06-22T00:00:00Z"
+          }
+        ],
+        "temporal_refs": [
+          {
+            "raw": "June 22, 2026",
+            "resolved": "2026-06-22T00:00:00Z"
+          }
+        ]
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "S03",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_mixed_N04-r02::facts::0"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "M05",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_mixed_N04-r02::decisions::0"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "M09",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_mixed_N04-r02::decisions::1"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "M01",
+          "observed_mapped_leaf_ids": [],
+          "observed_primary_status": "missing",
+          "required_terminal_slot": true,
+          "required_fallback": true,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [
+        "M01"
+      ],
+      "required_terminal_result_count": 4
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-bullets_mixed_N04-r03",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-bullets_mixed_N04-r03",
+      "serialization": "numbered_bullets",
+      "sensitivity_cell": "bullets_mixed_N04",
+      "seed": 202607150602,
+      "input_units": [
+        {
+          "unit_id": "S03",
+          "pool": "simple",
+          "text": "The premium package is proprietary.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "M05",
+          "pool": "multi",
+          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "expected_leaf_count": 1,
+          "expected_type": "decision"
+        },
+        {
+          "unit_id": "M09",
+          "pool": "multi",
+          "text": "On June 22, 2026, the team established that independent Modal variants should run concurrently with spawn.",
+          "expected_leaf_count": 1,
+          "expected_type": "decision"
+        },
+        {
+          "unit_id": "M01",
+          "pool": "multi",
+          "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The team established that independent Modal variants should run concurrently with spawn on June 22, 2026.\",\n      \"category\": \"temporal_decision\"\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    }\n  ],\n  \"temporal_refs\": [\n    {\n      \"raw\": \"June 22, 2026\",\n      \"type\": \"point\",\n      \"resolved\": \"2026-06-22\",\n      \"context\": \"Establishment of concurrent spawn for Modal variants\"\n    }\n  ]\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence"
+      ],
+      "expected_normalization_actions": [
+        "facts[0]:omit_null_or_non_string_category",
+        "decisions[0]:omit_null_or_invalid_entity_refs",
+        "decisions[0]:omit_null_or_non_string_decided_at",
+        "temporal_refs[0]:drop_unknown_key:context",
+        "temporal_refs[0]:drop_unknown_key:type"
+      ],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [
+          {
+            "text": "The premium package is proprietary."
+          },
+          {
+            "text": "The team established that independent Modal variants should run concurrently with spawn on June 22, 2026.",
+            "category": "temporal_decision"
+          }
+        ],
+        "decisions": [
+          {
+            "text": "measure fidelity at the facts-and-decisions leaf level"
+          }
+        ],
+        "temporal_refs": [
+          {
+            "raw": "June 22, 2026",
+            "resolved": "2026-06-22"
+          }
+        ]
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "S03",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_mixed_N04-r03::facts::0"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "M05",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_mixed_N04-r03::decisions::0"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "M09",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_mixed_N04-r03::facts::1"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "M01",
+          "observed_mapped_leaf_ids": [],
+          "observed_primary_status": "missing",
+          "required_terminal_slot": true,
+          "required_fallback": true,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [
+        "M01"
+      ],
+      "required_terminal_result_count": 4
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-bullets_simple_N02-r01",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-bullets_simple_N02-r01",
+      "serialization": "numbered_bullets",
+      "sensitivity_cell": "bullets_simple_N02",
+      "seed": 202607150300,
+      "input_units": [
+        {
+          "unit_id": "S01",
+          "pool": "simple",
+          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "S02",
+          "pool": "simple",
+          "text": "The recall package is open source.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current ISO timestamp\n  \"facts\": [\n    {\n      \"text\": \"Synapt uses gitgrip to coordinate multiple repositories.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence",
+        "strip_line_comments_outside_strings"
+      ],
+      "expected_normalization_actions": [
+        "facts[0]:omit_null_or_non_string_category",
+        "facts[1]:omit_null_or_non_string_category"
+      ],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [
+          {
+            "text": "Synapt uses gitgrip to coordinate multiple repositories."
+          },
+          {
+            "text": "The recall package is open source."
+          }
+        ],
+        "decisions": [],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "S01",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_simple_N02-r01::facts::0"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "S02",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_simple_N02-r01::facts::1"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [],
+      "required_terminal_result_count": 2
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-bullets_simple_N02-r02",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-bullets_simple_N02-r02",
+      "serialization": "numbered_bullets",
+      "sensitivity_cell": "bullets_simple_N02",
+      "seed": 202607150301,
+      "input_units": [
+        {
+          "unit_id": "S01",
+          "pool": "simple",
+          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "S02",
+          "pool": "simple",
+          "text": "The recall package is open source.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current timestamp\n  \"facts\": [\n    {\n      \"text\": \"Synapt uses gitgrip to coordinate multiple repositories.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence",
+        "strip_line_comments_outside_strings"
+      ],
+      "expected_normalization_actions": [
+        "facts[0]:omit_null_or_non_string_category",
+        "facts[1]:omit_null_or_non_string_category"
+      ],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [
+          {
+            "text": "Synapt uses gitgrip to coordinate multiple repositories."
+          },
+          {
+            "text": "The recall package is open source."
+          }
+        ],
+        "decisions": [],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "S01",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_simple_N02-r02::facts::0"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "S02",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_simple_N02-r02::facts::1"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [],
+      "required_terminal_result_count": 2
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-bullets_simple_N02-r03",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-bullets_simple_N02-r03",
+      "serialization": "numbered_bullets",
+      "sensitivity_cell": "bullets_simple_N02",
+      "seed": 202607150302,
+      "input_units": [
+        {
+          "unit_id": "S01",
+          "pool": "simple",
+          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "S02",
+          "pool": "simple",
+          "text": "The recall package is open source.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current ISO 8601 timestamp\n  \"facts\": [\n    {\n      \"text\": \"Synapt uses gitgrip to coordinate multiple repositories.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence",
+        "strip_line_comments_outside_strings"
+      ],
+      "expected_normalization_actions": [
+        "facts[0]:omit_null_or_non_string_category",
+        "facts[1]:omit_null_or_non_string_category"
+      ],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [
+          {
+            "text": "Synapt uses gitgrip to coordinate multiple repositories."
+          },
+          {
+            "text": "The recall package is open source."
+          }
+        ],
+        "decisions": [],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "S01",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_simple_N02-r03::facts::0"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "S02",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_simple_N02-r03::facts::1"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [],
+      "required_terminal_result_count": 2
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-bullets_simple_N04-r01",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-bullets_simple_N04-r01",
+      "serialization": "numbered_bullets",
+      "sensitivity_cell": "bullets_simple_N04",
+      "seed": 202607150400,
+      "input_units": [
+        {
+          "unit_id": "S01",
+          "pool": "simple",
+          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "S02",
+          "pool": "simple",
+          "text": "The recall package is open source.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "S03",
+          "pool": "simple",
+          "text": "The premium package is proprietary.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "S04",
+          "pool": "simple",
+          "text": "The extract library emits SynaptExtraction documents.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current ISO 8601 timestamp\n  \"facts\": [\n    {\n      \"text\": \"Synapt uses gitgrip to coordinate multiple repositories.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence",
+        "strip_line_comments_outside_strings"
+      ],
+      "expected_normalization_actions": [
+        "facts[0]:omit_null_or_non_string_category",
+        "facts[1]:omit_null_or_non_string_category",
+        "facts[2]:omit_null_or_non_string_category"
+      ],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [
+          {
+            "text": "Synapt uses gitgrip to coordinate multiple repositories."
+          },
+          {
+            "text": "The recall package is open source."
+          },
+          {
+            "text": "The premium package is proprietary."
+          }
+        ],
+        "decisions": [],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "S01",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_simple_N04-r01::facts::0"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "S02",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_simple_N04-r01::facts::1"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "S03",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_simple_N04-r01::facts::2"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "S04",
+          "observed_mapped_leaf_ids": [],
+          "observed_primary_status": "missing",
+          "required_terminal_slot": true,
+          "required_fallback": true,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [
+        "S04"
+      ],
+      "required_terminal_result_count": 4
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-bullets_simple_N04-r02",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-bullets_simple_N04-r02",
+      "serialization": "numbered_bullets",
+      "sensitivity_cell": "bullets_simple_N04",
+      "seed": 202607150401,
+      "input_units": [
+        {
+          "unit_id": "S01",
+          "pool": "simple",
+          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "S02",
+          "pool": "simple",
+          "text": "The recall package is open source.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "S03",
+          "pool": "simple",
+          "text": "The premium package is proprietary.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "S04",
+          "pool": "simple",
+          "text": "The extract library emits SynaptExtraction documents.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for actual extraction time\n  \"facts\": [\n    {\n      \"text\": \"Synapt uses gitgrip to coordinate multiple repositories.\",\n      \"category\": \"coordination\"\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": \"licensing\"\n    },\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": \"licensing\"\n    },\n    {\n      \"text\": \"The extract library emits SynaptExtraction documents.\",\n      \"category\": \"output_format\"\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence",
+        "strip_line_comments_outside_strings"
+      ],
+      "expected_normalization_actions": [],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [
+          {
+            "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+            "category": "coordination"
+          },
+          {
+            "text": "The recall package is open source.",
+            "category": "licensing"
+          },
+          {
+            "text": "The premium package is proprietary.",
+            "category": "licensing"
+          },
+          {
+            "text": "The extract library emits SynaptExtraction documents.",
+            "category": "output_format"
+          }
+        ],
+        "decisions": [],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "S01",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_simple_N04-r02::facts::0"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "S02",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_simple_N04-r02::facts::1"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "S03",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_simple_N04-r02::facts::2"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "S04",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_simple_N04-r02::facts::3"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [],
+      "required_terminal_result_count": 4
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-bullets_simple_N04-r03",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-bullets_simple_N04-r03",
+      "serialization": "numbered_bullets",
+      "sensitivity_cell": "bullets_simple_N04",
+      "seed": 202607150402,
+      "input_units": [
+        {
+          "unit_id": "S01",
+          "pool": "simple",
+          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "S02",
+          "pool": "simple",
+          "text": "The recall package is open source.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "S03",
+          "pool": "simple",
+          "text": "The premium package is proprietary.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        },
+        {
+          "unit_id": "S04",
+          "pool": "simple",
+          "text": "The extract library emits SynaptExtraction documents.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for actual extraction time\n  \"facts\": [\n    {\n      \"text\": \"Synapt uses gitgrip to coordinate multiple repositories.\",\n      \"category\": \"coordination\"\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": \"licensing\"\n    },\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": \"licensing\"\n    },\n    {\n      \"text\": \"The extract library emits SynaptExtraction documents.\",\n      \"category\": \"output_format\"\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence",
+        "strip_line_comments_outside_strings"
+      ],
+      "expected_normalization_actions": [],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [
+          {
+            "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+            "category": "coordination"
+          },
+          {
+            "text": "The recall package is open source.",
+            "category": "licensing"
+          },
+          {
+            "text": "The premium package is proprietary.",
+            "category": "licensing"
+          },
+          {
+            "text": "The extract library emits SynaptExtraction documents.",
+            "category": "output_format"
+          }
+        ],
+        "decisions": [],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "S01",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_simple_N04-r03::facts::0"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "S02",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_simple_N04-r03::facts::1"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "S03",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_simple_N04-r03::facts::2"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        },
+        {
+          "source_unit_id": "S04",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-bullets_simple_N04-r03::facts::3"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [],
+      "required_terminal_result_count": 4
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-raw_decision-r01",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-raw_decision-r01",
+      "serialization": "raw",
+      "sensitivity_cell": "raw_decision",
+      "seed": 202607150200,
+      "input_units": [
+        {
+          "unit_id": "M05",
+          "pool": "multi",
+          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "expected_leaf_count": 1,
+          "expected_type": "decision"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for actual extraction time\n  \"facts\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level\",\n      \"category\": \"technical\"\n    },\n    {\n      \"text\": \"one extract call produces one envelope rather than one packet per input unit\",\n      \"category\": \"implementation_detail\"\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence",
+        "strip_line_comments_outside_strings"
+      ],
+      "expected_normalization_actions": [],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [
+          {
+            "text": "measure fidelity at the facts-and-decisions leaf level",
+            "category": "technical"
+          },
+          {
+            "text": "one extract call produces one envelope rather than one packet per input unit",
+            "category": "implementation_detail"
+          }
+        ],
+        "decisions": [],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "M05",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-raw_decision-r01::facts::0",
+            "sensitivity-raw_decision-r01::facts::1"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [],
+      "required_terminal_result_count": 1
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-raw_decision-r02",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-raw_decision-r02",
+      "serialization": "raw",
+      "sensitivity_cell": "raw_decision",
+      "seed": 202607150201,
+      "input_units": [
+        {
+          "unit_id": "M05",
+          "pool": "multi",
+          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "expected_leaf_count": 1,
+          "expected_type": "decision"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for actual extraction timestamp\n  \"facts\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level\",\n      \"category\": \"technical\"\n    },\n    {\n      \"text\": \"one extract call produces one envelope rather than one packet per input unit\",\n      \"category\": \"implementation\"\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence",
+        "strip_line_comments_outside_strings"
+      ],
+      "expected_normalization_actions": [],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [
+          {
+            "text": "measure fidelity at the facts-and-decisions leaf level",
+            "category": "technical"
+          },
+          {
+            "text": "one extract call produces one envelope rather than one packet per input unit",
+            "category": "implementation"
+          }
+        ],
+        "decisions": [],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "M05",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-raw_decision-r02::facts::0",
+            "sensitivity-raw_decision-r02::facts::1"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [],
+      "required_terminal_result_count": 1
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-raw_decision-r03",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-raw_decision-r03",
+      "serialization": "raw",
+      "sensitivity_cell": "raw_decision",
+      "seed": 202607150202,
+      "input_units": [
+        {
+          "unit_id": "M05",
+          "pool": "multi",
+          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "expected_leaf_count": 1,
+          "expected_type": "decision"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for actual extraction timestamp\n  \"facts\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level\",\n      \"category\": \"technical\"\n    },\n    {\n      \"text\": \"one extract call produces one envelope rather than one packet per input unit\",\n      \"category\": \"implementation_detail\"\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence",
+        "strip_line_comments_outside_strings"
+      ],
+      "expected_normalization_actions": [],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [
+          {
+            "text": "measure fidelity at the facts-and-decisions leaf level",
+            "category": "technical"
+          },
+          {
+            "text": "one extract call produces one envelope rather than one packet per input unit",
+            "category": "implementation_detail"
+          }
+        ],
+        "decisions": [],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "M05",
+          "observed_mapped_leaf_ids": [
+            "sensitivity-raw_decision-r03::facts::0",
+            "sensitivity-raw_decision-r03::facts::1"
+          ],
+          "observed_primary_status": "present",
+          "required_terminal_slot": true,
+          "required_fallback": false,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [],
+      "required_terminal_result_count": 1
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-raw_multi_clause-r01",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-raw_multi_clause-r01",
+      "serialization": "raw",
+      "sensitivity_cell": "raw_multi_clause",
+      "seed": 202607150100,
+      "input_units": [
+        {
+          "unit_id": "M01",
+          "pool": "multi",
+          "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current ISO timestamp\n  \"facts\": [],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence",
+        "strip_line_comments_outside_strings"
+      ],
+      "expected_normalization_actions": [],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [],
+        "decisions": [],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "M01",
+          "observed_mapped_leaf_ids": [],
+          "observed_primary_status": "missing",
+          "required_terminal_slot": true,
+          "required_fallback": true,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [
+        "M01"
+      ],
+      "required_terminal_result_count": 1
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-raw_multi_clause-r02",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-raw_multi_clause-r02",
+      "serialization": "raw",
+      "sensitivity_cell": "raw_multi_clause",
+      "seed": 202607150101,
+      "input_units": [
+        {
+          "unit_id": "M01",
+          "pool": "multi",
+          "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current ISO 8601 timestamp\n  \"facts\": [],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence",
+        "strip_line_comments_outside_strings"
+      ],
+      "expected_normalization_actions": [],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [],
+        "decisions": [],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "M01",
+          "observed_mapped_leaf_ids": [],
+          "observed_primary_status": "missing",
+          "required_terminal_slot": true,
+          "required_fallback": true,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [
+        "M01"
+      ],
+      "required_terminal_result_count": 1
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-raw_multi_clause-r03",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-raw_multi_clause-r03",
+      "serialization": "raw",
+      "sensitivity_cell": "raw_multi_clause",
+      "seed": 202607150102,
+      "input_units": [
+        {
+          "unit_id": "M01",
+          "pool": "multi",
+          "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Hypothetical timestamp (replace with actual extraction time)\n  \"facts\": [],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence",
+        "strip_line_comments_outside_strings"
+      ],
+      "expected_normalization_actions": [],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [],
+        "decisions": [],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "M01",
+          "observed_mapped_leaf_ids": [],
+          "observed_primary_status": "missing",
+          "required_terminal_slot": true,
+          "required_fallback": true,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [
+        "M01"
+      ],
+      "required_terminal_result_count": 1
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-raw_simple_fact-r01",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-raw_simple_fact-r01",
+      "serialization": "raw",
+      "sensitivity_cell": "raw_simple_fact",
+      "seed": 202607150000,
+      "input_units": [
+        {
+          "unit_id": "S01",
+          "pool": "simple",
+          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2024-02-20T00:00:00Z\",\n  \"facts\": [],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence"
+      ],
+      "expected_normalization_actions": [],
+      "expected_normalized_stage1": {
+        "extracted_at": "2024-02-20T00:00:00Z",
+        "facts": [],
+        "decisions": [],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "S01",
+          "observed_mapped_leaf_ids": [],
+          "observed_primary_status": "missing",
+          "required_terminal_slot": true,
+          "required_fallback": true,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [
+        "S01"
+      ],
+      "required_terminal_result_count": 1
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-raw_simple_fact-r02",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-raw_simple_fact-r02",
+      "serialization": "raw",
+      "sensitivity_cell": "raw_simple_fact",
+      "seed": 202607150001,
+      "input_units": [
+        {
+          "unit_id": "S01",
+          "pool": "simple",
+          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Auto-assigned placeholder; replace with actual extraction timestamp\n  \"facts\": [],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence",
+        "strip_line_comments_outside_strings"
+      ],
+      "expected_normalization_actions": [],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [],
+        "decisions": [],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "S01",
+          "observed_mapped_leaf_ids": [],
+          "observed_primary_status": "missing",
+          "required_terminal_slot": true,
+          "required_fallback": true,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [
+        "S01"
+      ],
+      "required_terminal_result_count": 1
+    },
+    {
+      "fixture_id": "raw-response::sensitivity-raw_simple_fact-r03",
+      "provenance_kind": "exact_empirical_output",
+      "source_run_id": "sensitivity-raw_simple_fact-r03",
+      "serialization": "raw",
+      "sensitivity_cell": "raw_simple_fact",
+      "seed": 202607150002,
+      "input_units": [
+        {
+          "unit_id": "S01",
+          "pool": "simple",
+          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "expected_leaf_count": 1,
+          "expected_type": "fact"
+        }
+      ],
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current ISO 8601 timestamp\n  \"facts\": [],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "observed_strict_json_parse_success": false,
+      "observed_finish_reason": "stop",
+      "expected_unwrap_actions": [
+        "strip_markdown_fence",
+        "strip_line_comments_outside_strings"
+      ],
+      "expected_normalization_actions": [],
+      "expected_normalized_stage1": {
+        "extracted_at": "2023-11-15T00:00:00Z",
+        "facts": [],
+        "decisions": [],
+        "temporal_refs": []
+      },
+      "expected_stage1_schema_valid": true,
+      "expected_unit_results": [
+        {
+          "source_unit_id": "S01",
+          "observed_mapped_leaf_ids": [],
+          "observed_primary_status": "missing",
+          "required_terminal_slot": true,
+          "required_fallback": true,
+          "allowed_terminal_statuses": [
+            "schema_valid_envelope",
+            "fail_closed_marker"
+          ],
+          "silent_drop_allowed": false
+        }
+      ],
+      "required_fallback_source_unit_ids": [
+        "S01"
+      ],
+      "required_terminal_result_count": 1
+    }
+  ],
+  "malformed_leaf_cases": [
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_mixed_N02-r01::decisions::0",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_mixed_N02-r01::decisions::0",
+      "source_run_id": "sensitivity-bullets_mixed_N02-r01",
+      "source_unit_ids": [
+        "M05"
+      ],
+      "field": "decisions",
+      "raw_leaf": {
+        "text": "measure fidelity at the facts-and-decisions leaf level",
+        "entity_refs": null,
+        "decided_at": null
+      },
+      "observed_schema_errors": [
+        "entity_refs_not_string_array",
+        "decided_at_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported",
+        "material_clause_omission"
+      ],
+      "expected_actions": [
+        "omit_null_or_invalid_entity_refs",
+        "omit_null_or_non_string_decided_at"
+      ],
+      "expected_normalized_leaf": {
+        "text": "measure fidelity at the facts-and-decisions leaf level"
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_mixed_N02-r01::facts::0",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_mixed_N02-r01::facts::0",
+      "source_run_id": "sensitivity-bullets_mixed_N02-r01",
+      "source_unit_ids": [
+        "S03"
+      ],
+      "field": "facts",
+      "raw_leaf": {
+        "text": "The premium package is proprietary.",
+        "category": null
+      },
+      "observed_schema_errors": [
+        "category_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_non_string_category"
+      ],
+      "expected_normalized_leaf": {
+        "text": "The premium package is proprietary."
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_mixed_N02-r02::decisions::0",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_mixed_N02-r02::decisions::0",
+      "source_run_id": "sensitivity-bullets_mixed_N02-r02",
+      "source_unit_ids": [
+        "M05"
+      ],
+      "field": "decisions",
+      "raw_leaf": {
+        "text": "measure fidelity at the facts-and-decisions leaf level",
+        "entity_refs": null,
+        "decided_at": null
+      },
+      "observed_schema_errors": [
+        "entity_refs_not_string_array",
+        "decided_at_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported",
+        "split_unit"
+      ],
+      "expected_actions": [
+        "omit_null_or_invalid_entity_refs",
+        "omit_null_or_non_string_decided_at"
+      ],
+      "expected_normalized_leaf": {
+        "text": "measure fidelity at the facts-and-decisions leaf level"
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_mixed_N02-r02::decisions::1",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_mixed_N02-r02::decisions::1",
+      "source_run_id": "sensitivity-bullets_mixed_N02-r02",
+      "source_unit_ids": [
+        "M05"
+      ],
+      "field": "decisions",
+      "raw_leaf": {
+        "text": "because one extract call produces one envelope rather than one packet per input unit",
+        "entity_refs": null,
+        "decided_at": null
+      },
+      "observed_schema_errors": [
+        "entity_refs_not_string_array",
+        "decided_at_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported",
+        "split_unit"
+      ],
+      "expected_actions": [
+        "omit_null_or_invalid_entity_refs",
+        "omit_null_or_non_string_decided_at"
+      ],
+      "expected_normalized_leaf": {
+        "text": "because one extract call produces one envelope rather than one packet per input unit"
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_mixed_N02-r02::facts::0",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_mixed_N02-r02::facts::0",
+      "source_run_id": "sensitivity-bullets_mixed_N02-r02",
+      "source_unit_ids": [
+        "S03"
+      ],
+      "field": "facts",
+      "raw_leaf": {
+        "text": "The premium package is proprietary.",
+        "category": null
+      },
+      "observed_schema_errors": [
+        "category_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_non_string_category"
+      ],
+      "expected_normalized_leaf": {
+        "text": "The premium package is proprietary."
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_mixed_N02-r03::decisions::0",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_mixed_N02-r03::decisions::0",
+      "source_run_id": "sensitivity-bullets_mixed_N02-r03",
+      "source_unit_ids": [
+        "M05"
+      ],
+      "field": "decisions",
+      "raw_leaf": {
+        "text": "measure fidelity at the facts-and-decisions leaf level",
+        "entity_refs": null,
+        "decided_at": null
+      },
+      "observed_schema_errors": [
+        "entity_refs_not_string_array",
+        "decided_at_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported",
+        "split_unit"
+      ],
+      "expected_actions": [
+        "omit_null_or_invalid_entity_refs",
+        "omit_null_or_non_string_decided_at"
+      ],
+      "expected_normalized_leaf": {
+        "text": "measure fidelity at the facts-and-decisions leaf level"
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_mixed_N02-r03::decisions::1",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_mixed_N02-r03::decisions::1",
+      "source_run_id": "sensitivity-bullets_mixed_N02-r03",
+      "source_unit_ids": [
+        "M05"
+      ],
+      "field": "decisions",
+      "raw_leaf": {
+        "text": "because one extract call produces one envelope rather than one packet per input unit",
+        "entity_refs": null,
+        "decided_at": null
+      },
+      "observed_schema_errors": [
+        "entity_refs_not_string_array",
+        "decided_at_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported",
+        "split_unit"
+      ],
+      "expected_actions": [
+        "omit_null_or_invalid_entity_refs",
+        "omit_null_or_non_string_decided_at"
+      ],
+      "expected_normalized_leaf": {
+        "text": "because one extract call produces one envelope rather than one packet per input unit"
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_mixed_N02-r03::facts::0",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_mixed_N02-r03::facts::0",
+      "source_run_id": "sensitivity-bullets_mixed_N02-r03",
+      "source_unit_ids": [
+        "S03"
+      ],
+      "field": "facts",
+      "raw_leaf": {
+        "text": "The premium package is proprietary.",
+        "category": null
+      },
+      "observed_schema_errors": [
+        "category_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_non_string_category"
+      ],
+      "expected_normalized_leaf": {
+        "text": "The premium package is proprietary."
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_mixed_N04-r01::decisions::0",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_mixed_N04-r01::decisions::0",
+      "source_run_id": "sensitivity-bullets_mixed_N04-r01",
+      "source_unit_ids": [
+        "M05"
+      ],
+      "field": "decisions",
+      "raw_leaf": {
+        "text": "measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+        "decided_at": null,
+        "entity_refs": null
+      },
+      "observed_schema_errors": [
+        "entity_refs_not_string_array",
+        "decided_at_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_invalid_entity_refs",
+        "omit_null_or_non_string_decided_at"
+      ],
+      "expected_normalized_leaf": {
+        "text": "measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit."
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_mixed_N04-r01::decisions::1",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_mixed_N04-r01::decisions::1",
+      "source_run_id": "sensitivity-bullets_mixed_N04-r01",
+      "source_unit_ids": [
+        "M09"
+      ],
+      "field": "decisions",
+      "raw_leaf": {
+        "text": "independent Modal variants should run concurrently with spawn.",
+        "decided_at": "2026-06-22T00:00:00Z",
+        "entity_refs": null
+      },
+      "observed_schema_errors": [
+        "entity_refs_not_string_array"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_invalid_entity_refs"
+      ],
+      "expected_normalized_leaf": {
+        "text": "independent Modal variants should run concurrently with spawn.",
+        "decided_at": "2026-06-22T00:00:00Z"
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_mixed_N04-r01::facts::0",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_mixed_N04-r01::facts::0",
+      "source_run_id": "sensitivity-bullets_mixed_N04-r01",
+      "source_unit_ids": [
+        "S03"
+      ],
+      "field": "facts",
+      "raw_leaf": {
+        "text": "The premium package is proprietary.",
+        "category": null
+      },
+      "observed_schema_errors": [
+        "category_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_non_string_category"
+      ],
+      "expected_normalized_leaf": {
+        "text": "The premium package is proprietary."
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_mixed_N04-r02::decisions::0",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_mixed_N04-r02::decisions::0",
+      "source_run_id": "sensitivity-bullets_mixed_N04-r02",
+      "source_unit_ids": [
+        "M05"
+      ],
+      "field": "decisions",
+      "raw_leaf": {
+        "text": "measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+        "decided_at": null,
+        "entity_refs": null
+      },
+      "observed_schema_errors": [
+        "entity_refs_not_string_array",
+        "decided_at_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_invalid_entity_refs",
+        "omit_null_or_non_string_decided_at"
+      ],
+      "expected_normalized_leaf": {
+        "text": "measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit."
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_mixed_N04-r02::decisions::1",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_mixed_N04-r02::decisions::1",
+      "source_run_id": "sensitivity-bullets_mixed_N04-r02",
+      "source_unit_ids": [
+        "M09"
+      ],
+      "field": "decisions",
+      "raw_leaf": {
+        "text": "independent Modal variants should run concurrently with spawn.",
+        "decided_at": "2026-06-22T00:00:00Z",
+        "entity_refs": null
+      },
+      "observed_schema_errors": [
+        "entity_refs_not_string_array"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_invalid_entity_refs"
+      ],
+      "expected_normalized_leaf": {
+        "text": "independent Modal variants should run concurrently with spawn.",
+        "decided_at": "2026-06-22T00:00:00Z"
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_mixed_N04-r02::facts::0",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_mixed_N04-r02::facts::0",
+      "source_run_id": "sensitivity-bullets_mixed_N04-r02",
+      "source_unit_ids": [
+        "S03"
+      ],
+      "field": "facts",
+      "raw_leaf": {
+        "text": "The premium package is proprietary.",
+        "category": null
+      },
+      "observed_schema_errors": [
+        "category_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_non_string_category"
+      ],
+      "expected_normalized_leaf": {
+        "text": "The premium package is proprietary."
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_mixed_N04-r03::decisions::0",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_mixed_N04-r03::decisions::0",
+      "source_run_id": "sensitivity-bullets_mixed_N04-r03",
+      "source_unit_ids": [
+        "M05"
+      ],
+      "field": "decisions",
+      "raw_leaf": {
+        "text": "measure fidelity at the facts-and-decisions leaf level",
+        "entity_refs": null,
+        "decided_at": null
+      },
+      "observed_schema_errors": [
+        "entity_refs_not_string_array",
+        "decided_at_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported",
+        "material_clause_omission"
+      ],
+      "expected_actions": [
+        "omit_null_or_invalid_entity_refs",
+        "omit_null_or_non_string_decided_at"
+      ],
+      "expected_normalized_leaf": {
+        "text": "measure fidelity at the facts-and-decisions leaf level"
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_mixed_N04-r03::facts::0",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_mixed_N04-r03::facts::0",
+      "source_run_id": "sensitivity-bullets_mixed_N04-r03",
+      "source_unit_ids": [
+        "S03"
+      ],
+      "field": "facts",
+      "raw_leaf": {
+        "text": "The premium package is proprietary.",
+        "category": null
+      },
+      "observed_schema_errors": [
+        "category_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_non_string_category"
+      ],
+      "expected_normalized_leaf": {
+        "text": "The premium package is proprietary."
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_simple_N02-r01::facts::0",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_simple_N02-r01::facts::0",
+      "source_run_id": "sensitivity-bullets_simple_N02-r01",
+      "source_unit_ids": [
+        "S01"
+      ],
+      "field": "facts",
+      "raw_leaf": {
+        "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+        "category": null
+      },
+      "observed_schema_errors": [
+        "category_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_non_string_category"
+      ],
+      "expected_normalized_leaf": {
+        "text": "Synapt uses gitgrip to coordinate multiple repositories."
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_simple_N02-r01::facts::1",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_simple_N02-r01::facts::1",
+      "source_run_id": "sensitivity-bullets_simple_N02-r01",
+      "source_unit_ids": [
+        "S02"
+      ],
+      "field": "facts",
+      "raw_leaf": {
+        "text": "The recall package is open source.",
+        "category": null
+      },
+      "observed_schema_errors": [
+        "category_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_non_string_category"
+      ],
+      "expected_normalized_leaf": {
+        "text": "The recall package is open source."
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_simple_N02-r02::facts::0",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_simple_N02-r02::facts::0",
+      "source_run_id": "sensitivity-bullets_simple_N02-r02",
+      "source_unit_ids": [
+        "S01"
+      ],
+      "field": "facts",
+      "raw_leaf": {
+        "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+        "category": null
+      },
+      "observed_schema_errors": [
+        "category_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_non_string_category"
+      ],
+      "expected_normalized_leaf": {
+        "text": "Synapt uses gitgrip to coordinate multiple repositories."
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_simple_N02-r02::facts::1",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_simple_N02-r02::facts::1",
+      "source_run_id": "sensitivity-bullets_simple_N02-r02",
+      "source_unit_ids": [
+        "S02"
+      ],
+      "field": "facts",
+      "raw_leaf": {
+        "text": "The recall package is open source.",
+        "category": null
+      },
+      "observed_schema_errors": [
+        "category_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_non_string_category"
+      ],
+      "expected_normalized_leaf": {
+        "text": "The recall package is open source."
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_simple_N02-r03::facts::0",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_simple_N02-r03::facts::0",
+      "source_run_id": "sensitivity-bullets_simple_N02-r03",
+      "source_unit_ids": [
+        "S01"
+      ],
+      "field": "facts",
+      "raw_leaf": {
+        "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+        "category": null
+      },
+      "observed_schema_errors": [
+        "category_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_non_string_category"
+      ],
+      "expected_normalized_leaf": {
+        "text": "Synapt uses gitgrip to coordinate multiple repositories."
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_simple_N02-r03::facts::1",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_simple_N02-r03::facts::1",
+      "source_run_id": "sensitivity-bullets_simple_N02-r03",
+      "source_unit_ids": [
+        "S02"
+      ],
+      "field": "facts",
+      "raw_leaf": {
+        "text": "The recall package is open source.",
+        "category": null
+      },
+      "observed_schema_errors": [
+        "category_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_non_string_category"
+      ],
+      "expected_normalized_leaf": {
+        "text": "The recall package is open source."
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_simple_N04-r01::facts::0",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_simple_N04-r01::facts::0",
+      "source_run_id": "sensitivity-bullets_simple_N04-r01",
+      "source_unit_ids": [
+        "S01"
+      ],
+      "field": "facts",
+      "raw_leaf": {
+        "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+        "category": null
+      },
+      "observed_schema_errors": [
+        "category_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_non_string_category"
+      ],
+      "expected_normalized_leaf": {
+        "text": "Synapt uses gitgrip to coordinate multiple repositories."
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_simple_N04-r01::facts::1",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_simple_N04-r01::facts::1",
+      "source_run_id": "sensitivity-bullets_simple_N04-r01",
+      "source_unit_ids": [
+        "S02"
+      ],
+      "field": "facts",
+      "raw_leaf": {
+        "text": "The recall package is open source.",
+        "category": null
+      },
+      "observed_schema_errors": [
+        "category_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_non_string_category"
+      ],
+      "expected_normalized_leaf": {
+        "text": "The recall package is open source."
+      },
+      "semantic_reclassification_allowed": false
+    },
+    {
+      "fixture_id": "malformed-leaf::sensitivity-bullets_simple_N04-r01::facts::2",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "sensitivity-bullets_simple_N04-r01::facts::2",
+      "source_run_id": "sensitivity-bullets_simple_N04-r01",
+      "source_unit_ids": [
+        "S03"
+      ],
+      "field": "facts",
+      "raw_leaf": {
+        "text": "The premium package is proprietary.",
+        "category": null
+      },
+      "observed_schema_errors": [
+        "category_not_string"
+      ],
+      "observed_semantic_labels": [
+        "source_supported"
+      ],
+      "expected_actions": [
+        "omit_null_or_non_string_category"
+      ],
+      "expected_normalized_leaf": {
+        "text": "The premium package is proprietary."
+      },
+      "semantic_reclassification_allowed": false
+    }
+  ],
+  "dropped_source_occurrence_cases": [
+    {
+      "fixture_id": "dropped-occurrence::sensitivity-bullets_mixed_N04-r01::M01",
+      "provenance_kind": "exact_empirical_drop",
+      "source_occurrence_id": "sensitivity-bullets_mixed_N04-r01::M01",
+      "source_run_id": "sensitivity-bullets_mixed_N04-r01",
+      "raw_response_fixture_id": "raw-response::sensitivity-bullets_mixed_N04-r01",
+      "serialization": "numbered_bullets",
+      "batch_source_unit_ids": [
+        "S03",
+        "M05",
+        "M09",
+        "M01"
+      ],
+      "dropped_source_unit": {
+        "source_unit_id": "M01",
+        "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+        "expected_type": "fact"
+      },
+      "observed_mapped_leaf_ids": [],
+      "expected_contract_behavior": {
+        "source_attribution_preserved": true,
+        "per_unit_fallback_invoked": true,
+        "silent_drop_allowed": false,
+        "terminal_statuses_allowed": [
+          "schema_valid_envelope",
+          "fail_closed_marker"
+        ]
+      }
+    },
+    {
+      "fixture_id": "dropped-occurrence::sensitivity-bullets_mixed_N04-r02::M01",
+      "provenance_kind": "exact_empirical_drop",
+      "source_occurrence_id": "sensitivity-bullets_mixed_N04-r02::M01",
+      "source_run_id": "sensitivity-bullets_mixed_N04-r02",
+      "raw_response_fixture_id": "raw-response::sensitivity-bullets_mixed_N04-r02",
+      "serialization": "numbered_bullets",
+      "batch_source_unit_ids": [
+        "S03",
+        "M05",
+        "M09",
+        "M01"
+      ],
+      "dropped_source_unit": {
+        "source_unit_id": "M01",
+        "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+        "expected_type": "fact"
+      },
+      "observed_mapped_leaf_ids": [],
+      "expected_contract_behavior": {
+        "source_attribution_preserved": true,
+        "per_unit_fallback_invoked": true,
+        "silent_drop_allowed": false,
+        "terminal_statuses_allowed": [
+          "schema_valid_envelope",
+          "fail_closed_marker"
+        ]
+      }
+    },
+    {
+      "fixture_id": "dropped-occurrence::sensitivity-bullets_mixed_N04-r03::M01",
+      "provenance_kind": "exact_empirical_drop",
+      "source_occurrence_id": "sensitivity-bullets_mixed_N04-r03::M01",
+      "source_run_id": "sensitivity-bullets_mixed_N04-r03",
+      "raw_response_fixture_id": "raw-response::sensitivity-bullets_mixed_N04-r03",
+      "serialization": "numbered_bullets",
+      "batch_source_unit_ids": [
+        "S03",
+        "M05",
+        "M09",
+        "M01"
+      ],
+      "dropped_source_unit": {
+        "source_unit_id": "M01",
+        "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+        "expected_type": "fact"
+      },
+      "observed_mapped_leaf_ids": [],
+      "expected_contract_behavior": {
+        "source_attribution_preserved": true,
+        "per_unit_fallback_invoked": true,
+        "silent_drop_allowed": false,
+        "terminal_statuses_allowed": [
+          "schema_valid_envelope",
+          "fail_closed_marker"
+        ]
+      }
+    },
+    {
+      "fixture_id": "dropped-occurrence::sensitivity-bullets_simple_N04-r01::S04",
+      "provenance_kind": "exact_empirical_drop",
+      "source_occurrence_id": "sensitivity-bullets_simple_N04-r01::S04",
+      "source_run_id": "sensitivity-bullets_simple_N04-r01",
+      "raw_response_fixture_id": "raw-response::sensitivity-bullets_simple_N04-r01",
+      "serialization": "numbered_bullets",
+      "batch_source_unit_ids": [
+        "S01",
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "dropped_source_unit": {
+        "source_unit_id": "S04",
+        "text": "The extract library emits SynaptExtraction documents.",
+        "expected_type": "fact"
+      },
+      "observed_mapped_leaf_ids": [],
+      "expected_contract_behavior": {
+        "source_attribution_preserved": true,
+        "per_unit_fallback_invoked": true,
+        "silent_drop_allowed": false,
+        "terminal_statuses_allowed": [
+          "schema_valid_envelope",
+          "fail_closed_marker"
+        ]
+      }
+    },
+    {
+      "fixture_id": "dropped-occurrence::sensitivity-raw_multi_clause-r01::M01",
+      "provenance_kind": "exact_empirical_drop",
+      "source_occurrence_id": "sensitivity-raw_multi_clause-r01::M01",
+      "source_run_id": "sensitivity-raw_multi_clause-r01",
+      "raw_response_fixture_id": "raw-response::sensitivity-raw_multi_clause-r01",
+      "serialization": "raw",
+      "batch_source_unit_ids": [
+        "M01"
+      ],
+      "dropped_source_unit": {
+        "source_unit_id": "M01",
+        "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+        "expected_type": "fact"
+      },
+      "observed_mapped_leaf_ids": [],
+      "expected_contract_behavior": {
+        "source_attribution_preserved": true,
+        "per_unit_fallback_invoked": true,
+        "silent_drop_allowed": false,
+        "terminal_statuses_allowed": [
+          "schema_valid_envelope",
+          "fail_closed_marker"
+        ]
+      }
+    },
+    {
+      "fixture_id": "dropped-occurrence::sensitivity-raw_multi_clause-r02::M01",
+      "provenance_kind": "exact_empirical_drop",
+      "source_occurrence_id": "sensitivity-raw_multi_clause-r02::M01",
+      "source_run_id": "sensitivity-raw_multi_clause-r02",
+      "raw_response_fixture_id": "raw-response::sensitivity-raw_multi_clause-r02",
+      "serialization": "raw",
+      "batch_source_unit_ids": [
+        "M01"
+      ],
+      "dropped_source_unit": {
+        "source_unit_id": "M01",
+        "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+        "expected_type": "fact"
+      },
+      "observed_mapped_leaf_ids": [],
+      "expected_contract_behavior": {
+        "source_attribution_preserved": true,
+        "per_unit_fallback_invoked": true,
+        "silent_drop_allowed": false,
+        "terminal_statuses_allowed": [
+          "schema_valid_envelope",
+          "fail_closed_marker"
+        ]
+      }
+    },
+    {
+      "fixture_id": "dropped-occurrence::sensitivity-raw_multi_clause-r03::M01",
+      "provenance_kind": "exact_empirical_drop",
+      "source_occurrence_id": "sensitivity-raw_multi_clause-r03::M01",
+      "source_run_id": "sensitivity-raw_multi_clause-r03",
+      "raw_response_fixture_id": "raw-response::sensitivity-raw_multi_clause-r03",
+      "serialization": "raw",
+      "batch_source_unit_ids": [
+        "M01"
+      ],
+      "dropped_source_unit": {
+        "source_unit_id": "M01",
+        "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+        "expected_type": "fact"
+      },
+      "observed_mapped_leaf_ids": [],
+      "expected_contract_behavior": {
+        "source_attribution_preserved": true,
+        "per_unit_fallback_invoked": true,
+        "silent_drop_allowed": false,
+        "terminal_statuses_allowed": [
+          "schema_valid_envelope",
+          "fail_closed_marker"
+        ]
+      }
+    },
+    {
+      "fixture_id": "dropped-occurrence::sensitivity-raw_simple_fact-r01::S01",
+      "provenance_kind": "exact_empirical_drop",
+      "source_occurrence_id": "sensitivity-raw_simple_fact-r01::S01",
+      "source_run_id": "sensitivity-raw_simple_fact-r01",
+      "raw_response_fixture_id": "raw-response::sensitivity-raw_simple_fact-r01",
+      "serialization": "raw",
+      "batch_source_unit_ids": [
+        "S01"
+      ],
+      "dropped_source_unit": {
+        "source_unit_id": "S01",
+        "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+        "expected_type": "fact"
+      },
+      "observed_mapped_leaf_ids": [],
+      "expected_contract_behavior": {
+        "source_attribution_preserved": true,
+        "per_unit_fallback_invoked": true,
+        "silent_drop_allowed": false,
+        "terminal_statuses_allowed": [
+          "schema_valid_envelope",
+          "fail_closed_marker"
+        ]
+      }
+    },
+    {
+      "fixture_id": "dropped-occurrence::sensitivity-raw_simple_fact-r02::S01",
+      "provenance_kind": "exact_empirical_drop",
+      "source_occurrence_id": "sensitivity-raw_simple_fact-r02::S01",
+      "source_run_id": "sensitivity-raw_simple_fact-r02",
+      "raw_response_fixture_id": "raw-response::sensitivity-raw_simple_fact-r02",
+      "serialization": "raw",
+      "batch_source_unit_ids": [
+        "S01"
+      ],
+      "dropped_source_unit": {
+        "source_unit_id": "S01",
+        "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+        "expected_type": "fact"
+      },
+      "observed_mapped_leaf_ids": [],
+      "expected_contract_behavior": {
+        "source_attribution_preserved": true,
+        "per_unit_fallback_invoked": true,
+        "silent_drop_allowed": false,
+        "terminal_statuses_allowed": [
+          "schema_valid_envelope",
+          "fail_closed_marker"
+        ]
+      }
+    },
+    {
+      "fixture_id": "dropped-occurrence::sensitivity-raw_simple_fact-r03::S01",
+      "provenance_kind": "exact_empirical_drop",
+      "source_occurrence_id": "sensitivity-raw_simple_fact-r03::S01",
+      "source_run_id": "sensitivity-raw_simple_fact-r03",
+      "raw_response_fixture_id": "raw-response::sensitivity-raw_simple_fact-r03",
+      "serialization": "raw",
+      "batch_source_unit_ids": [
+        "S01"
+      ],
+      "dropped_source_unit": {
+        "source_unit_id": "S01",
+        "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+        "expected_type": "fact"
+      },
+      "observed_mapped_leaf_ids": [],
+      "expected_contract_behavior": {
+        "source_attribution_preserved": true,
+        "per_unit_fallback_invoked": true,
+        "silent_drop_allowed": false,
+        "terminal_statuses_allowed": [
+          "schema_valid_envelope",
+          "fail_closed_marker"
+        ]
+      }
+    }
+  ],
+  "unknown_key_leaf_cases": [
+    {
+      "fixture_id": "unknown-key-leaf::matrix-mixed_category-N16-r03::decisions::4",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "matrix-mixed_category-N16-r03::decisions::4",
+      "source_run_id": "matrix-mixed_category-N16-r03",
+      "source_unit_ids": [
+        "M10"
+      ],
+      "field": "decisions",
+      "raw_leaf": {
+        "text": "On July 1, 2026, per-epoch checkpointing became mandatory for long Modal jobs after repeated preemptions.",
+        "decided_at": "2026-07-01",
+        "context": "mandatory rule"
+      },
+      "observed_schema_errors": [
+        "extra_keys:context"
+      ],
+      "expected_actions": [
+        "drop_unknown_key:context"
+      ],
+      "expected_normalized_leaf": {
+        "text": "On July 1, 2026, per-epoch checkpointing became mandatory for long Modal jobs after repeated preemptions.",
+        "decided_at": "2026-07-01"
+      }
+    },
+    {
+      "fixture_id": "unknown-key-leaf::matrix-multi_clause-N16-r03::facts::8",
+      "provenance_kind": "exact_empirical_leaf",
+      "source_leaf_id": "matrix-multi_clause-N16-r03::facts::8",
+      "source_run_id": "matrix-multi_clause-N16-r03",
+      "source_unit_ids": [
+        "M10"
+      ],
+      "field": "facts",
+      "raw_leaf": {
+        "text": "On July 1, 2026, per-epoch checkpointing became mandatory for long Modal jobs after repeated preemptions.",
+        "type": "range",
+        "resolved": "2026-07-01T00:00:00Z",
+        "resolved_end": "2026-07-13T00:00:00Z",
+        "context": "Mandatory after preemptions"
+      },
+      "observed_schema_errors": [
+        "extra_keys:context,resolved,resolved_end,type"
+      ],
+      "expected_actions": [
+        "drop_unknown_key:context",
+        "drop_unknown_key:resolved",
+        "drop_unknown_key:resolved_end",
+        "drop_unknown_key:type"
+      ],
+      "expected_normalized_leaf": {
+        "text": "On July 1, 2026, per-epoch checkpointing became mandatory for long Modal jobs after repeated preemptions."
+      }
+    }
+  ],
+  "temporal_shape_cases": [
+    {
+      "fixture_id": "temporal-shape::sensitivity-bullets_mixed_N04-r01::0",
+      "provenance_kind": "exact_empirical_temporal_leaf",
+      "source_run_id": "sensitivity-bullets_mixed_N04-r01",
+      "temporal_index": 0,
+      "raw_temporal_ref": {
+        "raw": "June 22, 2026",
+        "type": "point",
+        "resolved": "2026-06-22T00:00:00Z",
+        "context": "decision reference"
+      },
+      "observed_prompt_schema_conflict": "The builder prompt requests type/context/resolved_end, but the Stage-1 schema permits only raw and optional resolved.",
+      "expected_actions": [
+        "drop_unknown_key:context",
+        "drop_unknown_key:type"
+      ],
+      "expected_normalized_temporal_ref": {
+        "raw": "June 22, 2026",
+        "resolved": "2026-06-22T00:00:00Z"
+      }
+    },
+    {
+      "fixture_id": "temporal-shape::sensitivity-bullets_mixed_N04-r02::0",
+      "provenance_kind": "exact_empirical_temporal_leaf",
+      "source_run_id": "sensitivity-bullets_mixed_N04-r02",
+      "temporal_index": 0,
+      "raw_temporal_ref": {
+        "raw": "June 22, 2026",
+        "type": "point",
+        "resolved": "2026-06-22T00:00:00Z",
+        "context": "decision reference"
+      },
+      "observed_prompt_schema_conflict": "The builder prompt requests type/context/resolved_end, but the Stage-1 schema permits only raw and optional resolved.",
+      "expected_actions": [
+        "drop_unknown_key:context",
+        "drop_unknown_key:type"
+      ],
+      "expected_normalized_temporal_ref": {
+        "raw": "June 22, 2026",
+        "resolved": "2026-06-22T00:00:00Z"
+      }
+    },
+    {
+      "fixture_id": "temporal-shape::sensitivity-bullets_mixed_N04-r03::0",
+      "provenance_kind": "exact_empirical_temporal_leaf",
+      "source_run_id": "sensitivity-bullets_mixed_N04-r03",
+      "temporal_index": 0,
+      "raw_temporal_ref": {
+        "raw": "June 22, 2026",
+        "type": "point",
+        "resolved": "2026-06-22",
+        "context": "Establishment of concurrent spawn for Modal variants"
+      },
+      "observed_prompt_schema_conflict": "The builder prompt requests type/context/resolved_end, but the Stage-1 schema permits only raw and optional resolved.",
+      "expected_actions": [
+        "drop_unknown_key:context",
+        "drop_unknown_key:type"
+      ],
+      "expected_normalized_temporal_ref": {
+        "raw": "June 22, 2026",
+        "resolved": "2026-06-22"
+      }
+    }
+  ],
+  "contract_derived_cases": [
+    {
+      "fixture_id": "contract-derived::entity-refs-scalar-to-array",
+      "provenance_kind": "contract_derived_sibling_of_empirical_null_failure",
+      "source_leaf_id": "sensitivity-bullets_mixed_N02-r01::decisions::0",
+      "empirical_difference": "The run emitted entity_refs=null, never a scalar. This fixture changes only that value to a string because scalar-to-array is in the shared contract.",
+      "field": "decisions",
+      "raw_leaf": {
+        "text": "measure fidelity at the facts-and-decisions leaf level",
+        "entity_refs": "facts-and-decisions leaf level",
+        "decided_at": null
+      },
+      "expected_actions": [
+        "coerce_entity_refs_scalar_to_array",
+        "omit_null_or_non_string_decided_at"
+      ],
+      "expected_normalized_leaf": {
+        "text": "measure fidelity at the facts-and-decisions leaf level",
+        "entity_refs": [
+          "facts-and-decisions leaf level"
+        ]
+      },
+      "must_not_be_reported_as_empirically_observed": true
+    }
+  ]
+}
