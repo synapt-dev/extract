@@ -261,6 +261,27 @@ class TestBuildPromptCapabilities:
         result = build_extraction_prompt(SAMPLE_TEXT, capabilities=["temporal_refs"])
         assert '"temporal_refs"' in result
 
+    def test_temporal_refs_role_instructions_present(self):
+        """config/design/extract-temporal-role-2026-07-14.md: the Stage-1 prompt classifies
+        each temporal ref's validity role, with the 5 enum values named."""
+        result = build_extraction_prompt(SAMPLE_TEXT, capabilities=["temporal_refs"])
+        assert '"role"' in result
+        for role in ("effective", "expiry", "range", "superseded", "point"):
+            assert role in result
+
+    def test_temporal_refs_omits_resolve_instruction_when_no_date_given(self):
+        """Regression guard: WITHOUT a date, the fragment must NOT render the literal string
+        "None" as a resolution instruction (the {{date}} template var was previously
+        unconditional — an absent date rendered as "Resolve relative dates using: None.",
+        actively misleading the model). Found while building the resolution-anchor fix."""
+        result = build_extraction_prompt(SAMPLE_TEXT, capabilities=["temporal_refs"])
+        assert "using: None" not in result
+        assert "None." not in result
+
+    def test_temporal_refs_includes_resolve_instruction_when_date_given(self):
+        result = build_extraction_prompt(SAMPLE_TEXT, capabilities=["temporal_refs"], date="2025-03-01")
+        assert "Resolve relative dates using: 2025-03-01" in result
+
     def test_relations_fragment_present(self):
         result = build_extraction_prompt(
             SAMPLE_TEXT,

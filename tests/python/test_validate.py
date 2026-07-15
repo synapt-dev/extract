@@ -333,6 +333,68 @@ class TestTemporalRefValidation:
         assert any("type" in e.path for e in result.errors)
 
 
+class TestTemporalRefRole:
+    """The validity ROLE (direction) enrichment — config/design/extract-temporal-role-
+    2026-07-14.md. role is BASE-tier (no temporal_classes capability needed), optional
+    (existing {raw, resolved} consumers still validate), and enum-constrained."""
+
+    @pytest.mark.parametrize("role", ["effective", "expiry", "range", "superseded", "point"])
+    def test_valid_role_values(self, role):
+        temporal_ref = {"version": "1", "raw": "some date reference", "role": role, "resolved": "2026-04-28"}
+        if role == "range":
+            temporal_ref["resolved_end"] = "2026-05-01"
+        doc = _minimal_extraction(temporal_refs=[temporal_ref])
+        result = validate_extraction(doc)
+        assert result.valid, result.errors
+
+    def test_role_absent_still_valid(self):
+        """Backward compat: a temporal ref with NO role (existing/older extractions, or a
+        caller not requesting role classification) still validates."""
+        doc = _minimal_extraction(temporal_refs=[{
+            "version": "1", "raw": "next Tuesday", "resolved": "2026-04-28",
+        }])
+        result = validate_extraction(doc)
+        assert result.valid
+
+    def test_invalid_role_value_rejected(self):
+        doc = _minimal_extraction(temporal_refs=[{
+            "version": "1", "raw": "sometime", "role": "urgent", "resolved": "2026-04-28",
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("role" in e.path for e in result.errors)
+
+    def test_role_range_without_resolved_end_rejected(self):
+        """role=="range" requires resolved_end, mirroring the existing type=="range" rule
+        (TestTemporalRangeConstraints) — a SEPARATE check, since role can appear without type
+        now that role is base-tier and type stays temporal_classes-gated."""
+        doc = _minimal_extraction(temporal_refs=[{
+            "version": "1", "raw": "April 20 to May 1", "role": "range", "resolved": "2026-04-20",
+        }])
+        result = validate_extraction(doc)
+        assert not result.valid
+        assert any("resolved_end" in e.path or "resolved_end" in e.message for e in result.errors)
+
+    def test_role_present_without_temporal_classes_capability_still_valid(self):
+        """The load-bearing base-tier requirement: role must validate WITHOUT temporal_classes
+        being present anywhere in the document — it is not gated behind that capability."""
+        doc = _minimal_extraction(
+            temporal_refs=[{"version": "1", "raw": "expires soon", "role": "expiry", "resolved": "2026-04-30"}],
+            capabilities=["entities", "goals", "themes", "temporal_refs"],
+        )
+        result = validate_extraction(doc)
+        assert result.valid, result.errors
+
+    def test_role_effective_without_type_valid(self):
+        """role can appear on its own, without the temporal_classes-gated `type` field at
+        all — confirms role and type are independent, not a hidden pairing requirement."""
+        doc = _minimal_extraction(temporal_refs=[{
+            "version": "1", "raw": "effective March 2026", "role": "effective", "resolved": "2026-03-01",
+        }])
+        result = validate_extraction(doc)
+        assert result.valid, result.errors
+
+
 class TestProducedByFormat:
 
     def test_produced_by_requires_scheme(self):

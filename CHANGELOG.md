@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.6.0 (Python)
+
+Temporal validity role + resolution anchor — additive Stage-1 IL enrichment (config/design/extract-temporal-role-2026-07-14.md).
+
+- Added `role` (`effective` | `expiry` | `range` | `superseded` | `point`) to the temporal-ref schema, capturing the validity DIRECTION a date constrains (e.g. "expires April 30" → `expiry`, vs "effective March 2026" → `effective`) — a semantic distinction the source sentence carries but prior extraction dropped
+- `role` and `resolved_end` are now BASE-tier on the `temporal_refs` capability (no longer gated behind the separate `temporal_classes` capability) — always available to any caller requesting `temporal_refs`; `type`/`context` remain `temporal_classes`-gated
+- `BatchUnit` gained an optional `date` field — the unit's SOURCE date, threaded into Stage-1 as the temporal resolution anchor so partial/relative dates (e.g. "April 30") resolve against the fact's actual source year, not an unanchored guess
+- Fixed a prompt-rendering gap where an absent `date` param rendered the literal string "Resolve relative dates using: None." instead of omitting the instruction
+- `_detect_capabilities`'s `temporal_classes` heuristic now keys on `type` presence only (`resolved_end` no longer implies the gated capability was exercised, since it moved to base tier)
+- Published JSON schema (`schemas/temporal-ref/v1.json`) updated to match
+- TypeScript (`@synapt-dev/extract`) parity is tracked as a follow-up, not included in this release — the batch/coercion bug this fix traces back to is Python-specific (no TS `extract_batch` equivalent exists yet)
+
 ## v0.5.0
 
 0.5.0 universal host-boundary groundwork.
