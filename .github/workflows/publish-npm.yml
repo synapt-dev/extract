@@ -3,6 +3,11 @@ name: Publish @synapt-dev/extract to npm
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    # Manual re-trigger — needed because this workflow has no version-mismatch retry path:
+    # a `release` event fires it exactly once, and if npm's version hadn't moved yet at that
+    # point (e.g. a Python-only release, or this repo's own version-sync-deferred slices),
+    # there is no automatic second attempt once the npm version is later bumped.
 
 permissions:
   contents: write
@@ -26,12 +31,27 @@ jobs:
 
       - run: npm run build
 
+      - name: Check if this version is already published
+        id: check
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if npm view "@synapt-dev/extract@$VERSION" version >/dev/null 2>&1; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+            echo "@synapt-dev/extract@$VERSION is already published to npm -- skipping publish (this is expected on every release where only the PyPI side bumped, not an error)."
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - run: npm publish --provenance --access public
+        if: steps.check.outputs.already_published != 'true'
 
       - name: Generate SBOM
+        if: steps.check.outputs.already_published != 'true'
         run: npm sbom --omit=dev --sbom-format cyclonedx > sbom.cdx.json
 
       - name: Upload SBOM to release
+        if: steps.check.outputs.already_published != 'true' && github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload ${{ github.event.release.tag_name }} sbom.cdx.json --clobber
