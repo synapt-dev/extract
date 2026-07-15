@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "synapt-extract"
-version = "0.5.0"
+version = "0.6.0"
 description = "SynaptExtraction IL v1 -- schema, validation, and finalization"
 readme = "README.md"
 license = "MIT"
@@ -21,17 +21,17 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries",
-    "Typing :: Typed",
 ]
 
 [project.urls]
 Homepage = "https://synapt.dev"
 Repository = "https://github.com/synapt-dev/extract"
-Documentation = "https://synapt.dev/docs/extract"
+Documentation = "https://synapt.dev/schemas/"
 Schema = "https://synapt.dev/schemas/extract/v1.json"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+namespaces = true
 
 [tool.setuptools.package-data]
-synapt_extract = ["prompts/**/*.txt", "prompts/**/*.json", "schemas/**/*.json"]
+"synapt.extract" = ["prompts/**/*.txt", "prompts/**/*.json", "schemas/**/*.json"]

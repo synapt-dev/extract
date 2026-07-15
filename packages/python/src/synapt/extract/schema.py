@@ -35,6 +35,7 @@ class SynaptTemporalRef(TypedDict, total=False):
     version: str
     raw: str
     type: Literal["point", "range", "duration", "unresolved"]
+    role: Literal["effective", "expiry", "range", "superseded", "point"]
     resolved: str
     resolved_end: str
     context: str

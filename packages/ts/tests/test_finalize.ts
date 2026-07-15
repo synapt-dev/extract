@@ -193,6 +193,21 @@ describe("finalizeExtraction", () => {
     expect(result.extraction.capabilities).toContain(capability);
   });
 
+  test("resolved_end alone does not imply temporal_classes (base-tier role)", () => {
+    // role + resolved_end are BASE-tier (config/design/extract-temporal-role-2026-07-14.md) —
+    // a range-role ref can carry resolved_end WITHOUT temporal_classes ever being exercised.
+    // The old heuristic (type OR resolved_end) would mislabel this; only `type` should trigger
+    // detection now. Mirrors the Python test_resolved_end_alone_does_not_imply_temporal_classes.
+    const result = finalizeExtraction(
+      llmOutput({
+        temporal_refs: [{ raw: "March to April 2026", role: "range", resolved: "2026-03-01", resolved_end: "2026-04-30" }],
+      }),
+      { produced_by: "test://model" },
+    );
+    expect(result.extraction.capabilities).toContain("temporal_refs");
+    expect(result.extraction.capabilities).not.toContain("temporal_classes");
+  });
+
   test("warns on mismatched capabilities hint", () => {
     const result = finalizeExtraction(llmOutput(), {
       produced_by: "test://model",

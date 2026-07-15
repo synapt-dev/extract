@@ -57,7 +57,7 @@ console.log(result.validation);     // { valid: true, errors: [] }
 ### Python
 
 ```python
-from synapt_extract import (
+from synapt.extract import (
     build_extraction_prompt,
     finalize_extraction,
     FinalizeContext,
@@ -124,7 +124,7 @@ const built = builder.build({ name: "synapt_extract_stage1" });
 ### Python
 
 ```python
-from synapt_extract import create_extraction_builder
+from synapt.extract import create_extraction_builder
 
 builder = (
     create_extraction_builder(text, profile="standard")
@@ -173,7 +173,7 @@ const result = await extractOpenAI(text, new OpenAI(), {
 
 ```python
 from openai import OpenAI
-from synapt_extract import create_extraction_builder, extract_openai
+from synapt.extract import create_extraction_builder, extract_openai
 
 builder = (
     create_extraction_builder(text)
@@ -192,7 +192,7 @@ result = await extract_openai(
 )
 ```
 
-The returned result includes `artifactBundle` / `artifact_bundle`. TypeScript exports the Node artifact writer at `@synapt-dev/extract/artifacts`; Python exports `write_artifact_bundle()` from `synapt_extract`.
+The returned result includes `artifactBundle` / `artifact_bundle`. TypeScript exports the Node artifact writer at `@synapt-dev/extract/artifacts`; Python exports `write_artifact_bundle()` from `synapt.extract`.
 
 ```typescript
 import { createExtractionBuilder, extract } from "@synapt-dev/extract";
@@ -227,7 +227,7 @@ const result = await extract(text, {
 ```
 
 ```python
-from synapt_extract import create_extraction_builder, extract
+from synapt.extract import create_extraction_builder, extract
 
 builder = (
     create_extraction_builder(text)

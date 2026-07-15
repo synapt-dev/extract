@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from synapt_extract.finalize import FinalizeContext, FinalizeResult, finalize_extraction
-from synapt_extract.prompt import (
+from synapt.extract.finalize import FinalizeContext, FinalizeResult, finalize_extraction
+from synapt.extract.prompt import (
     CANONICAL_ORDER,
     STANDARD_EMBEDDING_INPUTS,
     build_extraction_prompt,
@@ -334,9 +334,17 @@ def _source_metadata_schema(finalized: bool = False) -> JsonSchema:
 
 
 def _temporal_ref_schema(capabilities: set[str], finalized: bool = False) -> JsonSchema:
+    # role + resolved_end are BASE-tier (config/design/extract-temporal-role-2026-07-14.md):
+    # always available with just the "temporal_refs" capability, NOT gated behind
+    # "temporal_classes" — role is the load-bearing direction signal recall's deterministic
+    # mapper needs, and role=="range" needs resolved_end to be usable at all. type/context stay
+    # temporal_classes-gated: non-load-bearing extras once role carries the direction recall
+    # needs; type used to be the only (weak, ambiguous) direction hint role now replaces.
     properties: JsonSchema = {
         "raw": {"type": "string"},
         "resolved": {"type": "string"},
+        "resolved_end": {"type": "string"},
+        "role": {"type": "string", "enum": ["effective", "expiry", "range", "superseded", "point"]},
     }
     required = ["raw"]
 
@@ -346,7 +354,6 @@ def _temporal_ref_schema(capabilities: set[str], finalized: bool = False) -> Jso
 
     if "temporal_classes" in capabilities:
         properties["type"] = {"type": "string", "enum": ["point", "range", "duration", "unresolved"]}
-        properties["resolved_end"] = {"type": "string"}
         properties["context"] = {"type": "string"}
         required.append("type")
 

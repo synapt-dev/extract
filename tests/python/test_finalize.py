@@ -9,7 +9,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "packages" / "python" / "src"))
 
-from synapt_extract.finalize import finalize_extraction, FinalizeContext
+from synapt.extract.finalize import finalize_extraction, FinalizeContext
 
 
 def _llm_output(**overrides):
@@ -370,6 +370,25 @@ class TestStage3CapabilityDetection:
         caps = result.extraction["capabilities"]
         assert "temporal_refs" in caps
         assert "temporal_classes" in caps
+
+    def test_resolved_end_alone_does_not_imply_temporal_classes(self):
+        """role + resolved_end are BASE-tier (config/design/extract-temporal-role-2026-07-14.md)
+        — a range-role ref can legitimately carry resolved_end WITHOUT the temporal_classes
+        capability ever being requested/exercised. The old heuristic (`type is not None OR
+        resolved_end is not None`) would have mislabeled this as having used temporal_classes;
+        only `type`'s presence (still temporal_classes-gated) should trigger detection now."""
+        result = finalize_extraction(
+            _llm_output(temporal_refs=[{
+                "raw": "March to April 2026",
+                "role": "range",
+                "resolved": "2026-03-01",
+                "resolved_end": "2026-04-30",
+            }]),
+            FinalizeContext(produced_by="test://model"),
+        )
+        caps = result.extraction["capabilities"]
+        assert "temporal_refs" in caps
+        assert "temporal_classes" not in caps
 
 
 class TestStage3Warnings:

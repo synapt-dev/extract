@@ -406,9 +406,17 @@ function sourceMetadataSchema(finalized = false): JsonSchema {
 }
 
 function temporalRefSchema(capabilities: Set<ExtractionCapability>, finalized = false): JsonSchema {
+  // role + resolved_end are BASE-tier (config/design/extract-temporal-role-2026-07-14.md):
+  // always available with just the "temporal_refs" capability, NOT gated behind
+  // "temporal_classes" — role is the load-bearing direction signal recall's deterministic
+  // mapper needs, and role === "range" needs resolved_end to be usable at all. type/context
+  // stay temporal_classes-gated (non-load-bearing extras once role carries the direction).
+  // Mirrors the Python _temporal_ref_schema.
   const properties: JsonSchema = {
     raw: { type: "string" },
     resolved: { type: "string" },
+    resolved_end: { type: "string" },
+    role: { type: "string", enum: ["effective", "expiry", "range", "superseded", "point"] },
   };
   const required = ["raw"];
 
@@ -419,7 +427,6 @@ function temporalRefSchema(capabilities: Set<ExtractionCapability>, finalized = 
 
   if (capabilities.has("temporal_classes")) {
     properties.type = { type: "string", enum: ["point", "range", "duration", "unresolved"] };
-    properties.resolved_end = { type: "string" };
     properties.context = { type: "string" };
     required.push("type");
   }

@@ -8,9 +8,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "packages" / "python" / "src"))
 
-from synapt_extract.finalize import finalize_extraction, FinalizeContext
-from synapt_extract.prompt import build_extraction_prompt, resolve_capabilities
-from synapt_extract.validate import validate_extraction
+from synapt.extract.finalize import finalize_extraction, FinalizeContext
+from synapt.extract.prompt import build_extraction_prompt, resolve_capabilities
+from synapt.extract.validate import validate_extraction
 
 
 FIXTURES_DIR = Path(__file__).resolve().parents[1] / "conformance"

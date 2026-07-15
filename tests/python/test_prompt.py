@@ -10,7 +10,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "packages" / "python" / "src"))
 
-from synapt_extract import (
+from synapt.extract import (
     ExtractionBuilder,
     build_finalized_extraction_schema,
     build_extraction_response_format,
@@ -261,6 +261,27 @@ class TestBuildPromptCapabilities:
         result = build_extraction_prompt(SAMPLE_TEXT, capabilities=["temporal_refs"])
         assert '"temporal_refs"' in result
 
+    def test_temporal_refs_role_instructions_present(self):
+        """config/design/extract-temporal-role-2026-07-14.md: the Stage-1 prompt classifies
+        each temporal ref's validity role, with the 5 enum values named."""
+        result = build_extraction_prompt(SAMPLE_TEXT, capabilities=["temporal_refs"])
+        assert '"role"' in result
+        for role in ("effective", "expiry", "range", "superseded", "point"):
+            assert role in result
+
+    def test_temporal_refs_omits_resolve_instruction_when_no_date_given(self):
+        """Regression guard: WITHOUT a date, the fragment must NOT render the literal string
+        "None" as a resolution instruction (the {{date}} template var was previously
+        unconditional — an absent date rendered as "Resolve relative dates using: None.",
+        actively misleading the model). Found while building the resolution-anchor fix."""
+        result = build_extraction_prompt(SAMPLE_TEXT, capabilities=["temporal_refs"])
+        assert "using: None" not in result
+        assert "None." not in result
+
+    def test_temporal_refs_includes_resolve_instruction_when_date_given(self):
+        result = build_extraction_prompt(SAMPLE_TEXT, capabilities=["temporal_refs"], date="2025-03-01")
+        assert "Resolve relative dates using: 2025-03-01" in result
+
     def test_relations_fragment_present(self):
         result = build_extraction_prompt(
             SAMPLE_TEXT,
@@ -433,7 +454,7 @@ class TestProfileFiles:
         assert standard.issubset(full)
 
     def test_full_profile_includes_all_capabilities(self):
-        from synapt_extract.schema import EXTRACTION_CAPABILITIES
+        from synapt.extract.schema import EXTRACTION_CAPABILITIES
         profiles_dir = Path(__file__).resolve().parents[2] / "prompts" / "profiles"
         data = json.loads((profiles_dir / "full.json").read_text())
         caps = set(data["capabilities"])
@@ -443,20 +464,20 @@ class TestProfileFiles:
 class TestRegistryConsistency:
 
     def test_capability_registry_covers_schema_capabilities_in_canonical_order(self):
-        from synapt_extract.schema import EXTRACTION_CAPABILITIES
-        from synapt_extract.prompt import CAPABILITY_REGISTRY, CANONICAL_ORDER
+        from synapt.extract.schema import EXTRACTION_CAPABILITIES
+        from synapt.extract.prompt import CAPABILITY_REGISTRY, CANONICAL_ORDER
         assert [definition["name"] for definition in CAPABILITY_REGISTRY["capabilities"]] == CANONICAL_ORDER
         assert set(CANONICAL_ORDER) == EXTRACTION_CAPABILITIES
 
     def test_capability_registry_profiles_match_legacy_profile_files(self):
-        from synapt_extract.prompt import CAPABILITY_REGISTRY
+        from synapt.extract.prompt import CAPABILITY_REGISTRY
         profiles_dir = Path(__file__).resolve().parents[2] / "prompts" / "profiles"
         for profile in ("minimal", "standard", "full"):
             file_profile = json.loads((profiles_dir / f"{profile}.json").read_text())["capabilities"]
             assert CAPABILITY_REGISTRY["profiles"][profile] == file_profile
 
     def test_capability_registry_exposes_embedding_inputs(self):
-        from synapt_extract.prompt import STANDARD_EMBEDDING_INPUTS, capability_embedding_input
+        from synapt.extract.prompt import STANDARD_EMBEDDING_INPUTS, capability_embedding_input
         assert capability_embedding_input("entities") == "entities"
         assert capability_embedding_input("entity_state") == "entities"
         assert capability_embedding_input("structured_sentiment") == "sentiment"
@@ -477,13 +498,13 @@ class TestRegistryConsistency:
         ]
 
     def test_every_capability_has_fragment_file(self):
-        from synapt_extract.schema import EXTRACTION_CAPABILITIES
+        from synapt.extract.schema import EXTRACTION_CAPABILITIES
         prompts_dir = Path(__file__).resolve().parents[2] / "prompts" / "v1"
         for cap in EXTRACTION_CAPABILITIES:
             assert (prompts_dir / f"{cap}.txt").exists(), f"missing fragment for {cap}"
 
     def test_every_fragment_is_valid_capability(self):
-        from synapt_extract.schema import EXTRACTION_CAPABILITIES
+        from synapt.extract.schema import EXTRACTION_CAPABILITIES
         prompts_dir = Path(__file__).resolve().parents[2] / "prompts" / "v1"
         for txt_file in prompts_dir.glob("*.txt"):
             name = txt_file.stem
@@ -492,25 +513,25 @@ class TestRegistryConsistency:
             assert name in EXTRACTION_CAPABILITIES, f"orphan fragment: {name}"
 
     def test_canonical_order_covers_all_capabilities(self):
-        from synapt_extract.schema import EXTRACTION_CAPABILITIES
-        from synapt_extract.prompt import CANONICAL_ORDER
+        from synapt.extract.schema import EXTRACTION_CAPABILITIES
+        from synapt.extract.prompt import CANONICAL_ORDER
         assert set(CANONICAL_ORDER) == EXTRACTION_CAPABILITIES
 
     def test_canonical_order_has_no_duplicates(self):
-        from synapt_extract.prompt import CANONICAL_ORDER
+        from synapt.extract.prompt import CANONICAL_ORDER
         assert len(CANONICAL_ORDER) == len(set(CANONICAL_ORDER))
 
     def test_capability_deps_reference_valid_capabilities(self):
-        from synapt_extract.schema import EXTRACTION_CAPABILITIES
-        from synapt_extract.prompt import CAPABILITY_DEPS
+        from synapt.extract.schema import EXTRACTION_CAPABILITIES
+        from synapt.extract.prompt import CAPABILITY_DEPS
         for cap, deps in CAPABILITY_DEPS.items():
             assert cap in EXTRACTION_CAPABILITIES, f"dep key {cap} not a valid capability"
             for dep in deps:
                 assert dep in EXTRACTION_CAPABILITIES, f"dep {dep} (from {cap}) not valid"
 
     def test_capability_rules_reference_valid_capabilities(self):
-        from synapt_extract.schema import EXTRACTION_CAPABILITIES
-        from synapt_extract.prompt import CAPABILITY_RULES
+        from synapt.extract.schema import EXTRACTION_CAPABILITIES
+        from synapt.extract.prompt import CAPABILITY_RULES
         for cap in CAPABILITY_RULES:
             assert cap in EXTRACTION_CAPABILITIES, f"rule key {cap} not a valid capability"
 
@@ -521,7 +542,7 @@ class TestRegistryConsistency:
         assert len(caps) == len(set(caps)), "full profile has duplicate capabilities"
 
     def test_build_prompt_succeeds_for_every_capability(self):
-        from synapt_extract.schema import EXTRACTION_CAPABILITIES
+        from synapt.extract.schema import EXTRACTION_CAPABILITIES
         modifier_only = {"assertion_signals", "evidence_anchoring"}
         for cap in EXTRACTION_CAPABILITIES:
             caps = ["entities", cap] if cap in modifier_only else [cap]

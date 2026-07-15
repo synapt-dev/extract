@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from synapt_extract.validate import ValidationResult, validate_extraction
+from synapt.extract.validate import ValidationResult, validate_extraction
 
 
 @dataclass
@@ -127,7 +127,11 @@ def _detect_capabilities(doc: dict[str, Any]) -> list[str]:
     temporal = doc.get("temporal_refs", [])
     if isinstance(temporal, list) and temporal:
         caps.append("temporal_refs")
-        if any(r.get("type") is not None or r.get("resolved_end") is not None for r in temporal):
+        # `type` alone still implies temporal_classes was exercised (it stays gated behind
+        # that capability). `resolved_end` no longer does — it moved to the BASE temporal_refs
+        # tier alongside `role` (config/design/extract-temporal-role-2026-07-14.md), so its
+        # presence can no longer be used to infer temporal_classes was requested.
+        if any(r.get("type") is not None for r in temporal):
             caps.append("temporal_classes")
 
     if isinstance(doc.get("language"), str):

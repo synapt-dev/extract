@@ -10,8 +10,8 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
-from synapt_extract.artifacts import create_artifact_bundle, write_artifact_bundle
-from synapt_extract.extract import (
+from synapt.extract.artifacts import create_artifact_bundle, write_artifact_bundle
+from synapt.extract.extract import (
     EmbeddingRequest,
     EmbeddingResponse,
     ExtractResult,

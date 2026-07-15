@@ -310,6 +310,58 @@ describe("validateExtraction", () => {
       false,
       ["temporal_refs[0].resolved_end"],
     ],
+    // Validity ROLE (direction) enrichment — config/design/extract-temporal-role-2026-07-14.md.
+    // Mirrors the Python TestTemporalRefRole cases. role + resolved_end are BASE-tier (no
+    // temporal_classes capability needed); role is enum-constrained; role === "range" needs
+    // resolved_end.
+    [
+      "valid role effective (base-tier, no type)",
+      minimalExtraction({
+        temporal_refs: [{ version: "1", raw: "effective March 2026", role: "effective", resolved: "2026-03-01" }],
+      }),
+      true,
+      [],
+    ],
+    [
+      "valid role expiry",
+      minimalExtraction({
+        temporal_refs: [{ version: "1", raw: "expires April 30", role: "expiry", resolved: "2026-04-30" }],
+      }),
+      true,
+      [],
+    ],
+    [
+      "valid role range with resolved_end",
+      minimalExtraction({
+        temporal_refs: [{ version: "1", raw: "March to April", role: "range", resolved: "2026-03-01", resolved_end: "2026-04-30" }],
+      }),
+      true,
+      [],
+    ],
+    [
+      "role absent still valid (backward compat)",
+      minimalExtraction({
+        temporal_refs: [{ version: "1", raw: "next Tuesday", resolved: "2026-04-28" }],
+      }),
+      true,
+      [],
+    ],
+    [
+      "invalid role value rejected",
+      minimalExtraction({
+        temporal_refs: [{ version: "1", raw: "sometime", role: "urgent", resolved: "2026-04-28" }],
+      }),
+      false,
+      ["temporal_refs[0].role"],
+    ],
+    [
+      "role range without resolved_end rejected",
+      minimalExtraction({
+        temporal_refs: [{ version: "1", raw: "April 20 to May 1", role: "range", resolved: "2026-04-20" }],
+      }),
+      false,
+      ["temporal_refs[0].resolved_end"],
+    ],
   ])("%s", (_name, doc, expectedValid, paths) => {
     const result = validateExtraction(doc);
     expect(result.valid).toBe(expectedValid);
