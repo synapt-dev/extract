@@ -17,9 +17,11 @@ tuning. A NEW primitive, not a wrapper/loop over the generic builder.
 
 Contract (pinned + spec-confirmed)
 ----------------------------------
-  • Input: list[BatchUnit(id, text, capabilities?)] — explicit attribution; the
+  • Input: list[BatchUnit(id, text, capabilities?, date?)] — explicit attribution; the
     id rides into the output as source_unit_id (boundaries stay out-of-band, never
-    in model-visible text).
+    in model-visible text). `date` (optional) is the unit's SOURCE date, threaded into
+    Stage-1 as the temporal resolution anchor (config/design/extract-temporal-role-
+    2026-07-14.md) so partial/relative dates resolve against the source, not a guess.
   • Inference: an injected `infer` seam receiving a request {prompt, messages,
     capabilities} and returning a completion string. ZERO recall dependency.
   • v1 strategy: PER-UNIT (one infer call per unit) — trivially out-of-band, clean
@@ -37,7 +39,9 @@ Contract (pinned + spec-confirmed)
         coerced (scalar→array; null/non-string OPTIONAL fields like category or
         decided_at are omitted; an invalid REQUIRED field is kept so strict
         validation rejects it), out-of-scope dropped; temporal_refs → schema-valid
-        raw/resolved only; non-dict leaves preserved into strict validation.
+        raw/resolved + base-tier role/resolved_end (type/context stay temporal_classes-
+        gated, so they are stripped at the base tier); non-dict leaves preserved into
+        strict validation.
 
 Harvest map: scratchpad/extract_batch_craft_harvest.md. Boundary: OSS.
 """

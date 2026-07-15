@@ -338,6 +338,23 @@ class TestTemporalRefRole:
     2026-07-14.md. role is BASE-tier (no temporal_classes capability needed), optional
     (existing {raw, resolved} consumers still validate), and enum-constrained."""
 
+    def test_public_typeddict_declares_role(self):
+        """GUARD (Sentinel's finding): the exported public SynaptTemporalRef TypedDict must
+        declare `role`. The v0.6 runtime EMITS role (builder schema + validation accept it),
+        so a public type that omitted it would reject its own runtime output — the exact
+        type/runtime mismatch this guards against. Also confirms the declared enum members
+        exactly match the validator's accepted set (single source of truth for the role
+        vocabulary across the type + the validator)."""
+        import typing
+        from synapt.extract.schema import SynaptTemporalRef
+        from synapt.extract.validate import VALID_TEMPORAL_ROLES
+
+        assert "role" in SynaptTemporalRef.__annotations__
+        # schema.py uses `from __future__ import annotations`, so raw __annotations__ are
+        # ForwardRef strings — resolve with get_type_hints before reading the Literal members.
+        role_type = typing.get_type_hints(SynaptTemporalRef)["role"]
+        assert set(typing.get_args(role_type)) == set(VALID_TEMPORAL_ROLES)
+
     @pytest.mark.parametrize("role", ["effective", "expiry", "range", "superseded", "point"])
     def test_valid_role_values(self, role):
         temporal_ref = {"version": "1", "raw": "some date reference", "role": role, "resolved": "2026-04-28"}

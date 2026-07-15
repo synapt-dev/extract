@@ -161,6 +161,25 @@ describe("buildExtractionPrompt", () => {
     expect(result).toContain("2026-04-25");
   });
 
+  test("temporal_refs fragment carries role classification instructions", () => {
+    // config/design/extract-temporal-role-2026-07-14.md — the Stage-1 prompt classifies each
+    // temporal ref's validity role, with the 5 enum values named. Mirrors the Python test.
+    const result = buildExtractionPrompt(SAMPLE_TEXT, { capabilities: ["temporal_refs"] });
+    expect(result).toContain('"role"');
+    for (const role of ["effective", "expiry", "range", "superseded", "point"]) {
+      expect(result).toContain(role);
+    }
+  });
+
+  test("temporal_refs omits the resolve instruction (no literal 'None') when no date given", () => {
+    // Regression guard mirroring the Python test: without a date the {{#if date}} conditional
+    // must render nothing, NOT the literal "Resolve relative dates using: None." The TS
+    // renderer supports {{#if}} identically to Python (prompt.ts), so this holds cross-language.
+    const result = buildExtractionPrompt(SAMPLE_TEXT, { capabilities: ["temporal_refs"] });
+    expect(result).not.toContain("using: None");
+    expect(result).not.toContain("None.");
+  });
+
   test.each([
     ["minimal", false, false],
     ["standard", false, true],
@@ -479,6 +498,30 @@ describe("buildExtractionSchema", () => {
     expect(signals.required).toEqual(["version"]);
     expect(signals.properties.confidence).toBeDefined();
     expect(temporalRef.required).toEqual(["version", "raw"]);
+  });
+
+  test("temporal role + resolved_end are base-tier; type/context stay temporal_classes-gated", () => {
+    // config/design/extract-temporal-role-2026-07-14.md — role is the load-bearing direction
+    // signal, always available with just "temporal_refs"; type/context remain gated. Mirrors
+    // the Python base-tier coverage (test_role_and_resolved_end_survive_coercion + the
+    // type/context negative control). Requesting ONLY temporal_refs, NOT temporal_classes.
+    const base = buildExtractionSchema({ capabilities: ["temporal_refs"] });
+    const baseProps = ((base.properties as Record<string, unknown>).temporal_refs as {
+      items: { properties: Record<string, unknown> };
+    }).items.properties;
+    expect(baseProps.role).toBeDefined();
+    expect(baseProps.resolved_end).toBeDefined();
+    expect(baseProps.type).toBeUndefined();     // temporal_classes-gated
+    expect(baseProps.context).toBeUndefined();  // temporal_classes-gated
+    expect(baseProps.role).toEqual({ type: "string", enum: ["effective", "expiry", "range", "superseded", "point"] });
+
+    const gated = buildExtractionSchema({ capabilities: ["temporal_refs", "temporal_classes"] });
+    const gatedProps = ((gated.properties as Record<string, unknown>).temporal_refs as {
+      items: { properties: Record<string, unknown> };
+    }).items.properties;
+    expect(gatedProps.type).toBeDefined();      // now present with temporal_classes
+    expect(gatedProps.context).toBeDefined();
+    expect(gatedProps.role).toBeDefined();      // role still present (base-tier, unaffected)
   });
 
   test("schema covers all v1.2 capability fields", () => {

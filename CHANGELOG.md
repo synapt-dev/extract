@@ -1,16 +1,17 @@
 # Changelog
 
-## v0.6.0 (Python)
+## v0.6.0
 
-Temporal validity role + resolution anchor — additive Stage-1 IL enrichment (config/design/extract-temporal-role-2026-07-14.md).
+Temporal validity role + resolution anchor — additive Stage-1 IL enrichment (config/design/extract-temporal-role-2026-07-14.md). Both `synapt-extract` (PyPI) and `@synapt-dev/extract` (npm) bump to 0.6.0 in lockstep for the additive-role coherence slice.
 
 - Added `role` (`effective` | `expiry` | `range` | `superseded` | `point`) to the temporal-ref schema, capturing the validity DIRECTION a date constrains (e.g. "expires April 30" → `expiry`, vs "effective March 2026" → `effective`) — a semantic distinction the source sentence carries but prior extraction dropped
 - `role` and `resolved_end` are now BASE-tier on the `temporal_refs` capability (no longer gated behind the separate `temporal_classes` capability) — always available to any caller requesting `temporal_refs`; `type`/`context` remain `temporal_classes`-gated
 - `BatchUnit` gained an optional `date` field — the unit's SOURCE date, threaded into Stage-1 as the temporal resolution anchor so partial/relative dates (e.g. "April 30") resolve against the fact's actual source year, not an unanchored guess
-- Fixed a prompt-rendering gap where an absent `date` param rendered the literal string "Resolve relative dates using: None." instead of omitting the instruction
+- The exported `SynaptTemporalRef` type declares `role` in both Python (`TypedDict`) and TypeScript (`interface`), so the public type matches the runtime emission
+- Fixed a prompt-rendering gap where an absent `date` param rendered the literal string "Resolve relative dates using: None." instead of omitting the instruction (wrapped in `{{#if date}}`; supported identically by both prompt renderers)
 - `_detect_capabilities`'s `temporal_classes` heuristic now keys on `type` presence only (`resolved_end` no longer implies the gated capability was exercised, since it moved to base tier)
-- Published JSON schema (`schemas/temporal-ref/v1.json`) updated to match
-- TypeScript (`@synapt-dev/extract`) parity is tracked as a follow-up, not included in this release — the batch/coercion bug this fix traces back to is Python-specific (no TS `extract_batch` equivalent exists yet)
+- Published JSON schema (`schemas/temporal-ref/v1.json`, both the repo-root canonical copy and the Python package copy) updated to match — schema-drift-check green
+- **ts/py parity — the additive `role` coherence slice IS included** (`@synapt-dev/extract` TypeScript): `schema.ts` types `role`, `builder.ts` emits `role`/`resolved_end` base-tier, `validate.ts` accepts/enum-validates `role` (+ `role === "range"` → `resolved_end`), `finalize.ts` drops the `resolved_end` inference, and the embedded prompt fragment matches the shared file byte-for-byte. TS and Python produce identical schema/validation/finalize output on the same inputs (verified cross-language). The FULL parity effort (a TS `extract_batch`/`batch.ts` port + version-sync) remains the post-validation follow-up per config/design/extract-ts-py-parity-plan-2026-07-15.md — this release only carries the additive-role coherence needed to keep the shared prompt/schema surface consistent.
 
 ## v0.5.0
 
