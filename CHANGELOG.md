@@ -2,7 +2,7 @@
 
 ## v0.6.0
 
-Temporal validity role + resolution anchor — additive Stage-1 IL enrichment (config/design/extract-temporal-role-2026-07-14.md). Both `synapt-extract` (PyPI) and `@synapt-dev/extract` (npm) bump to 0.6.0 in lockstep for the additive-role coherence slice.
+Temporal validity role + resolution anchor — additive Stage-1 IL enrichment (config/design/extract-temporal-role-2026-07-14.md). `synapt-extract` (PyPI) bumps to 0.6.0. `@synapt-dev/extract` (npm) carries the same additive-role parity but keeps its version at 0.5.0 for now — the npm version-sync is part of the deferred full-parity effort, not this additive-role slice.
 
 - Added `role` (`effective` | `expiry` | `range` | `superseded` | `point`) to the temporal-ref schema, capturing the validity DIRECTION a date constrains (e.g. "expires April 30" → `expiry`, vs "effective March 2026" → `effective`) — a semantic distinction the source sentence carries but prior extraction dropped
 - `role` and `resolved_end` are now BASE-tier on the `temporal_refs` capability (no longer gated behind the separate `temporal_classes` capability) — always available to any caller requesting `temporal_refs`; `type`/`context` remain `temporal_classes`-gated
