@@ -21,13 +21,12 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries",
-    "Typing :: Typed",
 ]
 
 [project.urls]
 Homepage = "https://synapt.dev"
 Repository = "https://github.com/synapt-dev/extract"
-Documentation = "https://synapt.dev/docs/extract"
+Documentation = "https://synapt.dev/schemas/"
 Schema = "https://synapt.dev/schemas/extract/v1.json"
 
 [tool.setuptools.packages.find]
