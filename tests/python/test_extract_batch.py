@@ -155,6 +155,43 @@ def test_temporal_prompt_schema_conflict_is_explicitly_normalized(case):
     assert set(normalized["temporal_refs"][0]) <= {"raw", "resolved"}
 
 
+def test_role_and_resolved_end_survive_coercion_at_base_capability_tier():
+    """THE root cause this whole fix chain traces back to (config/design/extract-temporal-
+    role-2026-07-14.md): role + resolved_end are BASE-tier now, not gated behind
+    temporal_classes — _coerce_shape's whitelist is schema-driven (build_extraction_schema),
+    so this is a pure consequence of the builder.py fix, not separate coercion code (VERIFIED
+    empirically before this test existed, ad hoc; formalized here as a permanent regression
+    guard). Uses ONLY RECALL_CAPABILITIES ("temporal_refs", no "temporal_classes") — the exact
+    capability set recall's B1 requests."""
+    stage1 = _stage1(temporal_refs=[{
+        "raw": "March to April 2026", "role": "range",
+        "resolved": "2026-03-01", "resolved_end": "2026-04-30",
+    }])
+
+    normalized = _coerce_shape(stage1, RECALL_CAPABILITIES)
+
+    assert normalized["temporal_refs"][0] == {
+        "raw": "March to April 2026", "role": "range",
+        "resolved": "2026-03-01", "resolved_end": "2026-04-30",
+    }
+
+
+def test_type_and_context_still_stripped_at_base_capability_tier():
+    """Negative control: type/context remain temporal_classes-gated (non-load-bearing extras
+    once role carries the direction signal) — confirms the fix is precisely scoped to
+    role+resolved_end, not an accidental full unlock of every temporal_classes field."""
+    stage1 = _stage1(temporal_refs=[{
+        "raw": "expires April 30", "role": "expiry", "type": "point",
+        "resolved": "2026-04-30", "context": "API key",
+    }])
+
+    normalized = _coerce_shape(stage1, RECALL_CAPABILITIES)
+
+    assert normalized["temporal_refs"][0] == {
+        "raw": "expires April 30", "role": "expiry", "resolved": "2026-04-30",
+    }
+
+
 def test_entity_refs_scalar_is_coerced_in_scope_and_dropped_out_of_scope():
     case = FIXTURES["contract_derived_cases"][0]
     assert case["must_not_be_reported_as_empirically_observed"] is True
@@ -235,6 +272,92 @@ def test_extract_batch_uses_per_call_capabilities_with_per_unit_overrides():
     assert len(outputs) == len(units)
     _assert_success(outputs[0], "fact-only")
     _assert_success(outputs[1], "decision-only")
+
+
+def test_extract_batch_threads_unit_date_as_temporal_resolution_anchor():
+    """config/design/extract-temporal-role-2026-07-14.md 'Temporal RESOLUTION needs the
+    source date': each unit's SOURCE date threads into Stage-1 as the resolution anchor for
+    partial/relative dates. Uses a NON-2026 source date (Sentinel's explicit ask — every prior
+    temporal test used 2026, which masked exactly this class of bug)."""
+    unit = BatchUnit(id="anchored", text="the API key expires April 30", date="2025-03-01")
+    seen_prompts = []
+
+    def infer(request):
+        seen_prompts.append(_request_prompt(request))
+        return json.dumps(_stage1(temporal_refs=[
+            {"raw": "expires April 30", "role": "expiry", "resolved": "2025-04-30"},
+        ]))
+
+    outputs = _run_batch([unit], infer, capabilities=["temporal_refs"])
+
+    assert len(seen_prompts) == 1
+    assert "2025-03-01" in seen_prompts[0]  # the anchor reached the model-visible prompt
+    _assert_success(outputs[0], "anchored")
+
+
+def test_extract_batch_replicates_sentinels_wrong_year_scenario_end_to_end():
+    """THE capstone: role (direction) + resolution (source-date anchor) working TOGETHER
+    through a REAL extract_batch call, replicating Sentinel's exact real-path finding
+    (config/design/extract-temporal-role-2026-07-14.md 'Temporal RESOLUTION needs the source
+    date') — a 2025-03-01-sourced unit with "API key expires April 30" must NOT silently
+    resolve to 2026 (the c791018 duct-tape bug this whole fix chain traces back to). This test
+    proves the CONTRACT end-to-end: given a correctly-anchored+classified model response, the
+    persisted envelope carries role="expiry" and the ANCHORED year — not whether a real model
+    reliably produces that response (a model-quality question for Phase-C), but that nothing
+    in the wiring between the anchor and the final envelope silently discards or corrupts it."""
+    unit = BatchUnit(
+        id="clu:0:done:0", text="the API key expires April 30", date="2025-03-01",
+    )
+
+    def infer(request):
+        assert "2025-03-01" in _request_prompt(request)  # the anchor reached the model
+        return json.dumps(_stage1(temporal_refs=[
+            {"raw": "expires April 30", "role": "expiry", "resolved": "2025-04-30"},
+        ]))
+
+    outputs = _run_batch([unit], infer, capabilities=["temporal_refs"])
+
+    _assert_success(outputs[0], "clu:0:done:0")
+    ref = outputs[0].extraction["temporal_refs"][0]
+    assert ref["role"] == "expiry"          # direction preserved through coercion + validation
+    assert ref["resolved"] == "2025-04-30"  # ANCHORED year, not 2026 (Sentinel's bug)
+
+
+def test_extract_batch_unit_without_date_omits_resolution_anchor_gracefully():
+    """Backward compat: a BatchUnit with no date (existing callers, or a candidate whose
+    source entry has no timestamp) must not crash — extract_batch degrades gracefully rather
+    than injecting a bogus anchor."""
+    unit = BatchUnit(id="no-date", text="a fact with no date anchor")
+
+    def infer(request):
+        return json.dumps(_stage1(facts=[{"text": unit.text}]))
+
+    outputs = _run_batch([unit], infer, capabilities=["facts"])
+    _assert_success(outputs[0], "no-date")
+
+
+def test_extract_batch_unit_date_is_per_unit_not_shared_across_the_batch():
+    """Two units in the SAME batch with DIFFERENT source dates — each unit's OWN prompt must
+    carry its OWN anchor, not bleed the other unit's date (per-unit call shape, v1)."""
+    units = [
+        BatchUnit(id="unit-2024", text="fact from an older entry", date="2024-06-01"),
+        BatchUnit(id="unit-2026", text="fact from a newer entry", date="2026-01-15"),
+    ]
+    seen_by_unit = {}
+
+    def infer(request):
+        prompt = _request_prompt(request)
+        for unit in units:
+            if unit.text in prompt:
+                seen_by_unit[unit.id] = prompt
+        return json.dumps(_stage1(facts=[{"text": "a fact"}]))
+
+    _run_batch(units, infer, capabilities=["facts"])
+
+    assert "2024-06-01" in seen_by_unit["unit-2024"]
+    assert "2026-01-15" not in seen_by_unit["unit-2024"]
+    assert "2026-01-15" in seen_by_unit["unit-2026"]
+    assert "2024-06-01" not in seen_by_unit["unit-2026"]
 
 
 def test_extract_batch_uses_the_standard_profile_when_call_capabilities_are_omitted():

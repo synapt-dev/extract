@@ -17,9 +17,11 @@ tuning. A NEW primitive, not a wrapper/loop over the generic builder.
 
 Contract (pinned + spec-confirmed)
 ----------------------------------
-  • Input: list[BatchUnit(id, text, capabilities?)] — explicit attribution; the
+  • Input: list[BatchUnit(id, text, capabilities?, date?)] — explicit attribution; the
     id rides into the output as source_unit_id (boundaries stay out-of-band, never
-    in model-visible text).
+    in model-visible text). `date` (optional) is the unit's SOURCE date, threaded into
+    Stage-1 as the temporal resolution anchor (config/design/extract-temporal-role-
+    2026-07-14.md) so partial/relative dates resolve against the source, not a guess.
   • Inference: an injected `infer` seam receiving a request {prompt, messages,
     capabilities} and returning a completion string. ZERO recall dependency.
   • v1 strategy: PER-UNIT (one infer call per unit) — trivially out-of-band, clean
@@ -37,7 +39,9 @@ Contract (pinned + spec-confirmed)
         coerced (scalar→array; null/non-string OPTIONAL fields like category or
         decided_at are omitted; an invalid REQUIRED field is kept so strict
         validation rejects it), out-of-scope dropped; temporal_refs → schema-valid
-        raw/resolved only; non-dict leaves preserved into strict validation.
+        raw/resolved + base-tier role/resolved_end (type/context stay temporal_classes-
+        gated, so they are stripped at the base tier); non-dict leaves preserved into
+        strict validation.
 
 Harvest map: scratchpad/extract_batch_craft_harvest.md. Boundary: OSS.
 """
@@ -88,11 +92,17 @@ Inferer = Callable[[BatchInferRequest], str]
 class BatchUnit:
     """One pre-identified unit to extract (Q1). ``id`` is stable and rides into the
     output as ``source_unit_id`` so merge/split/drop is detectable. ``capabilities``
-    optionally overrides the per-call default for this unit."""
+    optionally overrides the per-call default for this unit. ``date`` is the unit's SOURCE
+    date (config/design/extract-temporal-role-2026-07-14.md) — the resolution anchor Stage-1
+    uses to resolve partial/relative dates in ``unit.text`` (e.g. "expires April 30") against
+    the ACTUAL date the source material was written, not "today" or an unanchored guess.
+    Optional: a caller with no source date (or extracting non-temporal-sensitive units)
+    simply omits it, degrading gracefully to unanchored resolution."""
 
     id: str
     text: str
     capabilities: list[str] | None = None
+    date: str | None = None
 
 
 @dataclass
@@ -153,7 +163,12 @@ def _extract_unit(
     for _attempt in range(_MAX_ATTEMPTS):
         # Out-of-band: the model sees the unit TEXT only — never its id or a boundary
         # tag (Q-D). The id lives in bookkeeping and rides into the packet post-hoc.
-        prompt = build_extraction_prompt(unit.text, capabilities=list(capabilities), stage="stage1")
+        # unit.date threads as the temporal RESOLUTION anchor (config/design/extract-
+        # temporal-role-2026-07-14.md) — None degrades gracefully (build_extraction_prompt
+        # already handles an absent date).
+        prompt = build_extraction_prompt(
+            unit.text, capabilities=list(capabilities), stage="stage1", date=unit.date,
+        )
         request: BatchInferRequest = {
             "prompt": prompt,
             "messages": [{"role": "user", "content": prompt}],

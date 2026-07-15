@@ -28,6 +28,7 @@ export interface SynaptTemporalRef {
   version: "1";
   raw: string;
   type?: "point" | "range" | "duration" | "unresolved";
+  role?: "effective" | "expiry" | "range" | "superseded" | "point";
   resolved?: string;
   resolved_end?: string;
   context?: string;

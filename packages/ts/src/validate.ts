@@ -20,6 +20,11 @@ const VALID_TEMPORAL_TYPES: Set<string> = new Set([
   "point", "range", "duration", "unresolved",
 ]);
 
+// The validity ROLE (direction) enrichment — config/design/extract-temporal-role-2026-07-14.md.
+const VALID_TEMPORAL_ROLES: Set<string> = new Set([
+  "effective", "expiry", "range", "superseded", "point",
+]);
+
 const VALID_SENTIMENT_VALENCES: Set<string> = new Set([
   "positive", "negative", "neutral", "mixed",
 ]);
@@ -58,7 +63,7 @@ const SOURCE_METADATA_KEYS = new Set(["version", "token_count", "character_count
 const RELATION_KEYS = new Set(["target", "type", "origin", "signals"]);
 const SOURCE_REF_KEYS = new Set(["version", "snippet", "offset_start", "offset_end", "sentence_index"]);
 const SIGNALS_KEYS = new Set(["version", "confidence", "negated", "hedged", "condition"]);
-const TEMPORAL_REF_KEYS = new Set(["version", "raw", "type", "resolved", "resolved_end", "context"]);
+const TEMPORAL_REF_KEYS = new Set(["version", "raw", "type", "role", "resolved", "resolved_end", "context"]);
 const EMBEDDING_KEYS = new Set(["version", "vector", "model", "input", "dimensions", "space", "computed_at"]);
 const PRODUCER_KEYS = new Set([
   "version", "model", "model_version", "deployment", "configuration",
@@ -531,6 +536,17 @@ function validateTemporalRef(obj: unknown, path: string, errors: ValidationError
       if (ref.resolved_end !== undefined) {
         errors.push({ path: `${path}.resolved_end`, message: "must not be present when type is 'unresolved'" });
       }
+    }
+  }
+  // Validity ROLE (direction) — BASE-tier, optional, independent of `type` (config/design/
+  // extract-temporal-role-2026-07-14.md). A separate role === "range" -> resolved_end check
+  // mirrors the type === "range" one above, since role can appear without type now that role
+  // doesn't require the temporal_classes capability. Mirrors the Python _check_temporal_ref.
+  if (ref.role !== undefined) {
+    if (typeof ref.role !== "string" || !VALID_TEMPORAL_ROLES.has(ref.role)) {
+      errors.push({ path: `${path}.role`, message: "must be one of: effective, expiry, range, superseded, point" });
+    } else if (ref.role === "range" && ref.resolved_end === undefined) {
+      errors.push({ path: `${path}.resolved_end`, message: "required when role is 'range'" });
     }
   }
   if (ref.resolved !== undefined) {

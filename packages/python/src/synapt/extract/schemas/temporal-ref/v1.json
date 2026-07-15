@@ -19,6 +19,11 @@
       "enum": ["point", "range", "duration", "unresolved"],
       "description": "Value class. Not all temporal expressions resolve to a single timestamp."
     },
+    "role": {
+      "type": "string",
+      "enum": ["effective", "expiry", "range", "superseded", "point"],
+      "description": "Validity direction this date constrains: effective (valid FROM resolved), expiry (valid UNTIL resolved), range (valid FROM resolved TO resolved_end), superseded (was valid UNTIL resolved, a prior-state fact), or point (no clear direction, fallback)."
+    },
     "resolved": {
       "type": "string",
       "pattern": "^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}(:\\d{2})?(\\.\\d+)?(Z|[+\\-]\\d{2}:?\\d{2})?)?$",
@@ -41,6 +46,15 @@
       "if": {
         "properties": { "type": { "const": "range" } },
         "required": ["type"]
+      },
+      "then": {
+        "required": ["resolved_end"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "role": { "const": "range" } },
+        "required": ["role"]
       },
       "then": {
         "required": ["resolved_end"]

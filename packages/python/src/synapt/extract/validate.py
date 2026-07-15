@@ -10,6 +10,8 @@ from synapt.extract.schema import EXTRACTION_CAPABILITIES
 
 VALID_GOAL_STATUSES = frozenset(["open", "resolved", "abandoned", "in_progress"])
 VALID_TEMPORAL_TYPES = frozenset(["point", "range", "duration", "unresolved"])
+# The validity ROLE (direction) enrichment — config/design/extract-temporal-role-2026-07-14.md.
+VALID_TEMPORAL_ROLES = frozenset(["effective", "expiry", "range", "superseded", "point"])
 VALID_SENTIMENT_VALENCES = frozenset(["positive", "negative", "neutral", "mixed"])
 VALID_ACTION_ORIGINS = frozenset(["extracted", "proposed_from_goals"])
 
@@ -51,7 +53,7 @@ _SOURCE_METADATA_KEYS = frozenset(["version", "token_count", "character_count", 
 _RELATION_KEYS = frozenset(["target", "type", "origin", "signals"])
 _SOURCE_REF_KEYS = frozenset(["version", "snippet", "offset_start", "offset_end", "sentence_index"])
 _SIGNALS_KEYS = frozenset(["version", "confidence", "negated", "hedged", "condition"])
-_TEMPORAL_REF_KEYS = frozenset(["version", "raw", "type", "resolved", "resolved_end", "context"])
+_TEMPORAL_REF_KEYS = frozenset(["version", "raw", "type", "role", "resolved", "resolved_end", "context"])
 _EMBEDDING_KEYS = frozenset(["version", "vector", "model", "input", "dimensions", "space", "computed_at"])
 _PRODUCER_KEYS = frozenset([
     "version", "model", "model_version", "deployment", "configuration",
@@ -392,6 +394,19 @@ def _check_temporal_ref(obj: Any, path: str, errors: list[ValidationError]) -> N
                 errors.append(ValidationError(f"{path}.resolved", "must not be present when type is 'unresolved'"))
             if "resolved_end" in obj:
                 errors.append(ValidationError(f"{path}.resolved_end", "must not be present when type is 'unresolved'"))
+    # Validity ROLE (direction) — BASE-tier, optional, independent of `type` (config/design/
+    # extract-temporal-role-2026-07-14.md). A separate role=="range"->resolved_end check
+    # mirrors the type=="range" one above, since role can appear without type now that role
+    # doesn't require the temporal_classes capability.
+    if "role" in obj:
+        role = obj.get("role")
+        if not isinstance(role, str) or role not in VALID_TEMPORAL_ROLES:
+            errors.append(ValidationError(
+                f"{path}.role",
+                "must be one of: effective, expiry, range, superseded, point",
+            ))
+        elif role == "range" and "resolved_end" not in obj:
+            errors.append(ValidationError(f"{path}.resolved_end", "required when role is 'range'"))
     if "resolved" in obj:
         if not isinstance(obj["resolved"], str) or not _is_iso_datetime(obj["resolved"]):
             errors.append(ValidationError(f"{path}.resolved", "must be a valid ISO 8601 date/datetime"))
