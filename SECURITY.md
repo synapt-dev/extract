@@ -26,7 +26,7 @@ The `extract()` callback architecture delegates all network operations to the ca
 - Retry logic, rate limiting, and fallback providers
 - Credential management and rotation
 
-The callback API is exported in v0.4.0 and documented in `docs/callback-signature.md`. Its plain-object request/response shapes are intended to remain symmetric with the future WASM host-import contract.
+The callback API is exported in v0.4.0. Its plain-object request/response shapes are intended to remain symmetric with the future WASM host-import contract (see [universal-host-boundary.md](docs/universal-host-boundary.md)).
 
 ### Forbidden APIs
 

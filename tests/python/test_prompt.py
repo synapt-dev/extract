@@ -262,8 +262,8 @@ class TestBuildPromptCapabilities:
         assert '"temporal_refs"' in result
 
     def test_temporal_refs_role_instructions_present(self):
-        """config/design/extract-temporal-role-2026-07-14.md: the Stage-1 prompt classifies
-        each temporal ref's validity role, with the 5 enum values named."""
+        """The Stage-1 prompt classifies each temporal ref's validity role, with
+        the 5 enum values named."""
         result = build_extraction_prompt(SAMPLE_TEXT, capabilities=["temporal_refs"])
         assert '"role"' in result
         for role in ("effective", "expiry", "range", "superseded", "point"):

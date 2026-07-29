@@ -2,14 +2,7 @@
   "fixture_set": "extract-batch-real-failures-2026-07-13",
   "fixture_schema_version": 1,
   "source": {
-    "repository": "synapt-dev/config",
-    "merge_commit": "3b3d528",
-    "leaf_labels_path": "config/design/results/extract-batch-limits-2026-07-13/manual-leaf-labels.jsonl",
-    "leaf_labels_sha256": "272599669916bb2eec16aaebeca6ccee50dde3ef05bc6ae0fd1d51436e70ca6f",
-    "unit_labels_path": "config/design/results/extract-batch-limits-2026-07-13/manual-unit-labels.jsonl",
-    "unit_labels_sha256": "362c8412fb862ffc6cb300ae2b1b68218e58b7bc4d2a4313b78bb2a84e298764",
-    "raw_results_path": "config/design/results/extract-batch-limits-2026-07-13/raw-results.jsonl",
-    "raw_results_sha256": "30412251126a4f1fe83ae3c2329c3c65416db21a9779a246feeb5b6ab14e68da"
+    "provenance": "Curated fixtures for the extract batch failure-path regression tests."
   },
   "boundary": {
     "target": "OSS synapt-extract tests",

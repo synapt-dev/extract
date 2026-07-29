@@ -10,7 +10,7 @@ from synapt.extract.schema import EXTRACTION_CAPABILITIES
 
 VALID_GOAL_STATUSES = frozenset(["open", "resolved", "abandoned", "in_progress"])
 VALID_TEMPORAL_TYPES = frozenset(["point", "range", "duration", "unresolved"])
-# The validity ROLE (direction) enrichment — config/design/extract-temporal-role-2026-07-14.md.
+# The validity ROLE (direction) enrichment.
 VALID_TEMPORAL_ROLES = frozenset(["effective", "expiry", "range", "superseded", "point"])
 VALID_SENTIMENT_VALENCES = frozenset(["positive", "negative", "neutral", "mixed"])
 VALID_ACTION_ORIGINS = frozenset(["extracted", "proposed_from_goals"])
@@ -394,8 +394,8 @@ def _check_temporal_ref(obj: Any, path: str, errors: list[ValidationError]) -> N
                 errors.append(ValidationError(f"{path}.resolved", "must not be present when type is 'unresolved'"))
             if "resolved_end" in obj:
                 errors.append(ValidationError(f"{path}.resolved_end", "must not be present when type is 'unresolved'"))
-    # Validity ROLE (direction) — BASE-tier, optional, independent of `type` (config/design/
-    # extract-temporal-role-2026-07-14.md). A separate role=="range"->resolved_end check
+    # Validity ROLE (direction) — BASE-tier, optional, independent of `type`.
+    # A separate role=="range"->resolved_end check
     # mirrors the type=="range" one above, since role can appear without type now that role
     # doesn't require the temporal_classes capability.
     if "role" in obj:

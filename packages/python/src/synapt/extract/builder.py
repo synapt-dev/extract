@@ -334,8 +334,8 @@ def _source_metadata_schema(finalized: bool = False) -> JsonSchema:
 
 
 def _temporal_ref_schema(capabilities: set[str], finalized: bool = False) -> JsonSchema:
-    # role + resolved_end are BASE-tier (config/design/extract-temporal-role-2026-07-14.md):
-    # always available with just the "temporal_refs" capability, NOT gated behind
+    # role + resolved_end are BASE-tier: always available with just the
+    # "temporal_refs" capability, NOT gated behind
     # "temporal_classes" — role is the load-bearing direction signal recall's deterministic
     # mapper needs, and role=="range" needs resolved_end to be usable at all. type/context stay
     # temporal_classes-gated: non-load-bearing extras once role carries the direction recall

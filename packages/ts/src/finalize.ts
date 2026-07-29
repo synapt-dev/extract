@@ -145,7 +145,7 @@ function detectCapabilities(doc: Record<string, unknown>): ExtractionCapability[
     const refs = doc.temporal_refs as Record<string, unknown>[];
     // `type` alone still implies temporal_classes was exercised (it stays gated behind that
     // capability). `resolved_end` no longer does — it moved to the BASE temporal_refs tier
-    // alongside `role` (config/design/extract-temporal-role-2026-07-14.md). Mirrors Python.
+    // alongside `role`. Mirrors Python.
     if (refs.some((r) => r.type !== undefined)) caps.push("temporal_classes");
   }
 

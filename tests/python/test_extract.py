@@ -14,9 +14,9 @@ from synapt.extract import create_extraction_builder, extract, extract_openai
 
 
 SAMPLE_TEXT = (
-    "On May 10, 2026, Layne told Mark that Synapt should ship the extraction builder by Friday. "
-    "Mark asked whether embeddings should cover the source and summary. "
-    "Layne said the first version might use local entity IDs, and if validation passes, they will publish the gist."
+    "On May 10, 2026, Dana told Priya that Synapt should ship the extraction builder by Friday. "
+    "Priya asked whether embeddings should cover the source and summary. "
+    "Dana said the first version might use local entity IDs, and if validation passes, they will publish the gist."
 )
 
 STAGE1_FULL = {
@@ -24,11 +24,11 @@ STAGE1_FULL = {
     "entities": [
         {
             "id": "e1",
-            "name": "Layne",
+            "name": "Dana",
             "type": "person",
-            "aliases": ["Layne Penney"],
+            "aliases": ["Dana Whitfield"],
             "state": "coordinating Synapt extraction work",
-            "context": "Asked Mark to review builder and embedding behavior.",
+            "context": "Asked Priya to review builder and embedding behavior.",
             "date_hint": "2026-05-10",
             "relations": [
                 {
@@ -38,19 +38,19 @@ STAGE1_FULL = {
                     "signals": {"confidence": 0.91},
                 }
             ],
-            "source": {"snippet": "Layne told Mark", "sentence_index": 0},
+            "source": {"snippet": "Dana told Priya", "sentence_index": 0},
             "signals": {"confidence": 0.93},
         },
         {
             "id": "e2",
-            "name": "Mark",
+            "name": "Priya",
             "type": "person",
-            "aliases": ["Mark Hendrickson"],
+            "aliases": ["Priya Shah"],
             "state": "reviewing Synapt extraction ideas",
             "context": "Asked about embedding coverage.",
             "date_hint": "2026-05-10",
             "relations": [],
-            "source": {"snippet": "Mark asked", "sentence_index": 1},
+            "source": {"snippet": "Priya asked", "sentence_index": 1},
             "signals": {"confidence": 0.9},
         },
     ],
@@ -66,11 +66,11 @@ STAGE1_FULL = {
     ],
     "themes": ["extraction pipeline", "embeddings", "schema validation"],
     "keywords": ["Synapt", "extraction builder", "embeddings", "gist"],
-    "summary": "Layne and Mark discussed shipping a Synapt extraction builder with embedding coverage and validation.",
+    "summary": "Dana and Priya discussed shipping a Synapt extraction builder with embedding coverage and validation.",
     "sentiment": {"valence": "positive", "intensity": 0.55, "confidence": 0.72},
     "facts": [
         {
-            "text": "Mark asked whether embeddings should cover the source and summary.",
+            "text": "Priya asked whether embeddings should cover the source and summary.",
             "category": "technical_question",
             "source": {"snippet": "embeddings should cover the source and summary", "sentence_index": 1},
             "signals": {"confidence": 0.95},
@@ -79,7 +79,7 @@ STAGE1_FULL = {
     "questions": [
         {
             "text": "Should embeddings cover the source and summary?",
-            "directed_to": "Layne",
+            "directed_to": "Dana",
             "source": {"snippet": "whether embeddings should cover the source and summary", "sentence_index": 1},
             "signals": {"confidence": 0.95},
         }

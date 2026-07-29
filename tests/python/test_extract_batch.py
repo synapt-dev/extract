@@ -27,7 +27,7 @@ from synapt.extract.batch import _coerce_shape, _strip_output_hygiene
 RECALL_CAPABILITIES = ["facts", "decisions", "temporal_refs"]
 PRODUCED_BY = "mlx://mlx-community/Ministral-3-3B-Instruct-2512-4bit"
 EXTRACTED_AT = "2026-07-13T10:00:00Z"
-FIXTURE_SHA256 = "9b183f18ab5116cfb1f5ee67d0e99cd5af3fb7f7b99d649b1d58821f9e7489f1"
+FIXTURE_SHA256 = "d01bda9b4369c56a681cd9861bc9ed78293e32cb7fd1ed0310535758fe3adf2c"
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "extract-batch-real-failures-v1.json"
 FIXTURE_BYTES = FIXTURE_PATH.read_bytes()
 FIXTURES = json.loads(FIXTURE_BYTES)
@@ -156,8 +156,8 @@ def test_temporal_prompt_schema_conflict_is_explicitly_normalized(case):
 
 
 def test_role_and_resolved_end_survive_coercion_at_base_capability_tier():
-    """THE root cause this whole fix chain traces back to (config/design/extract-temporal-
-    role-2026-07-14.md): role + resolved_end are BASE-tier now, not gated behind
+    """THE root cause this whole fix chain traces back to: role + resolved_end are
+    BASE-tier now, not gated behind
     temporal_classes — _coerce_shape's whitelist is schema-driven (build_extraction_schema),
     so this is a pure consequence of the builder.py fix, not separate coercion code (VERIFIED
     empirically before this test existed, ad hoc; formalized here as a permanent regression
@@ -275,9 +275,9 @@ def test_extract_batch_uses_per_call_capabilities_with_per_unit_overrides():
 
 
 def test_extract_batch_threads_unit_date_as_temporal_resolution_anchor():
-    """config/design/extract-temporal-role-2026-07-14.md 'Temporal RESOLUTION needs the
-    source date': each unit's SOURCE date threads into Stage-1 as the resolution anchor for
-    partial/relative dates. Uses a NON-2026 source date (Sentinel's explicit ask — every prior
+    """'Temporal RESOLUTION needs the source date': each unit's SOURCE date threads
+    into Stage-1 as the resolution anchor for
+    partial/relative dates. Uses a NON-2026 source date (every prior
     temporal test used 2026, which masked exactly this class of bug)."""
     unit = BatchUnit(id="anchored", text="the API key expires April 30", date="2025-03-01")
     seen_prompts = []
@@ -295,12 +295,12 @@ def test_extract_batch_threads_unit_date_as_temporal_resolution_anchor():
     _assert_success(outputs[0], "anchored")
 
 
-def test_extract_batch_replicates_sentinels_wrong_year_scenario_end_to_end():
+def test_extract_batch_replicates_wrong_year_scenario_end_to_end():
     """THE capstone: role (direction) + resolution (source-date anchor) working TOGETHER
-    through a REAL extract_batch call, replicating Sentinel's exact real-path finding
-    (config/design/extract-temporal-role-2026-07-14.md 'Temporal RESOLUTION needs the source
-    date') — a 2025-03-01-sourced unit with "API key expires April 30" must NOT silently
-    resolve to 2026 (the c791018 duct-tape bug this whole fix chain traces back to). This test
+    through a REAL extract_batch call, replicating the exact real-path finding
+    ('Temporal RESOLUTION needs the source date') — a 2025-03-01-sourced unit with
+    "API key expires April 30" must NOT silently
+    resolve to 2026 (the original wrong-year regression this fix chain traces back to). This test
     proves the CONTRACT end-to-end: given a correctly-anchored+classified model response, the
     persisted envelope carries role="expiry" and the ANCHORED year — not whether a real model
     reliably produces that response (a model-quality question for Phase-C), but that nothing
@@ -320,7 +320,7 @@ def test_extract_batch_replicates_sentinels_wrong_year_scenario_end_to_end():
     _assert_success(outputs[0], "clu:0:done:0")
     ref = outputs[0].extraction["temporal_refs"][0]
     assert ref["role"] == "expiry"          # direction preserved through coercion + validation
-    assert ref["resolved"] == "2025-04-30"  # ANCHORED year, not 2026 (Sentinel's bug)
+    assert ref["resolved"] == "2025-04-30"  # ANCHORED year, not 2026
 
 
 def test_extract_batch_unit_without_date_omits_resolution_anchor_gracefully():
@@ -510,7 +510,7 @@ def test_empty_input_is_a_noop():
     assert outputs == []
 
 
-# --- Fidelity-gate regression locks (Sentinel, extract#30 re-gate) -------------
+# --- Fidelity-gate regression locks -------------
 
 def test_infer_exception_in_one_unit_never_voids_the_batch():
     """HIGH-1: an infer() exception must be contained to its own unit — neighbours
@@ -561,7 +561,7 @@ def test_non_dict_leaves_reach_strict_validation(label, malformed):
 
 
 def test_valid_metadata_only_extraction_is_not_dropped():
-    """HIGH-3: extract_batch is a GENERAL primitive (Q3) — an entities-only (array)
+    """HIGH-3: extract_batch is a GENERAL primitive — an entities-only (array)
     or summary-only (scalar) extraction is real content for its requested capability
     set, not the empty "dropped" mode."""
     entities_unit = BatchUnit(id="entities-only", text="Synapt is an organization.")
