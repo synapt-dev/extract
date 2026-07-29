@@ -372,8 +372,8 @@ class TestStage3CapabilityDetection:
         assert "temporal_classes" in caps
 
     def test_resolved_end_alone_does_not_imply_temporal_classes(self):
-        """role + resolved_end are BASE-tier (config/design/extract-temporal-role-2026-07-14.md)
-        — a range-role ref can legitimately carry resolved_end WITHOUT the temporal_classes
+        """role + resolved_end are BASE-tier — a range-role ref can legitimately carry
+        resolved_end WITHOUT the temporal_classes
         capability ever being requested/exercised. The old heuristic (`type is not None OR
         resolved_end is not None`) would have mislabeled this as having used temporal_classes;
         only `type`'s presence (still temporal_classes-gated) should trigger detection now."""

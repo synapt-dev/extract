@@ -310,7 +310,7 @@ describe("validateExtraction", () => {
       false,
       ["temporal_refs[0].resolved_end"],
     ],
-    // Validity ROLE (direction) enrichment — config/design/extract-temporal-role-2026-07-14.md.
+    // Validity ROLE (direction) enrichment.
     // Mirrors the Python TestTemporalRefRole cases. role + resolved_end are BASE-tier (no
     // temporal_classes capability needed); role is enum-constrained; role === "range" needs
     // resolved_end.

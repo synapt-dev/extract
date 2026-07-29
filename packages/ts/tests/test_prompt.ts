@@ -162,8 +162,8 @@ describe("buildExtractionPrompt", () => {
   });
 
   test("temporal_refs fragment carries role classification instructions", () => {
-    // config/design/extract-temporal-role-2026-07-14.md — the Stage-1 prompt classifies each
-    // temporal ref's validity role, with the 5 enum values named. Mirrors the Python test.
+    // The Stage-1 prompt classifies each temporal ref's validity role, with the 5 enum
+    // values named. Mirrors the Python test.
     const result = buildExtractionPrompt(SAMPLE_TEXT, { capabilities: ["temporal_refs"] });
     expect(result).toContain('"role"');
     for (const role of ["effective", "expiry", "range", "superseded", "point"]) {
@@ -501,8 +501,8 @@ describe("buildExtractionSchema", () => {
   });
 
   test("temporal role + resolved_end are base-tier; type/context stay temporal_classes-gated", () => {
-    // config/design/extract-temporal-role-2026-07-14.md — role is the load-bearing direction
-    // signal, always available with just "temporal_refs"; type/context remain gated. Mirrors
+    // role is the load-bearing direction signal, always available with just
+    // "temporal_refs"; type/context remain gated. Mirrors
     // the Python base-tier coverage (test_role_and_resolved_end_survive_coercion + the
     // type/context negative control). Requesting ONLY temporal_refs, NOT temporal_classes.
     const base = buildExtractionSchema({ capabilities: ["temporal_refs"] });

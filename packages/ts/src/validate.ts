@@ -20,7 +20,7 @@ const VALID_TEMPORAL_TYPES: Set<string> = new Set([
   "point", "range", "duration", "unresolved",
 ]);
 
-// The validity ROLE (direction) enrichment — config/design/extract-temporal-role-2026-07-14.md.
+// The validity ROLE (direction) enrichment.
 const VALID_TEMPORAL_ROLES: Set<string> = new Set([
   "effective", "expiry", "range", "superseded", "point",
 ]);
@@ -538,8 +538,8 @@ function validateTemporalRef(obj: unknown, path: string, errors: ValidationError
       }
     }
   }
-  // Validity ROLE (direction) — BASE-tier, optional, independent of `type` (config/design/
-  // extract-temporal-role-2026-07-14.md). A separate role === "range" -> resolved_end check
+  // Validity ROLE (direction) — BASE-tier, optional, independent of `type`.
+  // A separate role === "range" -> resolved_end check
   // mirrors the type === "range" one above, since role can appear without type now that role
   // doesn't require the temporal_classes capability. Mirrors the Python _check_temporal_ref.
   if (ref.role !== undefined) {

@@ -2,7 +2,7 @@
 
 ## v0.6.0
 
-Temporal validity role + resolution anchor — additive Stage-1 IL enrichment (config/design/extract-temporal-role-2026-07-14.md). `synapt-extract` (PyPI) bumps to 0.6.0. `@synapt-dev/extract` (npm) also bumps to 0.6.0 — main already carries the full additive-role parity slice, so the version number is honest — but publishes on a short lag behind PyPI (npm's publish workflow had no `workflow_dispatch` retrigger, added alongside this bump). The FULL ts/py parity effort (a TS `extract_batch`/`batch.ts` port) remains the deferred post-validation follow-up, separate from this version-sync.
+Temporal validity role + resolution anchor — additive Stage-1 IL enrichment. `synapt-extract` (PyPI) bumps to 0.6.0. `@synapt-dev/extract` (npm) also bumps to 0.6.0 — main already carries the full additive-role parity slice, so the version number is honest — but publishes on a short lag behind PyPI (npm's publish workflow had no `workflow_dispatch` retrigger, added alongside this bump). The FULL ts/py parity effort (a TS `extract_batch`/`batch.ts` port) remains the deferred post-validation follow-up, separate from this version-sync.
 
 - Added `role` (`effective` | `expiry` | `range` | `superseded` | `point`) to the temporal-ref schema, capturing the validity DIRECTION a date constrains (e.g. "expires April 30" → `expiry`, vs "effective March 2026" → `effective`) — a semantic distinction the source sentence carries but prior extraction dropped
 - `role` and `resolved_end` are now BASE-tier on the `temporal_refs` capability (no longer gated behind the separate `temporal_classes` capability) — always available to any caller requesting `temporal_refs`; `type`/`context` remain `temporal_classes`-gated
@@ -11,7 +11,7 @@ Temporal validity role + resolution anchor — additive Stage-1 IL enrichment (c
 - Fixed a prompt-rendering gap where an absent `date` param rendered the literal string "Resolve relative dates using: None." instead of omitting the instruction (wrapped in `{{#if date}}`; supported identically by both prompt renderers)
 - `_detect_capabilities`'s `temporal_classes` heuristic now keys on `type` presence only (`resolved_end` no longer implies the gated capability was exercised, since it moved to base tier)
 - Published JSON schema (`schemas/temporal-ref/v1.json`, both the repo-root canonical copy and the Python package copy) updated to match — schema-drift-check green
-- **ts/py parity — the additive `role` coherence slice IS included** (`@synapt-dev/extract` TypeScript): `schema.ts` types `role`, `builder.ts` emits `role`/`resolved_end` base-tier, `validate.ts` accepts/enum-validates `role` (+ `role === "range"` → `resolved_end`), `finalize.ts` drops the `resolved_end` inference, and the embedded prompt fragment matches the shared file byte-for-byte. TS and Python produce identical schema/validation/finalize output on the same inputs (verified cross-language). The FULL parity effort (a TS `extract_batch`/`batch.ts` port) remains the post-validation follow-up per config/design/extract-ts-py-parity-plan-2026-07-15.md — the version number now matches PyPI (see above), but the additive-role coherence slice is still what's shipped, not the full `batch.ts` port.
+- **ts/py parity — the additive `role` coherence slice IS included** (`@synapt-dev/extract` TypeScript): `schema.ts` types `role`, `builder.ts` emits `role`/`resolved_end` base-tier, `validate.ts` accepts/enum-validates `role` (+ `role === "range"` → `resolved_end`), `finalize.ts` drops the `resolved_end` inference, and the embedded prompt fragment matches the shared file byte-for-byte. TS and Python produce identical schema/validation/finalize output on the same inputs (verified cross-language). The FULL parity effort (a TS `extract_batch`/`batch.ts` port) remains the post-validation follow-up — the version number now matches PyPI (see above), but the additive-role coherence slice is still what's shipped, not the full `batch.ts` port.
 
 ## v0.5.0
 
@@ -63,7 +63,7 @@ Builder release for coupled prompts, Stage 1 response schemas, and finalized pac
 
 ## v0.3.1
 
-Three rounds of Atlas adversarial review. Schema/runtime parity, artifact bundling, no-network CI guard hardening, Python schema self-containment, behavioral-shift documentation, doc corrections.
+Three rounds of adversarial review. Schema/runtime parity, artifact bundling, no-network CI guard hardening, Python schema self-containment, behavioral-shift documentation, doc corrections.
 
 ### Behavioral shifts
 
@@ -118,14 +118,14 @@ v0.3.1 tightens both JSON Schema constraints and runtime validators. **7 of 9 ch
 - Scans source, compiled dist, and packed artifact on every CI run
 - Detects: direct forbidden globals, computed property access on global objects, string concatenation that assembles forbidden names, array `.join("")` assembling forbidden names, `Reflect.get` on global objects, `Function()` constructor (with or without `new`), base64 decode, dynamic imports, forbidden module imports, `importlib.import_module`
 - Runtime dependency allowlist (`scripts/allowed-deps.json`) with CI enforcement
-- Negative test fixtures (`tests/security-probes/`) for all 4 Atlas bypass probes: `Reflect.get(globalThis, "fetch")`, `Function("return 1")`, `["fe","tch"].join("")`, `importlib.import_module("http.client")`
+- Negative test fixtures (`tests/security-probes/`) for all 4 adversarial bypass probes: `Reflect.get(globalThis, "fetch")`, `Function("return 1")`, `["fe","tch"].join("")`, `importlib.import_module("http.client")`
 
 ### Doc corrections (moderate)
 
 - SECURITY.md: reproducible builds section clarifies wheel byte-identity vs sdist content-equivalence
 - SECURITY.md: callback architecture marked as proposed (target v0.4.0), not shipped
 - SECURITY.md: forbidden API enforcement described as best-effort regex (not AST-aware)
-- docs/callback-signature.md: status changed to PROPOSED, target v0.4.0
+- Callback API doc: status changed to PROPOSED, target v0.4.0
 - README.md: install strings updated to 0.3.1
 - Schema URL smoke gate (`scripts/check-schema-urls.sh`) verifies against GitHub Pages source (`raw.githubusercontent.com`) rather than live CDN; Cloudflare blocks GitHub Actions datacenter IPs. Live CDN verification deferred to v0.3.2 (requires Cloudflare allowlist).
 

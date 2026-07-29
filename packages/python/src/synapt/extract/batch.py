@@ -1,14 +1,13 @@
 """Batch Stage-1 extraction primitive for SynaptExtraction.
 
-Implements the pinned contract (config/design/extract-batch-limits-characterization-
-2026-07-13.md §"Contract decisions") and Sentinel's spec (extract#28,
-tests/python/test_extract_batch.py). Reliability logic is per-unit: shaping +
+Implements the pinned batch contract tracked in extract#28
+(tests/python/test_extract_batch.py). Reliability logic is per-unit: shaping +
 per-item validation + fail-closed fallback, with every failure contained to its
 own unit slot (count-invariant).
 
 Why this primitive exists
 -------------------------
-Atlas's characterization found the generic single-text builder cannot reliably
+Characterization testing found the generic single-text builder cannot reliably
 produce a schema-valid packet even for ONE clean pre-identified unit (NO_VIABLE_N
 at N=1). The failure is MALFORMATION on GROUNDED content (40/40 source-supported),
 not confabulation — the model returns the right facts in the wrong shape. Fixed
@@ -20,8 +19,8 @@ Contract (pinned + spec-confirmed)
   • Input: list[BatchUnit(id, text, capabilities?, date?)] — explicit attribution; the
     id rides into the output as source_unit_id (boundaries stay out-of-band, never
     in model-visible text). `date` (optional) is the unit's SOURCE date, threaded into
-    Stage-1 as the temporal resolution anchor (config/design/extract-temporal-role-
-    2026-07-14.md) so partial/relative dates resolve against the source, not a guess.
+    Stage-1 as the temporal resolution anchor so partial/relative dates resolve
+    against the source, not a guess.
   • Inference: an injected `infer` seam receiving a request {prompt, messages,
     capabilities} and returning a completion string. ZERO recall dependency.
   • v1 strategy: PER-UNIT (one infer call per unit) — trivially out-of-band, clean
@@ -64,17 +63,17 @@ from synapt.extract.prompt import (
 # did not request them (mirrors recall's backfill so validation does not fail on
 # containers we deliberately did not request).
 _ALWAYS_BACKFILL = ("entities", "goals", "themes")
-# One deterministic retry per failed unit → 2 attempts total (Q-B, Sentinel).
+# One deterministic retry per failed unit → 2 attempts total.
 _MAX_ATTEMPTS = 2
 
-# Terminal per-unit failure reasons (Q5). A Literal (not an Enum) so the spec's
+# Terminal per-unit failure reasons. A Literal (not an Enum) so the spec's
 # get_args(BatchFailureReason) reads the members. "merged" is reserved for a future
 # batch-all path; the per-unit v1 path never emits it.
 BatchFailureReason = Literal["unparseable", "schema_invalid", "dropped", "merged"]
 
 
 class BatchInferRequest(TypedDict):
-    """The exact request the injected `infer` seam receives (Q-D). No unit id /
+    """The exact request the injected `infer` seam receives. No unit id /
     boundary tag ever appears here — boundaries stay in extract_batch bookkeeping,
     out of model-visible text."""
 
@@ -83,18 +82,18 @@ class BatchInferRequest(TypedDict):
     capabilities: list[str]
 
 
-# The injected inference seam (Q4): request → completion. The caller (recall) passes
+# The injected inference seam: request → completion. The caller (recall) passes
 # a model-backed callable; tests pass a deterministic/recorded one. Zero recall dep.
 Inferer = Callable[[BatchInferRequest], str]
 
 
 @dataclass
 class BatchUnit:
-    """One pre-identified unit to extract (Q1). ``id`` is stable and rides into the
+    """One pre-identified unit to extract. ``id`` is stable and rides into the
     output as ``source_unit_id`` so merge/split/drop is detectable. ``capabilities``
     optionally overrides the per-call default for this unit. ``date`` is the unit's SOURCE
-    date (config/design/extract-temporal-role-2026-07-14.md) — the resolution anchor Stage-1
-    uses to resolve partial/relative dates in ``unit.text`` (e.g. "expires April 30") against
+    date — the resolution anchor Stage-1 uses to resolve partial/relative dates in
+    ``unit.text`` (e.g. "expires April 30") against
     the ACTUAL date the source material was written, not "today" or an unanchored guess.
     Optional: a caller with no source date (or extracting non-temporal-sensitive units)
     simply omits it, degrading gracefully to unanchored resolution."""
@@ -107,7 +106,7 @@ class BatchUnit:
 
 @dataclass
 class BatchUnitResult:
-    """Per-unit outcome (Q5). ``status`` "ok" sets ``extraction``; "failed" sets
+    """Per-unit outcome. ``status`` "ok" sets ``extraction``; "failed" sets
     ``reason``. ``source_unit_id`` ties the slot back to its BatchUnit."""
 
     source_unit_id: str
@@ -126,10 +125,10 @@ async def extract_batch(
     """Shape + validate a batch of pre-identified units into per-unit envelopes.
 
     COUNT-INVARIANT: returns exactly one BatchUnitResult per input unit, in a 1:1
-    slot mapping (Q5). extract_batch owns the reliability orchestration (v1 =
+    slot mapping. extract_batch owns the reliability orchestration (v1 =
     per-unit calls with one deterministic retry per failed unit) driven through the
-    injected ``infer`` seam, with zero dependency on any specific model client (Q4).
-    ``capabilities`` defaults to the standard profile when omitted (Q3).
+    injected ``infer`` seam, with zero dependency on any specific model client.
+    ``capabilities`` defaults to the standard profile when omitted.
     """
     if not units:
         return []
@@ -158,14 +157,13 @@ def _extract_unit(
     """Run one unit through the reliability ladder: build an out-of-band request →
     infer → Class-A hygiene + parse → Class-B coerce → finalize/validate. One
     deterministic retry on failure (2 attempts total); a persisting failure yields a
-    terminal marker carrying the last failure's reason (Q-B)."""
+    terminal marker carrying the last failure's reason."""
     reason: BatchFailureReason = "dropped"
     for _attempt in range(_MAX_ATTEMPTS):
         # Out-of-band: the model sees the unit TEXT only — never its id or a boundary
-        # tag (Q-D). The id lives in bookkeeping and rides into the packet post-hoc.
-        # unit.date threads as the temporal RESOLUTION anchor (config/design/extract-
-        # temporal-role-2026-07-14.md) — None degrades gracefully (build_extraction_prompt
-        # already handles an absent date).
+        # tag. The id lives in bookkeeping and rides into the packet post-hoc.
+        # unit.date threads as the temporal RESOLUTION anchor — None degrades gracefully
+        # (build_extraction_prompt already handles an absent date).
         prompt = build_extraction_prompt(
             unit.text, capabilities=list(capabilities), stage="stage1", date=unit.date,
         )
@@ -177,7 +175,7 @@ def _extract_unit(
         # Contain the injected seam per-unit: an infer failure (e.g. RuntimeError)
         # must NOT escape and void the whole batch — it is this unit's failure,
         # retried once then terminal, while neighbours still produce their slots.
-        # No output was produced, so the closest Q5 class is "dropped".
+        # No output was produced, so the closest failure class is "dropped".
         try:
             completion = infer(request)
         except Exception:
@@ -268,7 +266,7 @@ def _strip_output_hygiene(raw: str) -> str:
 
 def _coerce_shape(parsed: dict, capabilities: list[str]) -> dict:
     """Class-B POST-parse (harvest ``_sanitize_stage1_output`` whitelist backbone):
-    the capability set is the arbiter (Q2). Per the Stage-1 schema for the requested
+    the capability set is the arbiter. Per the Stage-1 schema for the requested
     capabilities, whitelist each item type to its fields, coerce (scalar→array,
     null/non-string optional → omit), and drop out-of-scope item types. ``entity_refs``
     is retained only when the ``entities`` capability is in scope; ``temporal_refs``
@@ -325,7 +323,7 @@ def _coerce_item(
     new_item: dict[str, Any] = {}
     for field, field_schema in item_props.items():
         if field == "entity_refs" and not entities_in_scope:
-            continue  # out-of-scope reference field → drop (Q2)
+            continue  # out-of-scope reference field → drop
         if field not in item:
             continue
         value = item[field]

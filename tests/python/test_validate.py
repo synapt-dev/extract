@@ -334,12 +334,12 @@ class TestTemporalRefValidation:
 
 
 class TestTemporalRefRole:
-    """The validity ROLE (direction) enrichment — config/design/extract-temporal-role-
-    2026-07-14.md. role is BASE-tier (no temporal_classes capability needed), optional
+    """The validity ROLE (direction) enrichment. role is BASE-tier (no
+    temporal_classes capability needed), optional
     (existing {raw, resolved} consumers still validate), and enum-constrained."""
 
     def test_public_typeddict_declares_role(self):
-        """GUARD (Sentinel's finding): the exported public SynaptTemporalRef TypedDict must
+        """GUARD: the exported public SynaptTemporalRef TypedDict must
         declare `role`. The v0.6 runtime EMITS role (builder schema + validation accept it),
         so a public type that omitted it would reject its own runtime output — the exact
         type/runtime mismatch this guards against. Also confirms the declared enum members
