@@ -1,5 +1,16 @@
 """synapt-extract: SynaptExtraction IL v1 schema, validation, and finalization."""
 
+#: The version of this package, available at runtime.
+#:
+#: Consumers that record which extractor produced a document should read this
+#: rather than hand-copying a version string, so the recorded value is evidence
+#: of what ran instead of a claim about it.
+#:
+#: Kept in step with ``packages/python/pyproject.toml`` and the TypeScript
+#: package; ``scripts/bump-version.sh`` updates all three and
+#: ``tests/python/test_version.py`` fails if any one of them drifts.
+__version__ = "0.6.1"
+
 from synapt.extract.schema import (
     SynaptExtraction,
     SynaptEntity,
@@ -128,4 +139,5 @@ __all__ = [
     "BatchUnit",
     "BatchUnitResult",
     "extract_batch",
+    "__version__",
 ]

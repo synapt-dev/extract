@@ -19,6 +19,8 @@ export type {
 } from "./schema.js";
 export { EXTRACTION_CAPABILITIES } from "./schema.js";
 
+export { VERSION } from "./version.js";
+
 export { validateExtraction } from "./validate.js";
 export type { ValidationResult, ValidationError } from "./validate.js";
 
