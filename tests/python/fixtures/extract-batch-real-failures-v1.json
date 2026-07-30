@@ -6,7 +6,7 @@
   },
   "boundary": {
     "target": "OSS synapt-extract tests",
-    "review": "The selected sensitivity content contains public product/process facts only. No unpublished scores, private implementation, secrets, or user data are included."
+    "review": "The sensitivity content is synthetic, invented subject matter (a fictional company's operations). No real product internals, unpublished scores, private implementation, secrets, or user data are included."
   },
   "interpretation": {
     "normalization_scope": "Repair envelope and leaf shape only. Preserve text and semantic placement; do not silently rewrite wrong-category or incomplete content.",
@@ -52,12 +52,12 @@
         {
           "unit_id": "M05",
           "pool": "multi",
-          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "text": "The team decided to track punctuality at the per-berth arrival level because one harbor sweep clears one manifest rather than one ticket per boarding group.",
           "expected_leaf_count": 1,
           "expected_type": "decision"
         }
       ],
-      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    }\n  ],\n  \"temporal_refs\": []\n}\n```",
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"track punctuality at the per-berth arrival level\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    }\n  ],\n  \"temporal_refs\": []\n}\n```",
       "observed_strict_json_parse_success": false,
       "observed_finish_reason": "stop",
       "expected_unwrap_actions": [
@@ -77,7 +77,7 @@
         ],
         "decisions": [
           {
-            "text": "measure fidelity at the facts-and-decisions leaf level"
+            "text": "track punctuality at the per-berth arrival level"
           }
         ],
         "temporal_refs": []
@@ -134,12 +134,12 @@
         {
           "unit_id": "M05",
           "pool": "multi",
-          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "text": "The team decided to track punctuality at the per-berth arrival level because one harbor sweep clears one manifest rather than one ticket per boarding group.",
           "expected_leaf_count": 1,
           "expected_type": "decision"
         }
       ],
-      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current ISO 8601 timestamp\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    },\n    {\n      \"text\": \"because one extract call produces one envelope rather than one packet per input unit\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    }\n  ],\n  \"temporal_refs\": []\n}\n```",
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current ISO 8601 timestamp\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"track punctuality at the per-berth arrival level\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    },\n    {\n      \"text\": \"because one harbor sweep clears one manifest rather than one ticket per boarding group\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    }\n  ],\n  \"temporal_refs\": []\n}\n```",
       "observed_strict_json_parse_success": false,
       "observed_finish_reason": "stop",
       "expected_unwrap_actions": [
@@ -162,10 +162,10 @@
         ],
         "decisions": [
           {
-            "text": "measure fidelity at the facts-and-decisions leaf level"
+            "text": "track punctuality at the per-berth arrival level"
           },
           {
-            "text": "because one extract call produces one envelope rather than one packet per input unit"
+            "text": "because one harbor sweep clears one manifest rather than one ticket per boarding group"
           }
         ],
         "temporal_refs": []
@@ -223,12 +223,12 @@
         {
           "unit_id": "M05",
           "pool": "multi",
-          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "text": "The team decided to track punctuality at the per-berth arrival level because one harbor sweep clears one manifest rather than one ticket per boarding group.",
           "expected_leaf_count": 1,
           "expected_type": "decision"
         }
       ],
-      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    },\n    {\n      \"text\": \"because one extract call produces one envelope rather than one packet per input unit\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    }\n  ],\n  \"temporal_refs\": []\n}\n```",
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"track punctuality at the per-berth arrival level\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    },\n    {\n      \"text\": \"because one harbor sweep clears one manifest rather than one ticket per boarding group\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    }\n  ],\n  \"temporal_refs\": []\n}\n```",
       "observed_strict_json_parse_success": false,
       "observed_finish_reason": "stop",
       "expected_unwrap_actions": [
@@ -250,10 +250,10 @@
         ],
         "decisions": [
           {
-            "text": "measure fidelity at the facts-and-decisions leaf level"
+            "text": "track punctuality at the per-berth arrival level"
           },
           {
-            "text": "because one extract call produces one envelope rather than one packet per input unit"
+            "text": "because one harbor sweep clears one manifest rather than one ticket per boarding group"
           }
         ],
         "temporal_refs": []
@@ -311,26 +311,26 @@
         {
           "unit_id": "M05",
           "pool": "multi",
-          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "text": "The team decided to track punctuality at the per-berth arrival level because one harbor sweep clears one manifest rather than one ticket per boarding group.",
           "expected_leaf_count": 1,
           "expected_type": "decision"
         },
         {
           "unit_id": "M09",
           "pool": "multi",
-          "text": "On June 22, 2026, the team established that independent Modal variants should run concurrently with spawn.",
+          "text": "On June 22, 2026, the team established that standby ferry routes should run concurrently with the peak schedule.",
           "expected_leaf_count": 1,
           "expected_type": "decision"
         },
         {
           "unit_id": "M01",
           "pool": "multi",
-          "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+          "text": "The dispatch desk receives sorted cargo pallets, while the harbor ledger remains responsible for identifying those pallets and reconciling them afterward.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         }
       ],
-      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.\",\n      \"decided_at\": null,\n      \"entity_refs\": null\n    },\n    {\n      \"text\": \"independent Modal variants should run concurrently with spawn.\",\n      \"decided_at\": \"2026-06-22T00:00:00Z\",\n      \"entity_refs\": null\n    }\n  ],\n  \"temporal_refs\": [\n    {\n      \"raw\": \"June 22, 2026\",\n      \"type\": \"point\",\n      \"resolved\": \"2026-06-22T00:00:00Z\",\n      \"context\": \"decision reference\"\n    }\n  ]\n}\n```",
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"track punctuality at the per-berth arrival level because one harbor sweep clears one manifest rather than one ticket per boarding group.\",\n      \"decided_at\": null,\n      \"entity_refs\": null\n    },\n    {\n      \"text\": \"standby ferry routes should run concurrently with the peak schedule.\",\n      \"decided_at\": \"2026-06-22T00:00:00Z\",\n      \"entity_refs\": null\n    }\n  ],\n  \"temporal_refs\": [\n    {\n      \"raw\": \"June 22, 2026\",\n      \"type\": \"point\",\n      \"resolved\": \"2026-06-22T00:00:00Z\",\n      \"context\": \"decision reference\"\n    }\n  ]\n}\n```",
       "observed_strict_json_parse_success": false,
       "observed_finish_reason": "stop",
       "expected_unwrap_actions": [
@@ -353,10 +353,10 @@
         ],
         "decisions": [
           {
-            "text": "measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit."
+            "text": "track punctuality at the per-berth arrival level because one harbor sweep clears one manifest rather than one ticket per boarding group."
           },
           {
-            "text": "independent Modal variants should run concurrently with spawn.",
+            "text": "standby ferry routes should run concurrently with the peak schedule.",
             "decided_at": "2026-06-22T00:00:00Z"
           }
         ],
@@ -447,26 +447,26 @@
         {
           "unit_id": "M05",
           "pool": "multi",
-          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "text": "The team decided to track punctuality at the per-berth arrival level because one harbor sweep clears one manifest rather than one ticket per boarding group.",
           "expected_leaf_count": 1,
           "expected_type": "decision"
         },
         {
           "unit_id": "M09",
           "pool": "multi",
-          "text": "On June 22, 2026, the team established that independent Modal variants should run concurrently with spawn.",
+          "text": "On June 22, 2026, the team established that standby ferry routes should run concurrently with the peak schedule.",
           "expected_leaf_count": 1,
           "expected_type": "decision"
         },
         {
           "unit_id": "M01",
           "pool": "multi",
-          "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+          "text": "The dispatch desk receives sorted cargo pallets, while the harbor ledger remains responsible for identifying those pallets and reconciling them afterward.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         }
       ],
-      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.\",\n      \"decided_at\": null,\n      \"entity_refs\": null\n    },\n    {\n      \"text\": \"independent Modal variants should run concurrently with spawn.\",\n      \"decided_at\": \"2026-06-22T00:00:00Z\",\n      \"entity_refs\": null\n    }\n  ],\n  \"temporal_refs\": [\n    {\n      \"raw\": \"June 22, 2026\",\n      \"type\": \"point\",\n      \"resolved\": \"2026-06-22T00:00:00Z\",\n      \"context\": \"decision reference\"\n    }\n  ]\n}\n```",
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"track punctuality at the per-berth arrival level because one harbor sweep clears one manifest rather than one ticket per boarding group.\",\n      \"decided_at\": null,\n      \"entity_refs\": null\n    },\n    {\n      \"text\": \"standby ferry routes should run concurrently with the peak schedule.\",\n      \"decided_at\": \"2026-06-22T00:00:00Z\",\n      \"entity_refs\": null\n    }\n  ],\n  \"temporal_refs\": [\n    {\n      \"raw\": \"June 22, 2026\",\n      \"type\": \"point\",\n      \"resolved\": \"2026-06-22T00:00:00Z\",\n      \"context\": \"decision reference\"\n    }\n  ]\n}\n```",
       "observed_strict_json_parse_success": false,
       "observed_finish_reason": "stop",
       "expected_unwrap_actions": [
@@ -489,10 +489,10 @@
         ],
         "decisions": [
           {
-            "text": "measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit."
+            "text": "track punctuality at the per-berth arrival level because one harbor sweep clears one manifest rather than one ticket per boarding group."
           },
           {
-            "text": "independent Modal variants should run concurrently with spawn.",
+            "text": "standby ferry routes should run concurrently with the peak schedule.",
             "decided_at": "2026-06-22T00:00:00Z"
           }
         ],
@@ -583,26 +583,26 @@
         {
           "unit_id": "M05",
           "pool": "multi",
-          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "text": "The team decided to track punctuality at the per-berth arrival level because one harbor sweep clears one manifest rather than one ticket per boarding group.",
           "expected_leaf_count": 1,
           "expected_type": "decision"
         },
         {
           "unit_id": "M09",
           "pool": "multi",
-          "text": "On June 22, 2026, the team established that independent Modal variants should run concurrently with spawn.",
+          "text": "On June 22, 2026, the team established that standby ferry routes should run concurrently with the peak schedule.",
           "expected_leaf_count": 1,
           "expected_type": "decision"
         },
         {
           "unit_id": "M01",
           "pool": "multi",
-          "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+          "text": "The dispatch desk receives sorted cargo pallets, while the harbor ledger remains responsible for identifying those pallets and reconciling them afterward.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         }
       ],
-      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The team established that independent Modal variants should run concurrently with spawn on June 22, 2026.\",\n      \"category\": \"temporal_decision\"\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    }\n  ],\n  \"temporal_refs\": [\n    {\n      \"raw\": \"June 22, 2026\",\n      \"type\": \"point\",\n      \"resolved\": \"2026-06-22\",\n      \"context\": \"Establishment of concurrent spawn for Modal variants\"\n    }\n  ]\n}\n```",
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",\n  \"facts\": [\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The team established that standby ferry routes should run concurrently with the peak schedule on June 22, 2026.\",\n      \"category\": \"temporal_decision\"\n    }\n  ],\n  \"decisions\": [\n    {\n      \"text\": \"track punctuality at the per-berth arrival level\",\n      \"entity_refs\": null,\n      \"decided_at\": null\n    }\n  ],\n  \"temporal_refs\": [\n    {\n      \"raw\": \"June 22, 2026\",\n      \"type\": \"point\",\n      \"resolved\": \"2026-06-22\",\n      \"context\": \"Establishment of concurrent standby routes for the peak schedule\"\n    }\n  ]\n}\n```",
       "observed_strict_json_parse_success": false,
       "observed_finish_reason": "stop",
       "expected_unwrap_actions": [
@@ -622,13 +622,13 @@
             "text": "The premium package is proprietary."
           },
           {
-            "text": "The team established that independent Modal variants should run concurrently with spawn on June 22, 2026.",
+            "text": "The team established that standby ferry routes should run concurrently with the peak schedule on June 22, 2026.",
             "category": "temporal_decision"
           }
         ],
         "decisions": [
           {
-            "text": "measure fidelity at the facts-and-decisions leaf level"
+            "text": "track punctuality at the per-berth arrival level"
           }
         ],
         "temporal_refs": [
@@ -711,7 +711,7 @@
         {
           "unit_id": "S01",
           "pool": "simple",
-          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         },
@@ -723,7 +723,7 @@
           "expected_type": "fact"
         }
       ],
-      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current ISO timestamp\n  \"facts\": [\n    {\n      \"text\": \"Synapt uses gitgrip to coordinate multiple repositories.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current ISO timestamp\n  \"facts\": [\n    {\n      \"text\": \"Harborline uses a shared dispatch board to coordinate multiple depots.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
       "observed_strict_json_parse_success": false,
       "observed_finish_reason": "stop",
       "expected_unwrap_actions": [
@@ -738,7 +738,7 @@
         "extracted_at": "2023-11-15T00:00:00Z",
         "facts": [
           {
-            "text": "Synapt uses gitgrip to coordinate multiple repositories."
+            "text": "Harborline uses a shared dispatch board to coordinate multiple depots."
           },
           {
             "text": "The recall package is open source."
@@ -792,7 +792,7 @@
         {
           "unit_id": "S01",
           "pool": "simple",
-          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         },
@@ -804,7 +804,7 @@
           "expected_type": "fact"
         }
       ],
-      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current timestamp\n  \"facts\": [\n    {\n      \"text\": \"Synapt uses gitgrip to coordinate multiple repositories.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current timestamp\n  \"facts\": [\n    {\n      \"text\": \"Harborline uses a shared dispatch board to coordinate multiple depots.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
       "observed_strict_json_parse_success": false,
       "observed_finish_reason": "stop",
       "expected_unwrap_actions": [
@@ -819,7 +819,7 @@
         "extracted_at": "2023-11-15T00:00:00Z",
         "facts": [
           {
-            "text": "Synapt uses gitgrip to coordinate multiple repositories."
+            "text": "Harborline uses a shared dispatch board to coordinate multiple depots."
           },
           {
             "text": "The recall package is open source."
@@ -873,7 +873,7 @@
         {
           "unit_id": "S01",
           "pool": "simple",
-          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         },
@@ -885,7 +885,7 @@
           "expected_type": "fact"
         }
       ],
-      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current ISO 8601 timestamp\n  \"facts\": [\n    {\n      \"text\": \"Synapt uses gitgrip to coordinate multiple repositories.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current ISO 8601 timestamp\n  \"facts\": [\n    {\n      \"text\": \"Harborline uses a shared dispatch board to coordinate multiple depots.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
       "observed_strict_json_parse_success": false,
       "observed_finish_reason": "stop",
       "expected_unwrap_actions": [
@@ -900,7 +900,7 @@
         "extracted_at": "2023-11-15T00:00:00Z",
         "facts": [
           {
-            "text": "Synapt uses gitgrip to coordinate multiple repositories."
+            "text": "Harborline uses a shared dispatch board to coordinate multiple depots."
           },
           {
             "text": "The recall package is open source."
@@ -954,7 +954,7 @@
         {
           "unit_id": "S01",
           "pool": "simple",
-          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         },
@@ -975,12 +975,12 @@
         {
           "unit_id": "S04",
           "pool": "simple",
-          "text": "The extract library emits SynaptExtraction documents.",
+          "text": "The loading crew emits standardized cargo manifests.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         }
       ],
-      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current ISO 8601 timestamp\n  \"facts\": [\n    {\n      \"text\": \"Synapt uses gitgrip to coordinate multiple repositories.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for current ISO 8601 timestamp\n  \"facts\": [\n    {\n      \"text\": \"Harborline uses a shared dispatch board to coordinate multiple depots.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": null\n    },\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": null\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
       "observed_strict_json_parse_success": false,
       "observed_finish_reason": "stop",
       "expected_unwrap_actions": [
@@ -996,7 +996,7 @@
         "extracted_at": "2023-11-15T00:00:00Z",
         "facts": [
           {
-            "text": "Synapt uses gitgrip to coordinate multiple repositories."
+            "text": "Harborline uses a shared dispatch board to coordinate multiple depots."
           },
           {
             "text": "The recall package is open source."
@@ -1081,7 +1081,7 @@
         {
           "unit_id": "S01",
           "pool": "simple",
-          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         },
@@ -1102,12 +1102,12 @@
         {
           "unit_id": "S04",
           "pool": "simple",
-          "text": "The extract library emits SynaptExtraction documents.",
+          "text": "The loading crew emits standardized cargo manifests.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         }
       ],
-      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for actual extraction time\n  \"facts\": [\n    {\n      \"text\": \"Synapt uses gitgrip to coordinate multiple repositories.\",\n      \"category\": \"coordination\"\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": \"licensing\"\n    },\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": \"licensing\"\n    },\n    {\n      \"text\": \"The extract library emits SynaptExtraction documents.\",\n      \"category\": \"output_format\"\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for actual extraction time\n  \"facts\": [\n    {\n      \"text\": \"Harborline uses a shared dispatch board to coordinate multiple depots.\",\n      \"category\": \"coordination\"\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": \"licensing\"\n    },\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": \"licensing\"\n    },\n    {\n      \"text\": \"The loading crew emits standardized cargo manifests.\",\n      \"category\": \"output_format\"\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
       "observed_strict_json_parse_success": false,
       "observed_finish_reason": "stop",
       "expected_unwrap_actions": [
@@ -1119,7 +1119,7 @@
         "extracted_at": "2023-11-15T00:00:00Z",
         "facts": [
           {
-            "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+            "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
             "category": "coordination"
           },
           {
@@ -1131,7 +1131,7 @@
             "category": "licensing"
           },
           {
-            "text": "The extract library emits SynaptExtraction documents.",
+            "text": "The loading crew emits standardized cargo manifests.",
             "category": "output_format"
           }
         ],
@@ -1211,7 +1211,7 @@
         {
           "unit_id": "S01",
           "pool": "simple",
-          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         },
@@ -1232,12 +1232,12 @@
         {
           "unit_id": "S04",
           "pool": "simple",
-          "text": "The extract library emits SynaptExtraction documents.",
+          "text": "The loading crew emits standardized cargo manifests.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         }
       ],
-      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for actual extraction time\n  \"facts\": [\n    {\n      \"text\": \"Synapt uses gitgrip to coordinate multiple repositories.\",\n      \"category\": \"coordination\"\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": \"licensing\"\n    },\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": \"licensing\"\n    },\n    {\n      \"text\": \"The extract library emits SynaptExtraction documents.\",\n      \"category\": \"output_format\"\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for actual extraction time\n  \"facts\": [\n    {\n      \"text\": \"Harborline uses a shared dispatch board to coordinate multiple depots.\",\n      \"category\": \"coordination\"\n    },\n    {\n      \"text\": \"The recall package is open source.\",\n      \"category\": \"licensing\"\n    },\n    {\n      \"text\": \"The premium package is proprietary.\",\n      \"category\": \"licensing\"\n    },\n    {\n      \"text\": \"The loading crew emits standardized cargo manifests.\",\n      \"category\": \"output_format\"\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
       "observed_strict_json_parse_success": false,
       "observed_finish_reason": "stop",
       "expected_unwrap_actions": [
@@ -1249,7 +1249,7 @@
         "extracted_at": "2023-11-15T00:00:00Z",
         "facts": [
           {
-            "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+            "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
             "category": "coordination"
           },
           {
@@ -1261,7 +1261,7 @@
             "category": "licensing"
           },
           {
-            "text": "The extract library emits SynaptExtraction documents.",
+            "text": "The loading crew emits standardized cargo manifests.",
             "category": "output_format"
           }
         ],
@@ -1341,12 +1341,12 @@
         {
           "unit_id": "M05",
           "pool": "multi",
-          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "text": "The team decided to track punctuality at the per-berth arrival level because one harbor sweep clears one manifest rather than one ticket per boarding group.",
           "expected_leaf_count": 1,
           "expected_type": "decision"
         }
       ],
-      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for actual extraction time\n  \"facts\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level\",\n      \"category\": \"technical\"\n    },\n    {\n      \"text\": \"one extract call produces one envelope rather than one packet per input unit\",\n      \"category\": \"implementation_detail\"\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for actual extraction time\n  \"facts\": [\n    {\n      \"text\": \"track punctuality at the per-berth arrival level\",\n      \"category\": \"technical\"\n    },\n    {\n      \"text\": \"one harbor sweep clears one manifest rather than one ticket per boarding group\",\n      \"category\": \"implementation_detail\"\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
       "observed_strict_json_parse_success": false,
       "observed_finish_reason": "stop",
       "expected_unwrap_actions": [
@@ -1358,11 +1358,11 @@
         "extracted_at": "2023-11-15T00:00:00Z",
         "facts": [
           {
-            "text": "measure fidelity at the facts-and-decisions leaf level",
+            "text": "track punctuality at the per-berth arrival level",
             "category": "technical"
           },
           {
-            "text": "one extract call produces one envelope rather than one packet per input unit",
+            "text": "one harbor sweep clears one manifest rather than one ticket per boarding group",
             "category": "implementation_detail"
           }
         ],
@@ -1401,12 +1401,12 @@
         {
           "unit_id": "M05",
           "pool": "multi",
-          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "text": "The team decided to track punctuality at the per-berth arrival level because one harbor sweep clears one manifest rather than one ticket per boarding group.",
           "expected_leaf_count": 1,
           "expected_type": "decision"
         }
       ],
-      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for actual extraction timestamp\n  \"facts\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level\",\n      \"category\": \"technical\"\n    },\n    {\n      \"text\": \"one extract call produces one envelope rather than one packet per input unit\",\n      \"category\": \"implementation\"\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for actual extraction timestamp\n  \"facts\": [\n    {\n      \"text\": \"track punctuality at the per-berth arrival level\",\n      \"category\": \"technical\"\n    },\n    {\n      \"text\": \"one harbor sweep clears one manifest rather than one ticket per boarding group\",\n      \"category\": \"implementation\"\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
       "observed_strict_json_parse_success": false,
       "observed_finish_reason": "stop",
       "expected_unwrap_actions": [
@@ -1418,11 +1418,11 @@
         "extracted_at": "2023-11-15T00:00:00Z",
         "facts": [
           {
-            "text": "measure fidelity at the facts-and-decisions leaf level",
+            "text": "track punctuality at the per-berth arrival level",
             "category": "technical"
           },
           {
-            "text": "one extract call produces one envelope rather than one packet per input unit",
+            "text": "one harbor sweep clears one manifest rather than one ticket per boarding group",
             "category": "implementation"
           }
         ],
@@ -1461,12 +1461,12 @@
         {
           "unit_id": "M05",
           "pool": "multi",
-          "text": "The team decided to measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+          "text": "The team decided to track punctuality at the per-berth arrival level because one harbor sweep clears one manifest rather than one ticket per boarding group.",
           "expected_leaf_count": 1,
           "expected_type": "decision"
         }
       ],
-      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for actual extraction timestamp\n  \"facts\": [\n    {\n      \"text\": \"measure fidelity at the facts-and-decisions leaf level\",\n      \"category\": \"technical\"\n    },\n    {\n      \"text\": \"one extract call produces one envelope rather than one packet per input unit\",\n      \"category\": \"implementation_detail\"\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
+      "raw_model_output": "```json\n{\n  \"extracted_at\": \"2023-11-15T00:00:00Z\",  // Placeholder for actual extraction timestamp\n  \"facts\": [\n    {\n      \"text\": \"track punctuality at the per-berth arrival level\",\n      \"category\": \"technical\"\n    },\n    {\n      \"text\": \"one harbor sweep clears one manifest rather than one ticket per boarding group\",\n      \"category\": \"implementation_detail\"\n    }\n  ],\n  \"decisions\": [],\n  \"temporal_refs\": []\n}\n```",
       "observed_strict_json_parse_success": false,
       "observed_finish_reason": "stop",
       "expected_unwrap_actions": [
@@ -1478,11 +1478,11 @@
         "extracted_at": "2023-11-15T00:00:00Z",
         "facts": [
           {
-            "text": "measure fidelity at the facts-and-decisions leaf level",
+            "text": "track punctuality at the per-berth arrival level",
             "category": "technical"
           },
           {
-            "text": "one extract call produces one envelope rather than one packet per input unit",
+            "text": "one harbor sweep clears one manifest rather than one ticket per boarding group",
             "category": "implementation_detail"
           }
         ],
@@ -1521,7 +1521,7 @@
         {
           "unit_id": "M01",
           "pool": "multi",
-          "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+          "text": "The dispatch desk receives sorted cargo pallets, while the harbor ledger remains responsible for identifying those pallets and reconciling them afterward.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         }
@@ -1571,7 +1571,7 @@
         {
           "unit_id": "M01",
           "pool": "multi",
-          "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+          "text": "The dispatch desk receives sorted cargo pallets, while the harbor ledger remains responsible for identifying those pallets and reconciling them afterward.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         }
@@ -1621,7 +1621,7 @@
         {
           "unit_id": "M01",
           "pool": "multi",
-          "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+          "text": "The dispatch desk receives sorted cargo pallets, while the harbor ledger remains responsible for identifying those pallets and reconciling them afterward.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         }
@@ -1671,7 +1671,7 @@
         {
           "unit_id": "S01",
           "pool": "simple",
-          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         }
@@ -1720,7 +1720,7 @@
         {
           "unit_id": "S01",
           "pool": "simple",
-          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         }
@@ -1770,7 +1770,7 @@
         {
           "unit_id": "S01",
           "pool": "simple",
-          "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+          "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
           "expected_leaf_count": 1,
           "expected_type": "fact"
         }
@@ -1821,7 +1821,7 @@
       ],
       "field": "decisions",
       "raw_leaf": {
-        "text": "measure fidelity at the facts-and-decisions leaf level",
+        "text": "track punctuality at the per-berth arrival level",
         "entity_refs": null,
         "decided_at": null
       },
@@ -1838,7 +1838,7 @@
         "omit_null_or_non_string_decided_at"
       ],
       "expected_normalized_leaf": {
-        "text": "measure fidelity at the facts-and-decisions leaf level"
+        "text": "track punctuality at the per-berth arrival level"
       },
       "semantic_reclassification_allowed": false
     },
@@ -1879,7 +1879,7 @@
       ],
       "field": "decisions",
       "raw_leaf": {
-        "text": "measure fidelity at the facts-and-decisions leaf level",
+        "text": "track punctuality at the per-berth arrival level",
         "entity_refs": null,
         "decided_at": null
       },
@@ -1896,7 +1896,7 @@
         "omit_null_or_non_string_decided_at"
       ],
       "expected_normalized_leaf": {
-        "text": "measure fidelity at the facts-and-decisions leaf level"
+        "text": "track punctuality at the per-berth arrival level"
       },
       "semantic_reclassification_allowed": false
     },
@@ -1910,7 +1910,7 @@
       ],
       "field": "decisions",
       "raw_leaf": {
-        "text": "because one extract call produces one envelope rather than one packet per input unit",
+        "text": "because one harbor sweep clears one manifest rather than one ticket per boarding group",
         "entity_refs": null,
         "decided_at": null
       },
@@ -1927,7 +1927,7 @@
         "omit_null_or_non_string_decided_at"
       ],
       "expected_normalized_leaf": {
-        "text": "because one extract call produces one envelope rather than one packet per input unit"
+        "text": "because one harbor sweep clears one manifest rather than one ticket per boarding group"
       },
       "semantic_reclassification_allowed": false
     },
@@ -1968,7 +1968,7 @@
       ],
       "field": "decisions",
       "raw_leaf": {
-        "text": "measure fidelity at the facts-and-decisions leaf level",
+        "text": "track punctuality at the per-berth arrival level",
         "entity_refs": null,
         "decided_at": null
       },
@@ -1985,7 +1985,7 @@
         "omit_null_or_non_string_decided_at"
       ],
       "expected_normalized_leaf": {
-        "text": "measure fidelity at the facts-and-decisions leaf level"
+        "text": "track punctuality at the per-berth arrival level"
       },
       "semantic_reclassification_allowed": false
     },
@@ -1999,7 +1999,7 @@
       ],
       "field": "decisions",
       "raw_leaf": {
-        "text": "because one extract call produces one envelope rather than one packet per input unit",
+        "text": "because one harbor sweep clears one manifest rather than one ticket per boarding group",
         "entity_refs": null,
         "decided_at": null
       },
@@ -2016,7 +2016,7 @@
         "omit_null_or_non_string_decided_at"
       ],
       "expected_normalized_leaf": {
-        "text": "because one extract call produces one envelope rather than one packet per input unit"
+        "text": "because one harbor sweep clears one manifest rather than one ticket per boarding group"
       },
       "semantic_reclassification_allowed": false
     },
@@ -2057,7 +2057,7 @@
       ],
       "field": "decisions",
       "raw_leaf": {
-        "text": "measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+        "text": "track punctuality at the per-berth arrival level because one harbor sweep clears one manifest rather than one ticket per boarding group.",
         "decided_at": null,
         "entity_refs": null
       },
@@ -2073,7 +2073,7 @@
         "omit_null_or_non_string_decided_at"
       ],
       "expected_normalized_leaf": {
-        "text": "measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit."
+        "text": "track punctuality at the per-berth arrival level because one harbor sweep clears one manifest rather than one ticket per boarding group."
       },
       "semantic_reclassification_allowed": false
     },
@@ -2087,7 +2087,7 @@
       ],
       "field": "decisions",
       "raw_leaf": {
-        "text": "independent Modal variants should run concurrently with spawn.",
+        "text": "standby ferry routes should run concurrently with the peak schedule.",
         "decided_at": "2026-06-22T00:00:00Z",
         "entity_refs": null
       },
@@ -2101,7 +2101,7 @@
         "omit_null_or_invalid_entity_refs"
       ],
       "expected_normalized_leaf": {
-        "text": "independent Modal variants should run concurrently with spawn.",
+        "text": "standby ferry routes should run concurrently with the peak schedule.",
         "decided_at": "2026-06-22T00:00:00Z"
       },
       "semantic_reclassification_allowed": false
@@ -2143,7 +2143,7 @@
       ],
       "field": "decisions",
       "raw_leaf": {
-        "text": "measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit.",
+        "text": "track punctuality at the per-berth arrival level because one harbor sweep clears one manifest rather than one ticket per boarding group.",
         "decided_at": null,
         "entity_refs": null
       },
@@ -2159,7 +2159,7 @@
         "omit_null_or_non_string_decided_at"
       ],
       "expected_normalized_leaf": {
-        "text": "measure fidelity at the facts-and-decisions leaf level because one extract call produces one envelope rather than one packet per input unit."
+        "text": "track punctuality at the per-berth arrival level because one harbor sweep clears one manifest rather than one ticket per boarding group."
       },
       "semantic_reclassification_allowed": false
     },
@@ -2173,7 +2173,7 @@
       ],
       "field": "decisions",
       "raw_leaf": {
-        "text": "independent Modal variants should run concurrently with spawn.",
+        "text": "standby ferry routes should run concurrently with the peak schedule.",
         "decided_at": "2026-06-22T00:00:00Z",
         "entity_refs": null
       },
@@ -2187,7 +2187,7 @@
         "omit_null_or_invalid_entity_refs"
       ],
       "expected_normalized_leaf": {
-        "text": "independent Modal variants should run concurrently with spawn.",
+        "text": "standby ferry routes should run concurrently with the peak schedule.",
         "decided_at": "2026-06-22T00:00:00Z"
       },
       "semantic_reclassification_allowed": false
@@ -2229,7 +2229,7 @@
       ],
       "field": "decisions",
       "raw_leaf": {
-        "text": "measure fidelity at the facts-and-decisions leaf level",
+        "text": "track punctuality at the per-berth arrival level",
         "entity_refs": null,
         "decided_at": null
       },
@@ -2246,7 +2246,7 @@
         "omit_null_or_non_string_decided_at"
       ],
       "expected_normalized_leaf": {
-        "text": "measure fidelity at the facts-and-decisions leaf level"
+        "text": "track punctuality at the per-berth arrival level"
       },
       "semantic_reclassification_allowed": false
     },
@@ -2287,7 +2287,7 @@
       ],
       "field": "facts",
       "raw_leaf": {
-        "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+        "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
         "category": null
       },
       "observed_schema_errors": [
@@ -2300,7 +2300,7 @@
         "omit_null_or_non_string_category"
       ],
       "expected_normalized_leaf": {
-        "text": "Synapt uses gitgrip to coordinate multiple repositories."
+        "text": "Harborline uses a shared dispatch board to coordinate multiple depots."
       },
       "semantic_reclassification_allowed": false
     },
@@ -2341,7 +2341,7 @@
       ],
       "field": "facts",
       "raw_leaf": {
-        "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+        "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
         "category": null
       },
       "observed_schema_errors": [
@@ -2354,7 +2354,7 @@
         "omit_null_or_non_string_category"
       ],
       "expected_normalized_leaf": {
-        "text": "Synapt uses gitgrip to coordinate multiple repositories."
+        "text": "Harborline uses a shared dispatch board to coordinate multiple depots."
       },
       "semantic_reclassification_allowed": false
     },
@@ -2395,7 +2395,7 @@
       ],
       "field": "facts",
       "raw_leaf": {
-        "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+        "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
         "category": null
       },
       "observed_schema_errors": [
@@ -2408,7 +2408,7 @@
         "omit_null_or_non_string_category"
       ],
       "expected_normalized_leaf": {
-        "text": "Synapt uses gitgrip to coordinate multiple repositories."
+        "text": "Harborline uses a shared dispatch board to coordinate multiple depots."
       },
       "semantic_reclassification_allowed": false
     },
@@ -2449,7 +2449,7 @@
       ],
       "field": "facts",
       "raw_leaf": {
-        "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+        "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
         "category": null
       },
       "observed_schema_errors": [
@@ -2462,7 +2462,7 @@
         "omit_null_or_non_string_category"
       ],
       "expected_normalized_leaf": {
-        "text": "Synapt uses gitgrip to coordinate multiple repositories."
+        "text": "Harborline uses a shared dispatch board to coordinate multiple depots."
       },
       "semantic_reclassification_allowed": false
     },
@@ -2537,7 +2537,7 @@
       ],
       "dropped_source_unit": {
         "source_unit_id": "M01",
-        "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+        "text": "The dispatch desk receives sorted cargo pallets, while the harbor ledger remains responsible for identifying those pallets and reconciling them afterward.",
         "expected_type": "fact"
       },
       "observed_mapped_leaf_ids": [],
@@ -2566,7 +2566,7 @@
       ],
       "dropped_source_unit": {
         "source_unit_id": "M01",
-        "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+        "text": "The dispatch desk receives sorted cargo pallets, while the harbor ledger remains responsible for identifying those pallets and reconciling them afterward.",
         "expected_type": "fact"
       },
       "observed_mapped_leaf_ids": [],
@@ -2595,7 +2595,7 @@
       ],
       "dropped_source_unit": {
         "source_unit_id": "M01",
-        "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+        "text": "The dispatch desk receives sorted cargo pallets, while the harbor ledger remains responsible for identifying those pallets and reconciling them afterward.",
         "expected_type": "fact"
       },
       "observed_mapped_leaf_ids": [],
@@ -2624,7 +2624,7 @@
       ],
       "dropped_source_unit": {
         "source_unit_id": "S04",
-        "text": "The extract library emits SynaptExtraction documents.",
+        "text": "The loading crew emits standardized cargo manifests.",
         "expected_type": "fact"
       },
       "observed_mapped_leaf_ids": [],
@@ -2650,7 +2650,7 @@
       ],
       "dropped_source_unit": {
         "source_unit_id": "M01",
-        "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+        "text": "The dispatch desk receives sorted cargo pallets, while the harbor ledger remains responsible for identifying those pallets and reconciling them afterward.",
         "expected_type": "fact"
       },
       "observed_mapped_leaf_ids": [],
@@ -2676,7 +2676,7 @@
       ],
       "dropped_source_unit": {
         "source_unit_id": "M01",
-        "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+        "text": "The dispatch desk receives sorted cargo pallets, while the harbor ledger remains responsible for identifying those pallets and reconciling them afterward.",
         "expected_type": "fact"
       },
       "observed_mapped_leaf_ids": [],
@@ -2702,7 +2702,7 @@
       ],
       "dropped_source_unit": {
         "source_unit_id": "M01",
-        "text": "The extract builder receives clean knowledge units, while recall remains responsible for identifying those units and reconciling them afterward.",
+        "text": "The dispatch desk receives sorted cargo pallets, while the harbor ledger remains responsible for identifying those pallets and reconciling them afterward.",
         "expected_type": "fact"
       },
       "observed_mapped_leaf_ids": [],
@@ -2728,7 +2728,7 @@
       ],
       "dropped_source_unit": {
         "source_unit_id": "S01",
-        "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+        "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
         "expected_type": "fact"
       },
       "observed_mapped_leaf_ids": [],
@@ -2754,7 +2754,7 @@
       ],
       "dropped_source_unit": {
         "source_unit_id": "S01",
-        "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+        "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
         "expected_type": "fact"
       },
       "observed_mapped_leaf_ids": [],
@@ -2780,7 +2780,7 @@
       ],
       "dropped_source_unit": {
         "source_unit_id": "S01",
-        "text": "Synapt uses gitgrip to coordinate multiple repositories.",
+        "text": "Harborline uses a shared dispatch board to coordinate multiple depots.",
         "expected_type": "fact"
       },
       "observed_mapped_leaf_ids": [],
@@ -2806,7 +2806,7 @@
       ],
       "field": "decisions",
       "raw_leaf": {
-        "text": "On July 1, 2026, per-epoch checkpointing became mandatory for long Modal jobs after repeated preemptions.",
+        "text": "On July 1, 2026, per-voyage logging became mandatory for long freight runs after repeated cancellations.",
         "decided_at": "2026-07-01",
         "context": "mandatory rule"
       },
@@ -2817,7 +2817,7 @@
         "drop_unknown_key:context"
       ],
       "expected_normalized_leaf": {
-        "text": "On July 1, 2026, per-epoch checkpointing became mandatory for long Modal jobs after repeated preemptions.",
+        "text": "On July 1, 2026, per-voyage logging became mandatory for long freight runs after repeated cancellations.",
         "decided_at": "2026-07-01"
       }
     },
@@ -2831,11 +2831,11 @@
       ],
       "field": "facts",
       "raw_leaf": {
-        "text": "On July 1, 2026, per-epoch checkpointing became mandatory for long Modal jobs after repeated preemptions.",
+        "text": "On July 1, 2026, per-voyage logging became mandatory for long freight runs after repeated cancellations.",
         "type": "range",
         "resolved": "2026-07-01T00:00:00Z",
         "resolved_end": "2026-07-13T00:00:00Z",
-        "context": "Mandatory after preemptions"
+        "context": "Mandatory after cancellations"
       },
       "observed_schema_errors": [
         "extra_keys:context,resolved,resolved_end,type"
@@ -2847,7 +2847,7 @@
         "drop_unknown_key:type"
       ],
       "expected_normalized_leaf": {
-        "text": "On July 1, 2026, per-epoch checkpointing became mandatory for long Modal jobs after repeated preemptions."
+        "text": "On July 1, 2026, per-voyage logging became mandatory for long freight runs after repeated cancellations."
       }
     }
   ],
@@ -2903,7 +2903,7 @@
         "raw": "June 22, 2026",
         "type": "point",
         "resolved": "2026-06-22",
-        "context": "Establishment of concurrent spawn for Modal variants"
+        "context": "Establishment of concurrent standby routes for the peak schedule"
       },
       "observed_prompt_schema_conflict": "The builder prompt requests type/context/resolved_end, but the Stage-1 schema permits only raw and optional resolved.",
       "expected_actions": [
@@ -2924,8 +2924,8 @@
       "empirical_difference": "The run emitted entity_refs=null, never a scalar. This fixture changes only that value to a string because scalar-to-array is in the shared contract.",
       "field": "decisions",
       "raw_leaf": {
-        "text": "measure fidelity at the facts-and-decisions leaf level",
-        "entity_refs": "facts-and-decisions leaf level",
+        "text": "track punctuality at the per-berth arrival level",
+        "entity_refs": "per-berth arrival level",
         "decided_at": null
       },
       "expected_actions": [
@@ -2933,9 +2933,9 @@
         "omit_null_or_non_string_decided_at"
       ],
       "expected_normalized_leaf": {
-        "text": "measure fidelity at the facts-and-decisions leaf level",
+        "text": "track punctuality at the per-berth arrival level",
         "entity_refs": [
-          "facts-and-decisions leaf level"
+          "per-berth arrival level"
         ]
       },
       "must_not_be_reported_as_empirically_observed": true
