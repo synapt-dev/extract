@@ -15,4 +15,4 @@
  * Keep in step with `packages/ts/package.json` and
  * `packages/python/pyproject.toml`; `scripts/bump-version.sh` updates all three.
  */
-export const VERSION = "0.6.0";
+export const VERSION = "0.6.1";

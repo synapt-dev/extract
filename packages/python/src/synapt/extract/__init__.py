@@ -9,7 +9,7 @@
 #: Kept in step with ``packages/python/pyproject.toml`` and the TypeScript
 #: package; ``scripts/bump-version.sh`` updates all three and
 #: ``tests/python/test_version.py`` fails if any one of them drifts.
-__version__ = "0.6.0"
+__version__ = "0.6.1"
 
 from synapt.extract.schema import (
     SynaptExtraction,
