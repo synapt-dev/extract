@@ -27,7 +27,7 @@ from synapt.extract.batch import _coerce_shape, _strip_output_hygiene
 RECALL_CAPABILITIES = ["facts", "decisions", "temporal_refs"]
 PRODUCED_BY = "mlx://mlx-community/Ministral-3-3B-Instruct-2512-4bit"
 EXTRACTED_AT = "2026-07-13T10:00:00Z"
-FIXTURE_SHA256 = "d01bda9b4369c56a681cd9861bc9ed78293e32cb7fd1ed0310535758fe3adf2c"
+FIXTURE_SHA256 = "c0451311c5706750dda8d2ee2ed9cec8f2208dc46f298b6be00f75d893947fbf"
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "extract-batch-real-failures-v1.json"
 FIXTURE_BYTES = FIXTURE_PATH.read_bytes()
 FIXTURES = json.loads(FIXTURE_BYTES)
